@@ -16,14 +16,12 @@ class _SignInScreenState extends State<SignInScreen> {
 
   // Hardcoded users for demonstration
   final Map<String, String> _users = {
-    'admin1': 'admin123',
-    'admin2': 'admin123',
-    'admin3': 'admin123',
-    'user1': 'user123',
-    'user2': 'user123',
-    'user3': 'user123',
-    'user4': 'user123',
-    'user5': 'user123',
+    'admin1': 'SAb_ADM@24',
+    'admin2': 'SAB_adM@24',
+    'user1': 'Sab_24@',
+    'user2': 'SAB_24PR',
+    'helmy': 'SAB_24PR',
+    
   };
 
   void _signIn() {

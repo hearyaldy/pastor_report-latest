@@ -23,8 +23,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
-  flutter_launcher_icons: ^0.10.0 # Add the flutter_launcher_icons package
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.1 # Add the flutter_launcher_icons package
 
 # Configuration for flutter_launcher_icons to generate app icons for Android and iOS
 flutter_icons:
