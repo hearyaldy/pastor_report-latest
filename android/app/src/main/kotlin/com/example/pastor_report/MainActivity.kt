@@ -1,4 +1,4 @@
-package com.example.pastor_report
+package com.haweeinc.pastor_report
 
 import io.flutter.embedding.android.FlutterActivity
 
