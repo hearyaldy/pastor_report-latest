@@ -39,6 +39,9 @@ class AuthService {
     required String password,
     required String displayName,
     bool isAdmin = false,
+    String? mission,
+    String? district,
+    String? region,
   }) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
@@ -54,6 +57,9 @@ class AuthService {
           email: email,
           displayName: displayName,
           isAdmin: isAdmin,
+          mission: mission,
+          district: district,
+          region: region,
         );
 
         await _firestore.collection('users').doc(user.uid).set(userModel.toMap());

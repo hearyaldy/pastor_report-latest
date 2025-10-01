@@ -15,12 +15,17 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final UserManagementService _userService = UserManagementService();
   final _displayNameController = TextEditingController();
+  final _districtController = TextEditingController();
+  final _regionController = TextEditingController();
   bool _isEditing = false;
   bool _isLoading = false;
+  String? _selectedMission;
 
   @override
   void dispose() {
     _displayNameController.dispose();
+    _districtController.dispose();
+    _regionController.dispose();
     super.dispose();
   }
 
@@ -33,6 +38,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _userService.updateUserProfile(
         uid: authProvider.user!.uid,
         displayName: _displayNameController.text.trim(),
+        mission: _selectedMission,
+        district: _districtController.text.trim(),
+        region: _regionController.text.trim(),
       );
 
       if (!mounted) return;
@@ -397,6 +405,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   setState(() {
                                     _isEditing = true;
                                     _displayNameController.text = user.displayName;
+                                    _selectedMission = user.mission;
+                                    _districtController.text = user.district ?? '';
+                                    _regionController.text = user.region ?? '';
                                   });
                                 },
                               ),
@@ -412,6 +423,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   labelText: 'Display Name',
                                   border: OutlineInputBorder(),
                                   prefixIcon: Icon(Icons.person),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              DropdownButtonFormField<String>(
+                                value: _selectedMission,
+                                decoration: const InputDecoration(
+                                  labelText: 'Mission',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.church_outlined),
+                                ),
+                                items: AppConstants.missions.map((String mission) {
+                                  return DropdownMenuItem<String>(
+                                    value: mission,
+                                    child: Text(mission),
+                                  );
+                                }).toList(),
+                                onChanged: (String? newValue) {
+                                  setState(() {
+                                    _selectedMission = newValue;
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              TextField(
+                                controller: _districtController,
+                                decoration: const InputDecoration(
+                                  labelText: 'District',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.location_city_outlined),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              TextField(
+                                controller: _regionController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Region',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.map_outlined),
                                 ),
                               ),
                               const SizedBox(height: 16),
@@ -463,6 +512,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     subtitle: Text(user.email),
                   ),
                 ),
+
+                // Mission
+                if (user.mission != null && user.mission!.isNotEmpty)
+                  Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: ListTile(
+                      leading: const Icon(Icons.church_outlined, color: AppTheme.primary),
+                      title: const Text('Mission'),
+                      subtitle: Text(user.mission!),
+                    ),
+                  ),
+
+                // District
+                if (user.district != null && user.district!.isNotEmpty)
+                  Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: ListTile(
+                      leading: const Icon(Icons.location_city_outlined, color: AppTheme.primary),
+                      title: const Text('District'),
+                      subtitle: Text(user.district!),
+                    ),
+                  ),
+
+                // Region
+                if (user.region != null && user.region!.isNotEmpty)
+                  Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: ListTile(
+                      leading: const Icon(Icons.map_outlined, color: AppTheme.primary),
+                      title: const Text('Region'),
+                      subtitle: Text(user.region!),
+                    ),
+                  ),
 
                 // Security Section
                 const SizedBox(height: 16),

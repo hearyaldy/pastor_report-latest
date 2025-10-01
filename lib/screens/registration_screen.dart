@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/theme.dart';
+import 'package:pastor_report/utils/constants.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -16,9 +17,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _districtController = TextEditingController();
+  final _regionController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  String? _selectedMission;
 
   @override
   void dispose() {
@@ -26,6 +30,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _districtController.dispose();
+    _regionController.dispose();
     super.dispose();
   }
 
@@ -51,6 +57,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
         displayName: _nameController.text.trim(),
+        mission: _selectedMission,
+        district: _districtController.text.trim(),
+        region: _regionController.text.trim(),
       );
 
       if (!mounted) return;
@@ -140,6 +149,70 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     }
                     if (!value.contains('@')) {
                       return 'Please enter a valid email';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Mission Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedMission,
+                  decoration: const InputDecoration(
+                    labelText: 'Mission',
+                    hintText: 'Select your mission',
+                    prefixIcon: Icon(Icons.church_outlined),
+                  ),
+                  items: AppConstants.missions.map((String mission) {
+                    return DropdownMenuItem<String>(
+                      value: mission,
+                      child: Text(mission),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedMission = newValue;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please select a mission';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // District Field
+                TextFormField(
+                  controller: _districtController,
+                  decoration: const InputDecoration(
+                    labelText: 'District',
+                    hintText: 'Enter your district',
+                    prefixIcon: Icon(Icons.location_city_outlined),
+                  ),
+                  textInputAction: TextInputAction.next,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your district';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Region Field
+                TextFormField(
+                  controller: _regionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Region',
+                    hintText: 'Enter your region',
+                    prefixIcon: Icon(Icons.map_outlined),
+                  ),
+                  textInputAction: TextInputAction.next,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your region';
                     }
                     return null;
                   },

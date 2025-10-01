@@ -179,24 +179,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Consumer<AuthProvider>(
                           builder: (context, authProvider, child) {
                             if (authProvider.isAuthenticated) {
+                              final user = authProvider.user!;
+                              // Build location info string
+                              List<String> locationParts = [];
+                              if (user.mission != null && user.mission!.isNotEmpty) {
+                                locationParts.add(user.mission!);
+                              }
+                              if (user.district != null && user.district!.isNotEmpty) {
+                                locationParts.add(user.district!);
+                              }
+                              if (user.region != null && user.region!.isNotEmpty) {
+                                locationParts.add(user.region!);
+                              }
+                              final locationInfo = locationParts.join(' • ');
+
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     'Welcome back,',
                                     style: TextStyle(
-                                      color: Colors.white.withOpacity(0.9),
+                                      color: Colors.white.withValues(alpha: 0.9),
                                       fontSize: 16,
                                     ),
                                   ),
                                   Text(
-                                    authProvider.user!.displayName ?? 'User',
+                                    user.displayName ?? 'User',
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
+                                  if (locationInfo.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.location_on,
+                                          color: Colors.white70,
+                                          size: 16,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            locationInfo,
+                                            style: const TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 13,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ],
                               );
                             } else {

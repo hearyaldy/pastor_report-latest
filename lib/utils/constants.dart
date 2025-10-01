@@ -5,7 +5,7 @@ import 'package:pastor_report/models/department_model.dart';
 class AppConstants {
   // App Info
   static const String appName = 'Pastor Report';
-  static const String appVersion = '2.5.0';
+  static const String appVersion = '2.6.0';
 
   // Routes
   static const String routeSplash = '/splash';
@@ -21,6 +21,14 @@ class AppConstants {
   static const String keyRememberMe = 'remember_me';
   static const String keyUserEmail = 'user_email';
   static const String keyThemeMode = 'theme_mode';
+
+  // Mission Options
+  static const List<String> missions = [
+    'Sabah Mission',
+    'North Sabah Mission',
+    'Sarawak Mission',
+    'Peninsular Mission',
+  ];
 }
 
 class AppColors {

@@ -84,6 +84,9 @@ class AuthProvider with ChangeNotifier {
     required String password,
     required String displayName,
     bool isAdmin = false,
+    String? mission,
+    String? district,
+    String? region,
   }) async {
     _setLoading(true);
     _clearError();
@@ -94,6 +97,9 @@ class AuthProvider with ChangeNotifier {
         password: password,
         displayName: displayName,
         isAdmin: isAdmin,
+        mission: mission,
+        district: district,
+        region: region,
       );
 
       _setLoading(false);
