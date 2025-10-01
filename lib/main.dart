@@ -8,6 +8,7 @@ import 'package:pastor_report/providers/theme_provider.dart';
 import 'package:pastor_report/providers/mission_provider.dart';
 import 'package:pastor_report/services/cache_service.dart';
 import 'package:pastor_report/services/activity_storage_service.dart';
+import 'package:pastor_report/services/settings_service.dart';
 import 'package:pastor_report/models/activity_model.dart';
 import 'package:pastor_report/screens/splash_screen.dart';
 import 'package:pastor_report/screens/main_screen.dart';
@@ -40,6 +41,9 @@ void main() async {
 
   // Initialize activity storage service
   await ActivityStorageService.instance.initialize();
+
+  // Initialize settings service
+  await SettingsService.instance.initialize();
 
   runApp(const PastorReportApp());
 }

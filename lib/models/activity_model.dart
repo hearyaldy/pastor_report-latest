@@ -5,8 +5,9 @@ class Activity {
   final String id;
   final DateTime date;
   final String activities;
-  final double mileage;
+  final double mileage; // in kilometers
   final String note;
+  final String? location; // Location/destination
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -16,6 +17,7 @@ class Activity {
     required this.activities,
     required this.mileage,
     required this.note,
+    this.location,
     required this.createdAt,
     this.updatedAt,
   });
@@ -28,6 +30,7 @@ class Activity {
       activities: json['activities'] as String,
       mileage: (json['mileage'] as num).toDouble(),
       note: json['note'] as String? ?? '',
+      location: json['location'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: json['updatedAt'] != null
           ? DateTime.parse(json['updatedAt'] as String)
@@ -43,6 +46,7 @@ class Activity {
       'activities': activities,
       'mileage': mileage,
       'note': note,
+      'location': location,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -55,6 +59,7 @@ class Activity {
     String? activities,
     double? mileage,
     String? note,
+    String? location,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -64,9 +69,15 @@ class Activity {
       activities: activities ?? this.activities,
       mileage: mileage ?? this.mileage,
       note: note ?? this.note,
+      location: location ?? this.location,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
+  }
+
+  /// Calculate cost based on km rate
+  double calculateCost(double kmRate) {
+    return mileage * kmRate;
   }
 
   @override

@@ -24,6 +24,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> {
   final _activitiesController = TextEditingController();
   final _mileageController = TextEditingController();
   final _noteController = TextEditingController();
+  final _locationController = TextEditingController();
   final ActivityStorageService _storageService = ActivityStorageService.instance;
 
   DateTime _selectedDate = DateTime.now();
@@ -41,6 +42,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> {
       _activitiesController.text = activity.activities;
       _mileageController.text = activity.mileage.toString();
       _noteController.text = activity.note;
+      _locationController.text = activity.location ?? '';
     }
   }
 
@@ -49,6 +51,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> {
     _activitiesController.dispose();
     _mileageController.dispose();
     _noteController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
@@ -94,6 +97,9 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> {
         activities: _activitiesController.text.trim(),
         mileage: double.parse(_mileageController.text.trim()),
         note: _noteController.text.trim(),
+        location: _locationController.text.trim().isEmpty
+            ? null
+            : _locationController.text.trim(),
         createdAt: _isEditMode ? widget.activity!.createdAt : DateTime.now(),
         updatedAt: _isEditMode ? DateTime.now() : null,
       );
@@ -223,12 +229,28 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> {
 
               const SizedBox(height: 16),
 
+              // Location Field
+              TextFormField(
+                controller: _locationController,
+                decoration: InputDecoration(
+                  labelText: 'Location / Destination',
+                  hintText: 'Enter location or destination',
+                  prefixIcon: const Icon(Icons.location_on),
+                  border: const OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                ),
+                textCapitalization: TextCapitalization.words,
+              ),
+
+              const SizedBox(height: 16),
+
               // Mileage Field
               TextFormField(
                 controller: _mileageController,
                 decoration: InputDecoration(
-                  labelText: 'Mileage (miles) *',
-                  hintText: 'Enter miles traveled',
+                  labelText: 'Kilometers (km) *',
+                  hintText: 'Enter kilometers traveled',
                   prefixIcon: const Icon(Icons.directions_car),
                   border: const OutlineInputBorder(),
                   filled: true,
@@ -240,14 +262,14 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> {
                 ],
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Please enter mileage';
+                    return 'Please enter kilometers';
                   }
                   final mileage = double.tryParse(value.trim());
                   if (mileage == null) {
                     return 'Please enter a valid number';
                   }
                   if (mileage < 0) {
-                    return 'Mileage cannot be negative';
+                    return 'Kilometers cannot be negative';
                   }
                   return null;
                 },
