@@ -29,15 +29,43 @@ class Department {
       lastUpdated = (map['createdAt'] as Timestamp).toDate();
     }
 
+    // Generate default color from name if not set
+    Color? color;
+    if (map['color'] != null) {
+      color = Color(map['color']);
+    } else {
+      // Generate color from name hash
+      color = _generateColorFromName(map['name'] ?? '');
+    }
+
     return Department(
       id: map['id'] ?? '',
       name: map['name'] ?? '',
       icon: getIconFromString(map['icon'] ?? 'person'),
       formUrl: map['formUrl'] ?? '',
-      color: map['color'] != null ? Color(map['color']) : null,
+      color: color,
       lastUpdated: lastUpdated,
       isActive: map['isActive'] ?? true,
     );
+  }
+
+  static Color _generateColorFromName(String name) {
+    final colors = [
+      const Color(0xFFE8F5E9), // Light Green
+      const Color(0xFFE3F2FD), // Light Blue
+      const Color(0xFFFFF3E0), // Light Orange
+      const Color(0xFFF3E5F5), // Light Purple
+      const Color(0xFFFCE4EC), // Light Pink
+      const Color(0xFFE0F2F1), // Light Teal
+      const Color(0xFFFFF9C4), // Light Yellow
+      const Color(0xFFFFEBEE), // Light Red
+      const Color(0xFFEDE7F6), // Light Deep Purple
+      const Color(0xFFE1F5FE), // Light Cyan
+    ];
+
+    // Use hash of name to pick a color
+    int hash = name.hashCode.abs();
+    return colors[hash % colors.length];
   }
 
   Map<String, dynamic> toMap() {

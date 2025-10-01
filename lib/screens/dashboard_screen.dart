@@ -406,7 +406,10 @@ class _DepartmentCard extends StatelessWidget {
   }
 
   Color _getStatusColor() {
-    if (!department.isActive) return Colors.grey;
+    // Red for inactive or no link
+    if (!department.isActive || department.formUrl.isEmpty) {
+      return Colors.red;
+    }
 
     if (department.lastUpdated == null) return Colors.orange;
 
@@ -424,16 +427,16 @@ class _DepartmentCard extends StatelessWidget {
   String _getStatusText() {
     if (!department.isActive) return 'Inactive';
 
-    if (department.formUrl.isEmpty) return 'No link';
+    if (department.formUrl.isEmpty) return 'No Link';
 
-    if (department.lastUpdated == null) return 'Never updated';
+    if (department.lastUpdated == null) return 'Not Updated';
 
     final daysSinceUpdate = DateTime.now().difference(department.lastUpdated!).inDays;
 
     if (daysSinceUpdate > 30) {
       return 'Outdated';
     } else if (daysSinceUpdate > 7) {
-      return 'Needs update';
+      return 'Check Link';
     } else {
       return 'Active';
     }
