@@ -211,6 +211,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
+                                  if (user.role != null && user.role!.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.badge_outlined,
+                                          color: Colors.white70,
+                                          size: 14,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          user.role!,
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 12,
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                   if (locationInfo.isNotEmpty) ...[
                                     const SizedBox(height: 4),
                                     Row(

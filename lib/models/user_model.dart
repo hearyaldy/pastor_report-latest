@@ -8,6 +8,7 @@ class UserModel {
   final String? mission;
   final String? district;
   final String? region;
+  final String? role;
 
   UserModel({
     required this.uid,
@@ -18,6 +19,7 @@ class UserModel {
     this.mission,
     this.district,
     this.region,
+    this.role,
   });
 
   // Create UserModel from Firebase User and Firestore data
@@ -31,6 +33,7 @@ class UserModel {
       mission: map['mission'],
       district: map['district'],
       region: map['region'],
+      role: map['role'],
     );
   }
 
@@ -44,6 +47,7 @@ class UserModel {
       'mission': mission,
       'district': district,
       'region': region,
+      'role': role,
     };
   }
 
@@ -63,6 +67,7 @@ class UserModel {
     String? mission,
     String? district,
     String? region,
+    String? role,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -73,6 +78,7 @@ class UserModel {
       mission: mission ?? this.mission,
       district: district ?? this.district,
       region: region ?? this.region,
+      role: role ?? this.role,
     );
   }
 }

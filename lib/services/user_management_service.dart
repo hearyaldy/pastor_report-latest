@@ -55,6 +55,7 @@ class UserManagementService {
     String? mission,
     String? district,
     String? region,
+    String? role,
   }) async {
     try {
       final Map<String, dynamic> updates = {};
@@ -79,6 +80,10 @@ class UserManagementService {
 
       if (region != null) {
         updates['region'] = region;
+      }
+
+      if (role != null) {
+        updates['role'] = role;
       }
 
       if (updates.isNotEmpty) {

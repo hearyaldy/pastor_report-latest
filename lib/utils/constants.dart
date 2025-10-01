@@ -5,7 +5,7 @@ import 'package:pastor_report/models/department_model.dart';
 class AppConstants {
   // App Info
   static const String appName = 'Pastor Report';
-  static const String appVersion = '2.6.0';
+  static const String appVersion = '2.7.0';
 
   // Routes
   static const String routeSplash = '/splash';
@@ -28,6 +28,17 @@ class AppConstants {
     'North Sabah Mission',
     'Sarawak Mission',
     'Peninsular Mission',
+  ];
+
+  // Role Options
+  static const List<String> roles = [
+    'Mission Officer',
+    'Departmental Director',
+    'District Pastor',
+    'Lay Pastor',
+    'Contract Pastor',
+    'Mission Staff',
+    'Volunteer',
   ];
 }
 

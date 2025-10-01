@@ -20,6 +20,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditing = false;
   bool _isLoading = false;
   String? _selectedMission;
+  String? _selectedRole;
 
   @override
   void dispose() {
@@ -41,6 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         mission: _selectedMission,
         district: _districtController.text.trim(),
         region: _regionController.text.trim(),
+        role: _selectedRole,
       );
 
       if (!mounted) return;
@@ -408,6 +410,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     _selectedMission = user.mission;
                                     _districtController.text = user.district ?? '';
                                     _regionController.text = user.region ?? '';
+                                    _selectedRole = user.role;
                                   });
                                 },
                               ),
@@ -462,6 +465,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   border: OutlineInputBorder(),
                                   prefixIcon: Icon(Icons.map_outlined),
                                 ),
+                              ),
+                              const SizedBox(height: 16),
+                              DropdownButtonFormField<String>(
+                                value: _selectedRole,
+                                decoration: const InputDecoration(
+                                  labelText: 'Role',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.badge_outlined),
+                                ),
+                                items: AppConstants.roles.map((String role) {
+                                  return DropdownMenuItem<String>(
+                                    value: role,
+                                    child: Text(role),
+                                  );
+                                }).toList(),
+                                onChanged: (String? newValue) {
+                                  setState(() {
+                                    _selectedRole = newValue;
+                                  });
+                                },
                               ),
                               const SizedBox(height: 16),
                               Row(
@@ -543,6 +566,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       leading: const Icon(Icons.map_outlined, color: AppTheme.primary),
                       title: const Text('Region'),
                       subtitle: Text(user.region!),
+                    ),
+                  ),
+
+                // Role
+                if (user.role != null && user.role!.isNotEmpty)
+                  Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: ListTile(
+                      leading: const Icon(Icons.badge_outlined, color: AppTheme.primary),
+                      title: const Text('Role'),
+                      subtitle: Text(user.role!),
                     ),
                   ),
 

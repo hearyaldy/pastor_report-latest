@@ -23,6 +23,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
   String? _selectedMission;
+  String? _selectedRole;
 
   @override
   void dispose() {
@@ -60,6 +61,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         mission: _selectedMission,
         district: _districtController.text.trim(),
         region: _regionController.text.trim(),
+        role: _selectedRole,
       );
 
       if (!mounted) return;
@@ -213,6 +215,34 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter your region';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Role Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedRole,
+                  decoration: const InputDecoration(
+                    labelText: 'Role',
+                    hintText: 'Select your role',
+                    prefixIcon: Icon(Icons.badge_outlined),
+                  ),
+                  items: AppConstants.roles.map((String role) {
+                    return DropdownMenuItem<String>(
+                      value: role,
+                      child: Text(role),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedRole = newValue;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please select a role';
                     }
                     return null;
                   },
