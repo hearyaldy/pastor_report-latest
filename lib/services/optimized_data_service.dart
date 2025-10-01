@@ -19,10 +19,6 @@ class OptimizedDataService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final CacheService _cache = CacheService.instance;
 
-  // In-memory cache for active streams
-  final Map<String, StreamController<List<Department>>> _departmentStreamControllers = {};
-  final Map<String, StreamController<List<Mission>>> _missionStreamControllers = {};
-
   // Track last fetch time to avoid rapid successive reads
   final Map<String, DateTime> _lastFetchTimes = {};
   static const Duration _minFetchInterval = Duration(seconds: 5);
@@ -178,167 +174,123 @@ class OptimizedDataService {
   }
 
   /// Stream departments with smart caching
-  Stream<List<Department>> streamDepartmentsByMissionName(String missionName) {
-    final streamKey = 'stream_departments_$missionName';
+  Stream<List<Department>> streamDepartmentsByMissionName(String missionName) async* {
+    debugPrint('🎧 StreamDepartments: Creating stream for $missionName');
 
-    // Reuse existing stream if available
-    if (_departmentStreamControllers.containsKey(streamKey)) {
-      return _departmentStreamControllers[streamKey]!.stream;
+    // First, emit cached data for instant display
+    final cached = await _cache.getCachedList(
+      _cache.getMissionDepartmentsByNameKey(missionName),
+    );
+    if (cached != null && cached.isNotEmpty) {
+      final departments = <Department>[];
+      for (final data in cached) {
+        try {
+          departments.add(Department.fromMap(data));
+        } catch (e) {
+          debugPrint('Error parsing cached department: $e');
+        }
+      }
+      if (departments.isNotEmpty) {
+        yield departments;
+        debugPrint('📦 StreamDepartments: Emitted ${departments.length} cached departments');
+      }
     }
 
-    // Create new stream controller
-    late StreamController<List<Department>> controller;
+    // Find mission first
+    final missionsSnapshot = await _firestore
+        .collection('missions')
+        .where('name', isEqualTo: missionName)
+        .limit(1)
+        .get();
 
-    controller = StreamController<List<Department>>.broadcast(
-      onListen: () async {
-        // First, emit cached data for instant display
-        final cached = await _cache.getCachedList(
-          _cache.getMissionDepartmentsByNameKey(missionName),
+    if (missionsSnapshot.docs.isEmpty) {
+      yield [];
+      return;
+    }
+
+    final missionId = missionsSnapshot.docs.first.id;
+
+    // Listen to Firestore changes and yield them
+    // Show ALL departments (both active and inactive)
+    await for (final snapshot in _firestore
+        .collection('missions')
+        .doc(missionId)
+        .collection('departments')
+        .orderBy('name')
+        .snapshots()) {
+      final departments = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return Department(
+          id: doc.id,
+          name: data['name'] as String? ?? '',
+          icon: Department.getIconFromString(data['icon'] as String? ?? 'business'),
+          formUrl: data['formUrl'] as String? ?? '',
+          isActive: data['isActive'] as bool? ?? true,
+          mission: data['mission'] as String? ?? '',
         );
-        if (cached != null && cached.isNotEmpty) {
-          final departments = <Department>[];
-          for (final data in cached) {
-            try {
-              departments.add(Department.fromMap(data));
-            } catch (e) {
-              // Skip invalid data
-            }
-          }
-          if (departments.isNotEmpty) {
-            controller.add(departments);
-          }
-        }
+      }).toList();
 
-        // Then set up Firestore listener
-        // Find mission first
-        final missionsSnapshot = await _firestore
-            .collection('missions')
-            .where('name', isEqualTo: missionName)
-            .limit(1)
-            .get();
+      debugPrint('📊 OptimizedDataService: Loaded ${departments.length} departments for $missionName (active: ${departments.where((d) => d.isActive).length}, inactive: ${departments.where((d) => !d.isActive).length})');
 
-        if (missionsSnapshot.docs.isEmpty) {
-          controller.add([]);
-          return;
-        }
+      // Update cache
+      _cache.setCacheList(
+        _cache.getMissionDepartmentsByNameKey(missionName),
+        departments.map((d) => d.toMap()).toList(),
+        'departments',
+      );
 
-        final missionId = missionsSnapshot.docs.first.id;
-
-        // Listen to changes (but Firestore will use cache when offline)
-        // Show ALL departments (both active and inactive)
-        _firestore
-            .collection('missions')
-            .doc(missionId)
-            .collection('departments')
-            .orderBy('name')
-            .snapshots()
-            .listen(
-          (snapshot) {
-            final departments = snapshot.docs.map((doc) {
-              final data = doc.data();
-              return Department(
-                id: doc.id,
-                name: data['name'] as String? ?? '',
-                icon: Department.getIconFromString(data['icon'] as String? ?? 'business'),
-                formUrl: data['formUrl'] as String? ?? '',
-                isActive: data['isActive'] as bool? ?? true,
-                mission: data['mission'] as String? ?? '',
-              );
-            }).toList();
-
-            debugPrint('📊 OptimizedDataService: Loaded ${departments.length} departments for $missionName (active: ${departments.where((d) => d.isActive).length}, inactive: ${departments.where((d) => !d.isActive).length})');
-
-            // Update cache
-            _cache.setCacheList(
-              _cache.getMissionDepartmentsByNameKey(missionName),
-              departments.map((d) => d.toMap()).toList(),
-              'departments',
-            );
-
-            controller.add(departments);
-          },
-          onError: (error) {
-            controller.addError(error);
-          },
-        );
-      },
-      onCancel: () {
-        _departmentStreamControllers.remove(streamKey);
-      },
-    );
-
-    _departmentStreamControllers[streamKey] = controller;
-    return controller.stream;
+      yield departments;
+    }
   }
 
   /// Stream missions with smart caching
-  Stream<List<Mission>> streamMissions() {
-    const streamKey = 'stream_missions';
+  Stream<List<Mission>> streamMissions() async* {
+    debugPrint('🎧 StreamMissions: Creating stream');
 
-    // Reuse existing stream
-    if (_missionStreamControllers.containsKey(streamKey)) {
-      return _missionStreamControllers[streamKey]!.stream;
+    // Emit cached data first
+    final cached = await _cache.getCachedList(_cache.getMissionsListKey());
+    if (cached != null && cached.isNotEmpty) {
+      final missions = <Mission>[];
+      for (final data in cached) {
+        try {
+          final id = data['id'] as String? ?? '';
+          missions.add(Mission.fromMap(data, id));
+        } catch (e) {
+          debugPrint('Error parsing cached mission: $e');
+        }
+      }
+      if (missions.isNotEmpty) {
+        yield missions;
+        debugPrint('📦 StreamMissions: Emitted ${missions.length} cached missions');
+      }
     }
 
-    late StreamController<List<Mission>> controller;
-
-    controller = StreamController<List<Mission>>.broadcast(
-      onListen: () async {
-        // Emit cached data first
-        final cached = await _cache.getCachedList(_cache.getMissionsListKey());
-        if (cached != null && cached.isNotEmpty) {
-          final missions = <Mission>[];
-          for (final data in cached) {
-            try {
-              final id = data['id'] as String? ?? '';
-              missions.add(Mission.fromMap(data, id));
-            } catch (e) {
-              // Skip invalid data
-            }
-          }
-          if (missions.isNotEmpty) {
-            controller.add(missions);
-          }
-        }
-
-        // Set up Firestore listener
-        _firestore
-            .collection('missions')
-            .orderBy('name')
-            .snapshots()
-            .listen(
-          (snapshot) {
-            final missions = snapshot.docs.map((doc) {
-              final data = doc.data();
-              return Mission(
-                id: doc.id,
-                name: data['name'] as String? ?? '',
-                code: data['code'] as String? ?? '',
-                description: data['description'] as String? ?? '',
-              );
-            }).toList();
-
-            // Update cache
-            _cache.setCacheList(
-              _cache.getMissionsListKey(),
-              missions.map((m) => m.toMap()).toList(),
-              'missions',
-            );
-
-            controller.add(missions);
-          },
-          onError: (error) {
-            controller.addError(error);
-          },
+    // Listen to Firestore changes and yield them
+    await for (final snapshot in _firestore
+        .collection('missions')
+        .orderBy('name')
+        .snapshots()) {
+      final missions = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return Mission(
+          id: doc.id,
+          name: data['name'] as String? ?? '',
+          code: data['code'] as String? ?? '',
+          description: data['description'] as String? ?? '',
         );
-      },
-      onCancel: () {
-        _missionStreamControllers.remove(streamKey);
-      },
-    );
+      }).toList();
 
-    _missionStreamControllers[streamKey] = controller;
-    return controller.stream;
+      debugPrint('📊 OptimizedDataService: Loaded ${missions.length} missions');
+
+      // Update cache
+      _cache.setCacheList(
+        _cache.getMissionsListKey(),
+        missions.map((m) => m.toMap()).toList(),
+        'missions',
+      );
+
+      yield missions;
+    }
   }
 
   /// Clear cache for a specific mission's departments
@@ -359,34 +311,11 @@ class OptimizedDataService {
     _lastFetchTimes.removeWhere((key, value) => key.startsWith('departments_'));
   }
 
-  /// Force refresh all department streams (useful after code changes)
-  Future<void> refreshAllStreams() async {
-    // Close all existing stream controllers
-    for (final controller in _departmentStreamControllers.values) {
-      await controller.close();
-    }
-    for (final controller in _missionStreamControllers.values) {
-      await controller.close();
-    }
-
-    // Clear the maps so new streams will be created
-    _departmentStreamControllers.clear();
-    _missionStreamControllers.clear();
-
+  /// Force refresh all caches (useful after code changes)
+  Future<void> refreshAllCaches() async {
     // Clear all caches
     await _cache.clearAllCache();
     _lastFetchTimes.clear();
-  }
-
-  /// Dispose all stream controllers
-  void dispose() {
-    for (final controller in _departmentStreamControllers.values) {
-      controller.close();
-    }
-    for (final controller in _missionStreamControllers.values) {
-      controller.close();
-    }
-    _departmentStreamControllers.clear();
-    _missionStreamControllers.clear();
+    debugPrint('🔄 OptimizedDataService: All caches cleared');
   }
 }
