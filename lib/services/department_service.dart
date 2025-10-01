@@ -6,31 +6,38 @@ class DepartmentService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'departments';
 
-  // Get all departments
-  Stream<List<Department>> getDepartmentsStream() {
-    return _firestore
-        .collection(_collection)
-        .orderBy('name')
-        .snapshots()
-        .map((snapshot) {
+  // Get all departments (optionally filtered by mission)
+  Stream<List<Department>> getDepartmentsStream({String? mission}) {
+    Query query = _firestore.collection(_collection);
+
+    // Filter by mission if provided
+    if (mission != null && mission.isNotEmpty) {
+      query = query.where('mission', isEqualTo: mission);
+    }
+
+    return query.orderBy('name').snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
-        final data = doc.data();
+        final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id; // Add id to the map
         return Department.fromMap(data);
       }).toList();
     });
   }
 
-  // Get all departments (one-time fetch)
-  Future<List<Department>> getDepartments() async {
+  // Get all departments (one-time fetch, optionally filtered by mission)
+  Future<List<Department>> getDepartments({String? mission}) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .orderBy('name')
-          .get();
+      Query query = _firestore.collection(_collection);
+
+      // Filter by mission if provided
+      if (mission != null && mission.isNotEmpty) {
+        query = query.where('mission', isEqualTo: mission);
+      }
+
+      final snapshot = await query.orderBy('name').get();
 
       return snapshot.docs.map((doc) {
-        final data = doc.data();
+        final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id; // Add id to the map
         return Department.fromMap(data);
       }).toList();

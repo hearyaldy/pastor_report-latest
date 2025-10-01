@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/constants.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -28,11 +30,25 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // Navigate to home after animation completes
-    Future.delayed(const Duration(milliseconds: 2000), () {
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, AppConstants.routeHome);
+    // Navigate to appropriate screen after animation completes
+    Future.delayed(const Duration(milliseconds: 2000), () async {
+      if (!mounted) return;
+
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      // Check if user is authenticated and needs onboarding
+      if (authProvider.isAuthenticated && authProvider.user != null) {
+        final user = authProvider.user!;
+
+        // If user has no mission, show onboarding
+        if (user.mission == null || user.mission!.isEmpty) {
+          Navigator.pushReplacementNamed(context, AppConstants.routeOnboarding);
+          return;
+        }
       }
+
+      // Otherwise go to home
+      Navigator.pushReplacementNamed(context, AppConstants.routeHome);
     });
   }
 

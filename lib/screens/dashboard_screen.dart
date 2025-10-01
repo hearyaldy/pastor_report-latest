@@ -323,9 +323,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // Department Grid
           SliverPadding(
             padding: const EdgeInsets.all(16),
-            sliver: StreamBuilder<List<Department>>(
-              stream: _departmentService.getDepartmentsStream(),
-              builder: (context, snapshot) {
+            sliver: Consumer<AuthProvider>(
+              builder: (context, authProvider, child) {
+                // Get user's mission for filtering
+                final userMission = authProvider.user?.mission;
+
+                return StreamBuilder<List<Department>>(
+                  stream: _departmentService.getDepartmentsStream(mission: userMission),
+                  builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const SliverFillRemaining(
                     child: Center(child: CircularProgressIndicator()),
@@ -422,6 +427,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     },
                     childCount: filteredDepartments.length,
                   ),
+                );
+                  },
                 );
               },
             ),

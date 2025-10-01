@@ -5,7 +5,7 @@ import 'package:pastor_report/models/department_model.dart';
 class AppConstants {
   // App Info
   static const String appName = 'Pastor Report';
-  static const String appVersion = '2.7.0';
+  static const String appVersion = '3.0.0';
 
   // Routes
   static const String routeSplash = '/splash';
@@ -16,6 +16,7 @@ class AppConstants {
   static const String routeAdmin = '/admin';
   static const String routeDepartments = '/departments';
   static const String routeInAppWebView = '/inapp_webview';
+  static const String routeOnboarding = '/onboarding';
 
   // Storage Keys
   static const String keyRememberMe = 'remember_me';

@@ -10,6 +10,7 @@ class Department {
   final Color? color;
   final DateTime? lastUpdated;
   final bool isActive;
+  final String? mission; // Mission this department belongs to
 
   Department({
     required this.id,
@@ -19,6 +20,7 @@ class Department {
     this.color,
     this.lastUpdated,
     this.isActive = true,
+    this.mission,
   });
 
   factory Department.fromMap(Map<String, dynamic> map) {
@@ -46,6 +48,7 @@ class Department {
       color: color,
       lastUpdated: lastUpdated,
       isActive: map['isActive'] ?? true,
+      mission: map['mission'],
     );
   }
 
@@ -76,6 +79,7 @@ class Department {
       'formUrl': formUrl,
       if (color != null) 'color': color!.value,
       'isActive': isActive,
+      if (mission != null) 'mission': mission,
     };
   }
 
