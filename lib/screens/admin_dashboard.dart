@@ -620,10 +620,7 @@ class _DepartmentBottomSheetState extends State<_DepartmentBottomSheet> {
                   // Title
                   Text(
                     widget.departmentId == null ? 'Add Department' : 'Edit Department',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: Theme.of(context).textTheme.displaySmall,
                   ),
                   const SizedBox(height: 24),
 
@@ -677,9 +674,9 @@ class _DepartmentBottomSheetState extends State<_DepartmentBottomSheet> {
                   const SizedBox(height: 24),
 
                   // Icon Selection
-                  const Text(
+                  Text(
                     'Icon',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
@@ -737,9 +734,9 @@ class _DepartmentBottomSheetState extends State<_DepartmentBottomSheet> {
                   const SizedBox(height: 24),
 
                   // Color Selection
-                  const Text(
+                  Text(
                     'Card Color',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 12),
                   Wrap(
