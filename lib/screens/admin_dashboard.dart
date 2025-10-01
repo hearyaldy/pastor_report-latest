@@ -14,6 +14,21 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,95 +38,243 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
         backgroundColor: AppColors.primaryLight,
         foregroundColor: Colors.white,
         bottom: TabBar(
-          onTap: (index) => setState(() => _currentTab = index),
+          controller: _tabController,
           tabs: const [
             Tab(icon: Icon(Icons.people), text: 'Users'),
             Tab(icon: Icon(Icons.dashboard), text: 'Departments'),
           ],
         ),
       ),
-      body: _currentTab == 0 ? _buildUsersTab() : _buildDepartmentsTab(),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildUsersTab(),
+          _buildDepartmentsTab(),
+        ],
+      ),
     );
   }
 
   Widget _buildUsersTab() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
-
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final users = snapshot.data!.docs;
-        return ListView.builder(
-          itemCount: users.length,
+    return Column(
+      children: [
+        // Search Bar
+        Padding(
           padding: const EdgeInsets.all(16.0),
-          itemBuilder: (context, index) {
-            final userData = users[index].data() as Map<String, dynamic>;
-            final userId = users[index].id;
-            final bool isAdmin = userData['isAdmin'] ?? false;
-            
-            return Card(
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: isAdmin ? Colors.red : AppColors.primaryLight,
-                  child: Icon(
-                    isAdmin ? Icons.admin_panel_settings : Icons.person,
-                    color: Colors.white,
-                  ),
-                ),
-                title: Text(userData['displayName'] ?? 'No Name'),
-                subtitle: Text(userData['email'] ?? 'No Email'),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        isAdmin ? Icons.remove_moderator : Icons.add_moderator,
-                        color: isAdmin ? Colors.red : Colors.green,
-                      ),
-                      onPressed: () async {
-                        try {
-                          await UserManagementService().updateUserRole(
-                            uid: userId,
-                            isAdmin: !isAdmin,
-                          );
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                '${userData['displayName']} is ${!isAdmin ? 'now' : 'no longer'} an admin',
-                              ),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                        } catch (e) {
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Failed to update role: $e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search by name or email...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        setState(() {
+                          _searchController.clear();
+                          _searchQuery = '';
+                        });
                       },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _confirmDeleteUser(context, userId, userData['displayName']),
-                    ),
-                  ],
-                ),
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-            );
-          },
-        );
-      },
+            ),
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value.toLowerCase();
+              });
+            },
+          ),
+        ),
+        // Users List
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('users').snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
+
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final allUsers = snapshot.data!.docs;
+
+              // Filter users based on search query
+              final filteredUsers = _searchQuery.isEmpty
+                  ? allUsers
+                  : allUsers.where((doc) {
+                      final userData = doc.data() as Map<String, dynamic>;
+                      final name = (userData['displayName'] ?? '').toString().toLowerCase();
+                      final email = (userData['email'] ?? '').toString().toLowerCase();
+                      return name.contains(_searchQuery) || email.contains(_searchQuery);
+                    }).toList();
+
+              if (filteredUsers.isEmpty) {
+                return const Center(
+                  child: Text('No users found'),
+                );
+              }
+
+              return ListView.builder(
+                itemCount: filteredUsers.length,
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                itemBuilder: (context, index) {
+                  final userData = filteredUsers[index].data() as Map<String, dynamic>;
+                  final userId = filteredUsers[index].id;
+                  final bool isAdmin = userData['isAdmin'] ?? false;
+                  final bool isEditor = userData['isEditor'] ?? false;
+
+                  // Determine role and color
+                  Color roleColor;
+                  IconData roleIcon;
+                  String roleText;
+
+                  if (isAdmin) {
+                    roleColor = Colors.red;
+                    roleIcon = Icons.admin_panel_settings;
+                    roleText = 'Admin';
+                  } else if (isEditor) {
+                    roleColor = Colors.orange;
+                    roleIcon = Icons.edit;
+                    roleText = 'Editor';
+                  } else {
+                    roleColor = AppColors.primaryLight;
+                    roleIcon = Icons.person;
+                    roleText = 'User';
+                  }
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: roleColor,
+                        child: Icon(roleIcon, color: Colors.white),
+                      ),
+                      title: Text(userData['displayName'] ?? 'No Name'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(userData['email'] ?? 'No Email'),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: roleColor.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              roleText,
+                              style: TextStyle(
+                                color: roleColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      trailing: PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert),
+                        onSelected: (value) => _handleUserAction(value, userId, userData),
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'makeAdmin',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isAdmin ? Icons.remove_moderator : Icons.admin_panel_settings,
+                                  color: Colors.red,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(isAdmin ? 'Remove Admin' : 'Make Admin'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'makeEditor',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isEditor ? Icons.remove_circle : Icons.edit,
+                                  color: Colors.orange,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(isEditor ? 'Remove Editor' : 'Make Editor'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Delete User'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
+  }
+
+  Future<void> _handleUserAction(String action, String userId, Map<String, dynamic> userData) async {
+    final bool isAdmin = userData['isAdmin'] ?? false;
+    final bool isEditor = userData['isEditor'] ?? false;
+
+    try {
+      if (action == 'makeAdmin') {
+        await UserManagementService().updateUserRole(
+          uid: userId,
+          isAdmin: !isAdmin,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${userData['displayName']} is ${!isAdmin ? 'now' : 'no longer'} an admin',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else if (action == 'makeEditor') {
+        // Update editor role
+        await FirebaseFirestore.instance.collection('users').doc(userId).update({
+          'isEditor': !isEditor,
+        });
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${userData['displayName']} is ${!isEditor ? 'now' : 'no longer'} an editor',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else if (action == 'delete') {
+        _confirmDeleteUser(context, userId, userData['displayName']);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update user: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Widget _buildDepartmentsTab() {
@@ -391,95 +554,5 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
         );
       }
     }
-  }
-}
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pushNamed(context, AppConstants.routeDepartments);
-              },
-              icon: const Icon(Icons.dashboard),
-              label: const Text('Go to Departments'),
-              style: ElevatedButton.styleFrom(
-                minimumSize:
-                    const Size.fromHeight(50), // Make button full-width
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Additional button or link examples
-            ElevatedButton.icon(
-              onPressed: () {
-                // Add navigation to settings or other admin functionalities
-                Navigator.pushNamed(context, AppConstants.routeSettings);
-              },
-              icon: const Icon(Icons.settings),
-              label: const Text('Settings'),
-              style: ElevatedButton.styleFrom(
-                minimumSize:
-                    const Size.fromHeight(50), // Make button full-width
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Seed Departments Button (Run once, then can be removed)
-            ElevatedButton.icon(
-              onPressed: () async {
-                // Show loading dialog
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                );
-
-                try {
-                  await DepartmentService().seedDepartments();
-
-                  if (!context.mounted) return;
-                  Navigator.pop(context); // Close loading dialog
-
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Success'),
-                      content: const Text(
-                          '✅ Departments seeded successfully!\n\nYou can now remove this button.'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('OK'),
-                        ),
-                      ],
-                    ),
-                  );
-                } catch (e) {
-                  if (!context.mounted) return;
-                  Navigator.pop(context); // Close loading dialog
-
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Error'),
-                      content: Text('Failed to seed departments:\n$e'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('OK'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-              },
-              icon: const Icon(Icons.cloud_upload),
-              label: const Text('Seed Departments (Run Once)'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-                backgroundColor: Colors.orange,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

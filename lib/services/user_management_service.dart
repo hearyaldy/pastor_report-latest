@@ -85,6 +85,40 @@ class UserManagementService {
     }
   }
 
+  // Update user role (Admin only)
+  Future<void> updateUserRole({
+    required String uid,
+    bool? isAdmin,
+    bool? isEditor,
+  }) async {
+    try {
+      final Map<String, dynamic> updates = {};
+
+      if (isAdmin != null) {
+        updates['isAdmin'] = isAdmin;
+      }
+
+      if (isEditor != null) {
+        updates['isEditor'] = isEditor;
+      }
+
+      if (updates.isNotEmpty) {
+        await _firestore.collection('users').doc(uid).update(updates);
+      }
+    } catch (e) {
+      throw 'Failed to update user role: $e';
+    }
+  }
+
+  // Send password reset email
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      throw 'Failed to send password reset email: $e';
+    }
+  }
+
   // Delete user (Admin only - deletes from Firestore, not Firebase Auth)
   Future<void> deleteUser(String uid) async {
     try {

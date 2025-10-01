@@ -1,11 +1,222 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
+import 'package:pastor_report/services/user_management_service.dart';
 import 'package:pastor_report/utils/theme.dart';
 import 'package:pastor_report/utils/constants.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final UserManagementService _userService = UserManagementService();
+  final _displayNameController = TextEditingController();
+  bool _isEditing = false;
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _displayNameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveProfile() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _userService.updateUserProfile(
+        uid: authProvider.user!.uid,
+        displayName: _displayNameController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      // Refresh auth provider
+      await authProvider.refreshUser();
+
+      setState(() {
+        _isEditing = false;
+        _isLoading = false;
+      });
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile updated successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      setState(() => _isLoading = false);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update profile: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _changePassword() async {
+    final TextEditingController currentPasswordController = TextEditingController();
+    final TextEditingController newPasswordController = TextEditingController();
+    final TextEditingController confirmPasswordController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Change Password'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: currentPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Current Password',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.lock_outline),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: newPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'New Password',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.lock),
+                  helperText: 'At least 6 characters',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: confirmPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Confirm New Password',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.lock),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (newPasswordController.text != confirmPasswordController.text) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Passwords do not match')),
+                );
+                return;
+              }
+
+              if (newPasswordController.text.length < 6) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Password must be at least 6 characters'),
+                  ),
+                );
+                return;
+              }
+
+              Navigator.pop(context, true);
+            },
+            child: const Text('Change Password'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && mounted) {
+      try {
+        await _userService.updatePassword(newPasswordController.text);
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Password changed successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final email = authProvider.user?.email;
+
+    if (email == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset Password'),
+        content: Text('A password reset link will be sent to:\n\n$email\n\nAre you sure?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Send Reset Link'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await _userService.sendPasswordResetEmail(email);
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Password reset link sent to your email!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send reset link: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   Future<void> _handleLogout(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -155,24 +366,118 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
 
-                // Profile Options
+                // Profile Edit Section
                 const SizedBox(height: 16),
 
                 // Account Section
                 _buildSectionHeader(context, 'Account'),
-                _buildListTile(
-                  context,
-                  icon: Icons.person_outline,
-                  title: 'Edit Profile',
-                  onTap: () =>
-                      Navigator.pushNamed(context, AppConstants.routeSettings),
+
+                // Edit Profile Card
+                Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Display Name',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (!_isEditing)
+                              IconButton(
+                                icon: const Icon(Icons.edit, color: AppTheme.primary),
+                                onPressed: () {
+                                  setState(() {
+                                    _isEditing = true;
+                                    _displayNameController.text = user.displayName;
+                                  });
+                                },
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        if (_isEditing)
+                          Column(
+                            children: [
+                              TextField(
+                                controller: _displayNameController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Display Name',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.person),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  TextButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _isEditing = false;
+                                      });
+                                    },
+                                    child: const Text('Cancel'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ElevatedButton.icon(
+                                    onPressed: _isLoading ? null : _saveProfile,
+                                    icon: _isLoading
+                                        ? const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Icon(Icons.save),
+                                    label: const Text('Save'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          )
+                        else
+                          Text(
+                            user.displayName,
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
+
+                // Email (read-only)
+                Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: ListTile(
+                    leading: const Icon(Icons.email, color: AppTheme.primary),
+                    title: const Text('Email'),
+                    subtitle: Text(user.email),
+                  ),
+                ),
+
+                // Security Section
+                const SizedBox(height: 16),
+                _buildSectionHeader(context, 'Security'),
                 _buildListTile(
                   context,
                   icon: Icons.lock_outline,
                   title: 'Change Password',
-                  onTap: () =>
-                      Navigator.pushNamed(context, AppConstants.routeSettings),
+                  onTap: _changePassword,
+                ),
+                _buildListTile(
+                  context,
+                  icon: Icons.lock_reset,
+                  title: 'Reset Password via Email',
+                  onTap: _resetPassword,
                 ),
 
                 // App Section

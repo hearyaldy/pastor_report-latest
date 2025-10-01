@@ -137,6 +137,13 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // Refresh user data
+  Future<void> refreshUser() async {
+    if (_user != null) {
+      await _loadUserData(_user!.uid);
+    }
+  }
+
   // Update remember me preference
   void setRememberMe(bool value) {
     _rememberMe = value;
