@@ -3,7 +3,7 @@ description: A simple Flutter app for pastors to submit reports to different dep
 
 publish_to: 'none' # This prevents the package from being published to pub.dev
 
-version: 2.4.1+7
+version: 2.5.0+8
 
 environment:
   sdk: ">=2.19.0 <3.0.0"

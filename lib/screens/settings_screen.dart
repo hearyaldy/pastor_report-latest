@@ -1,6 +1,8 @@
 // lib/screens/settings_screen.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/providers/theme_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -10,7 +12,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _darkMode = false;
   String _fontSize = 'Normal';
   String _fontFamily = 'Default';
 
@@ -43,29 +44,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                     const Divider(),
-                    ListTile(
-                      leading: Icon(
-                        _darkMode ? Icons.dark_mode : Icons.light_mode,
-                        color: AppColors.primaryLight,
-                      ),
-                      title: const Text('Dark Mode'),
-                      subtitle: const Text('Toggle between light and dark theme'),
-                      trailing: Switch(
-                        value: _darkMode,
-                        onChanged: (bool value) {
-                          setState(() {
-                            _darkMode = value;
-                          });
-                          // TODO: Implement theme change
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Dark mode coming soon!'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        },
-                      ),
-                      contentPadding: EdgeInsets.zero,
+                    Consumer<ThemeProvider>(
+                      builder: (context, themeProvider, child) {
+                        return ListTile(
+                          leading: Icon(
+                            themeProvider.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                            color: themeProvider.primaryColor,
+                          ),
+                          title: const Text('Dark Mode'),
+                          subtitle: const Text('Toggle between light and dark theme'),
+                          trailing: Switch(
+                            value: themeProvider.isDarkMode,
+                            onChanged: (bool value) {
+                              themeProvider.toggleDarkMode(value);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(value ? 'Dark mode enabled' : 'Light mode enabled'),
+                                  duration: const Duration(seconds: 1),
+                                ),
+                              );
+                            },
+                          ),
+                          contentPadding: EdgeInsets.zero,
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -149,48 +151,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 16),
 
             // Color Theme Card
-            Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Color Theme',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Divider(),
-                    ListTile(
-                      leading: Icon(Icons.palette, color: AppColors.primaryLight),
-                      title: const Text('Primary Color'),
-                      subtitle: const Text('Customize the app\'s primary color'),
-                      trailing: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade300, width: 2),
-                        ),
-                      ),
-                      onTap: () {
-                        // TODO: Implement color picker
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Color picker coming soon!'),
-                            duration: Duration(seconds: 2),
+            Consumer<ThemeProvider>(
+              builder: (context, themeProvider, child) {
+                return Card(
+                  elevation: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Color Theme',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
                           ),
-                        );
-                      },
-                      contentPadding: EdgeInsets.zero,
+                        ),
+                        const Divider(),
+                        ListTile(
+                          leading: Icon(Icons.palette, color: themeProvider.primaryColor),
+                          title: const Text('Primary Color'),
+                          subtitle: const Text('Customize the app\'s primary color'),
+                          trailing: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: themeProvider.primaryColor,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade300, width: 2),
+                            ),
+                          ),
+                          onTap: () {
+                            _showColorPicker(context, themeProvider);
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 16),
 
@@ -229,6 +229,106 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showColorPicker(BuildContext context, ThemeProvider themeProvider) {
+    final List<Color> predefinedColors = [
+      const Color(0xFF1A4870), // Navy Blue (Default)
+      const Color(0xFF2E7D32), // Green
+      const Color(0xFFD32F2F), // Red
+      const Color(0xFF7B1FA2), // Purple
+      const Color(0xFFE64A19), // Deep Orange
+      const Color(0xFF0288D1), // Light Blue
+      const Color(0xFFC2185B), // Pink
+      const Color(0xFF5D4037), // Brown
+      const Color(0xFF455A64), // Blue Grey
+      const Color(0xFF00796B), // Teal
+      const Color(0xFFF57C00), // Orange
+      const Color(0xFF1976D2), // Blue
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle bar
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Choose Primary Color',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: predefinedColors.map((color) {
+                  final isSelected = color.toARGB32() == themeProvider.primaryColor.toARGB32();
+                  return GestureDetector(
+                    onTap: () {
+                      themeProvider.setPrimaryColor(color);
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Primary color updated!'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected ? Colors.white : Colors.grey.shade300,
+                          width: isSelected ? 4 : 2,
+                        ),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: color.withOpacity(0.5),
+                                  blurRadius: 8,
+                                  spreadRadius: 2,
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: isSelected
+                          ? const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 32,
+                            )
+                          : null,
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
     );
   }
 }

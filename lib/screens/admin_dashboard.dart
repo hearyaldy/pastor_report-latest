@@ -38,6 +38,9 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
         foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
+          labelColor: Colors.yellow,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.yellow,
           tabs: const [
             Tab(icon: Icon(Icons.people), text: 'Users'),
             Tab(icon: Icon(Icons.dashboard), text: 'Departments'),
@@ -146,79 +149,15 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
                     roleText = 'User';
                   }
 
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: roleColor,
-                        child: Icon(roleIcon, color: Colors.white),
-                      ),
-                      title: Text(userData['displayName'] ?? 'No Name'),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(userData['email'] ?? 'No Email'),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: roleColor.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              roleText,
-                              style: TextStyle(
-                                color: roleColor,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      trailing: PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_vert),
-                        onSelected: (value) => _handleUserAction(value, userId, userData),
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: 'makeAdmin',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  isAdmin ? Icons.remove_moderator : Icons.admin_panel_settings,
-                                  color: Colors.red,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(isAdmin ? 'Remove Admin' : 'Make Admin'),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'makeEditor',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  isEditor ? Icons.remove_circle : Icons.edit,
-                                  color: Colors.orange,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(isEditor ? 'Remove Editor' : 'Make Editor'),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('Delete User'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  return _UserCard(
+                    userId: userId,
+                    userData: userData,
+                    roleColor: roleColor,
+                    roleIcon: roleIcon,
+                    roleText: roleText,
+                    isAdmin: isAdmin,
+                    isEditor: isEditor,
+                    onActionSelected: (value) => _handleUserAction(value, userId, userData),
                   );
                 },
               );
@@ -817,6 +756,175 @@ class _DepartmentBottomSheetState extends State<_DepartmentBottomSheet> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+// Expandable User Card Widget
+class _UserCard extends StatefulWidget {
+  final String userId;
+  final Map<String, dynamic> userData;
+  final Color roleColor;
+  final IconData roleIcon;
+  final String roleText;
+  final bool isAdmin;
+  final bool isEditor;
+  final Function(String) onActionSelected;
+
+  const _UserCard({
+    required this.userId,
+    required this.userData,
+    required this.roleColor,
+    required this.roleIcon,
+    required this.roleText,
+    required this.isAdmin,
+    required this.isEditor,
+    required this.onActionSelected,
+  });
+
+  @override
+  State<_UserCard> createState() => _UserCardState();
+}
+
+class _UserCardState extends State<_UserCard> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        children: [
+          ListTile(
+            leading: CircleAvatar(
+              backgroundColor: widget.roleColor,
+              child: Icon(widget.roleIcon, color: Colors.white),
+            ),
+            title: Text(widget.userData['displayName'] ?? 'No Name'),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(widget.userData['email'] ?? 'No Email'),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: widget.roleColor.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    widget.roleText,
+                    style: TextStyle(
+                      color: widget.roleColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            trailing: IconButton(
+              icon: Icon(
+                _isExpanded ? Icons.expand_less : Icons.expand_more,
+                color: AppColors.primaryLight,
+              ),
+              onPressed: () {
+                setState(() {
+                  _isExpanded = !_isExpanded;
+                });
+              },
+            ),
+          ),
+          // Expanding Actions Menu
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(12),
+                  bottomRight: Radius.circular(12),
+                ),
+              ),
+              child: Column(
+                children: [
+                  const Divider(height: 1),
+                  const SizedBox(height: 8),
+                  // Make/Remove Admin Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: Icon(
+                        widget.isAdmin ? Icons.remove_moderator : Icons.admin_panel_settings,
+                        size: 20,
+                      ),
+                      label: Text(widget.isAdmin ? 'Remove Admin' : 'Make Admin'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade50,
+                        foregroundColor: Colors.red,
+                        elevation: 0,
+                      ),
+                      onPressed: () {
+                        widget.onActionSelected('makeAdmin');
+                        setState(() {
+                          _isExpanded = false;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Make/Remove Editor Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: Icon(
+                        widget.isEditor ? Icons.remove_circle : Icons.edit,
+                        size: 20,
+                      ),
+                      label: Text(widget.isEditor ? 'Remove Editor' : 'Make Editor'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange.shade50,
+                        foregroundColor: Colors.orange,
+                        elevation: 0,
+                      ),
+                      onPressed: () {
+                        widget.onActionSelected('makeEditor');
+                        setState(() {
+                          _isExpanded = false;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Delete User Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.delete, size: 20),
+                      label: const Text('Delete User'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade50,
+                        foregroundColor: Colors.red,
+                        elevation: 0,
+                      ),
+                      onPressed: () {
+                        widget.onActionSelected('delete');
+                        setState(() {
+                          _isExpanded = false;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+            crossFadeState: _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 300),
+          ),
+        ],
       ),
     );
   }
