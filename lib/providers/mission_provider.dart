@@ -1,4 +1,5 @@
 // lib/providers/mission_provider.dart
+import 'dart:async'; // Import for TimeoutException
 import 'package:flutter/material.dart';
 import 'package:pastor_report/models/department_model.dart';
 import 'package:pastor_report/models/mission_model.dart';
@@ -221,18 +222,33 @@ class MissionProvider with ChangeNotifier {
   Future<void> reseedAllData() async {
     _setLoading(true);
     try {
-      print('Starting reseed operation. Using mission structure: $isUsingMissionStructure');
-      
+      print(
+          'Starting reseed operation. Using mission structure: $isUsingMissionStructure');
+
+      // Clear any previous errors
+      _setError(null);
+
       // Only need to call one reseed method, not both
       if (isUsingMissionStructure) {
         print('Reseeding with mission structure');
-        await _missionService.reseedAllMissionsWithDepartments();
-        // No need to also call departmentService.reseedAllDepartments() as it would cause duplication
+        // Using a longer timeout since this operation can take time
+        await _missionService
+            .reseedAllMissionsWithDepartments()
+            .timeout(const Duration(seconds: 60), onTimeout: () {
+          throw TimeoutException(
+              'Operation timed out. The database might be too large or there might be connection issues.');
+        });
       } else {
         print('Reseeding with legacy structure');
-        await _departmentService.reseedAllDepartments();
+        // Using a timeout for the legacy approach as well
+        await _departmentService
+            .reseedAllDepartments()
+            .timeout(const Duration(seconds: 60), onTimeout: () {
+          throw TimeoutException(
+              'Operation timed out. The database might be too large or there might be connection issues.');
+        });
       }
-      
+
       print('Reseed completed successfully, reloading data');
       await loadMissions();
       await loadDepartments();
@@ -240,6 +256,46 @@ class MissionProvider with ChangeNotifier {
     } catch (e) {
       print('Error during reseed: $e');
       _setError('Failed to reseed data: $e');
+    }
+    _setLoading(false);
+  }
+
+  // Update a department within a mission
+  Future<void> updateDepartmentInMission(String missionId, Department department) async {
+    _setLoading(true);
+    try {
+      await _missionService.updateDepartmentInMission(missionId, department);
+      
+      // Refresh the selected mission if it's the one being updated
+      if (_selectedMission?.id == missionId) {
+        await selectMission(id: missionId);
+      }
+      
+      // Refresh departments
+      await loadDepartments(missionName: _selectedMission?.name);
+      
+    } catch (e) {
+      _setError('Failed to update department: $e');
+    }
+    _setLoading(false);
+  }
+  
+  // Delete a department from a mission
+  Future<void> deleteDepartmentFromMission(String missionId, String departmentId) async {
+    _setLoading(true);
+    try {
+      await _missionService.deleteDepartmentFromMission(missionId, departmentId);
+      
+      // Refresh the selected mission if it's the one being updated
+      if (_selectedMission?.id == missionId) {
+        await selectMission(id: missionId);
+      }
+      
+      // Refresh departments
+      await loadDepartments(missionName: _selectedMission?.name);
+      
+    } catch (e) {
+      _setError('Failed to delete department: $e');
     }
     _setLoading(false);
   }

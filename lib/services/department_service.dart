@@ -287,46 +287,52 @@ class DepartmentService {
   // Use this only for development/admin purposes
   Future<void> reseedAllDepartments() async {
     try {
-      print('Department service: Starting reseedAllDepartments. Using mission structure: $_useNewMissionStructure');
-      
+      print(
+          'Department service: Starting reseedAllDepartments. Using mission structure: $_useNewMissionStructure');
+
       if (_useNewMissionStructure) {
-        // Use the mission service to reseed missions and departments
-        print('Department service: Delegating to mission service for reseeding');
-        await _missionService.reseedAllMissionsWithDepartments();
-        print('Department service: Mission service reseed completed');
+        // To avoid circular dependency, we'll log a message but not actually
+        // call the mission service method from here
+        print(
+            'Department service: Mission structure is enabled. Please use MissionProvider.reseedAllData() instead');
+        throw 'When using mission structure, please use MissionProvider.reseedAllData() instead of calling this method directly';
       } else {
         print('Department service: Using legacy reseeding approach');
         // Legacy reseeding approach
         // Delete all existing departments
         final snapshot = await _firestore.collection(_collection).get();
-        print('Department service: Found ${snapshot.docs.length} departments to delete');
+        print(
+            'Department service: Found ${snapshot.docs.length} departments to delete');
 
         // Process deletions in smaller batches to avoid timeouts
         int batchCounter = 0;
         int batchSize = 400; // Below Firestore's 500 limit
         WriteBatch currentBatch = _firestore.batch();
-        
+
         for (var doc in snapshot.docs) {
           currentBatch.delete(doc.reference);
           batchCounter++;
-          
+
           if (batchCounter >= batchSize) {
             // Commit current batch and start a new one
             await currentBatch.commit();
             currentBatch = _firestore.batch();
             batchCounter = 0;
-            print('Department service: Committed batch of $batchSize deletions');
+            print(
+                'Department service: Committed batch of $batchSize deletions');
           }
         }
-        
+
         // Commit any remaining operations
         if (batchCounter > 0) {
           await currentBatch.commit();
-          print('Department service: Committed final batch of $batchCounter deletions');
+          print(
+              'Department service: Committed final batch of $batchCounter deletions');
         }
 
         // Now seed with new departments including missions
-        print('Department service: Starting seed operation for new departments');
+        print(
+            'Department service: Starting seed operation for new departments');
         await seedDepartments();
         print('Department service: Seed operation completed');
       }

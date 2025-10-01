@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
-import 'package:pastor_report/providers/mission_provider.dart';
 import 'package:pastor_report/models/department_model.dart';
+import 'package:pastor_report/services/optimized_data_service.dart';
 import 'package:pastor_report/screens/inapp_webview_screen.dart';
 import 'package:pastor_report/utils/constants.dart';
 
@@ -20,52 +20,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-
-    // Use a post-frame callback to safely access the context
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return; // Check if widget is still in the tree
-
-      try {
-        // Safe provider access
-        final missionProvider =
-            Provider.of<MissionProvider>(context, listen: false);
-        missionProvider.initialize();
-
-        // Load departments for the user's mission
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        final userMission = authProvider.user?.mission;
-        if (userMission != null && userMission.isNotEmpty) {
-          missionProvider.loadDepartments(missionName: userMission);
-        }
-      } catch (e) {
-        debugPrint('Error initializing providers: $e');
-      }
-    });
+    // No longer need to load departments manually - using Firestore streams
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    // Use try-catch to safely handle dependencies
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final missionProvider =
-          Provider.of<MissionProvider>(context, listen: false);
-      final userMission = authProvider.user?.mission;
-
-      // Reload departments if user's mission changes
-      if (userMission != null && userMission.isNotEmpty) {
-        missionProvider.loadDepartments(missionName: userMission);
-      }
-    } catch (e) {
-      // Providers might not be ready yet
-      debugPrint('Providers not ready in didChangeDependencies: $e');
-    }
+  // Stream departments with caching - uses OptimizedDataService
+  Stream<List<Department>> _getDepartmentsStream(String missionName) {
+    return OptimizedDataService.instance.streamDepartmentsByMissionName(missionName);
   }
 
   // Handle department tap - check auth first
-  Future<void> _handleDepartmentTap(Department department) async {
+  Future<void> _handleDepartmentTap(Department department, List<Department> allDepartments) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     // If not authenticated, show login dialog
@@ -77,36 +41,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         // If login successful, navigate to department
         if (result == true && mounted) {
-          _navigateToDepartment(department);
+          _navigateToDepartment(department, allDepartments);
         }
       }
     } else {
       // Already authenticated, navigate directly
-      _navigateToDepartment(department);
+      _navigateToDepartment(department, allDepartments);
     }
-  }
-
-  // Show loading indicator for reseeding departments
-  void _showLoading(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const AlertDialog(
-        content: SizedBox(
-          height: 100,
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Reseeding departments...'),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   Future<bool?> _showLoginPrompt() async {
@@ -142,20 +83,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _navigateToDepartment(Department department) {
-    final missionProvider =
-        Provider.of<MissionProvider>(context, listen: false);
-
-    // Get all departments from the mission provider
-    final departments = missionProvider.departments;
-
+  void _navigateToDepartment(Department department, List<Department> allDepartments) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => InAppWebViewScreen(
           initialUrl: department.formUrl,
           initialDepartmentName: department.name,
-          departments: departments
+          departments: allDepartments
               .map((dept) => {
                     'name': dept.name,
                     'icon': Department.getIconString(dept.icon),
@@ -401,159 +336,147 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
 
-          // Department Grid
+          // Mission Indicator - Under header image
+          SliverToBoxAdapter(
+            child: Consumer<AuthProvider>(
+              builder: (context, authProvider, child) {
+                final userMission = authProvider.user?.mission;
+                if (userMission == null || userMission.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return Container(
+                  margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.primaryLight.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.business,
+                        color: AppColors.primaryLight,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Current Mission',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              userMission,
+                              style: TextStyle(
+                                color: AppColors.primaryLight,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // Department Grid - Using Firestore StreamBuilder
           SliverPadding(
             padding: const EdgeInsets.all(16),
-            sliver: Consumer2<AuthProvider, MissionProvider>(
-              builder: (context, authProvider, missionProvider, child) {
+            sliver: Consumer<AuthProvider>(
+              builder: (context, authProvider, child) {
                 // Get user's mission for filtering
                 final userMission = authProvider.user?.mission;
 
-                // We don't call loadDepartments here anymore, it's moved to initState
-
-                // Check if mission provider is still loading
-                if (missionProvider.isLoading) {
-                  return const SliverFillRemaining(
-                    child: Center(child: CircularProgressIndicator()),
+                // If no mission assigned, show message
+                if (userMission == null || userMission.isEmpty) {
+                  return SliverFillRemaining(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.dashboard, size: 64, color: Colors.grey),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'No mission assigned to your account',
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Please contact an administrator to assign you to a mission${authProvider.isAdmin ? "\n\nUser email: ${authProvider.user?.email}" : ""}',
+                            style: const TextStyle(color: Colors.grey),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
                   );
                 }
 
-                // Convert to builder format
-                return Builder(
-                  builder: (context) {
-                    // No need to check isLoading again as we already did above
-
-                    if (missionProvider.errorMessage != null) {
+                // Stream departments from Firestore for user's mission
+                return StreamBuilder<List<Department>>(
+                  stream: _getDepartmentsStream(userMission),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
                       return SliverFillRemaining(
                         child: Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.error_outline,
-                                  size: 64, color: Colors.red),
+                              const Icon(Icons.error_outline, size: 64, color: Colors.red),
                               const SizedBox(height: 16),
-                              Text('Error: ${missionProvider.errorMessage}'),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed: () => setState(() {
-                                  if (userMission != null) {
-                                    missionProvider.loadDepartments(
-                                        missionName: userMission);
-                                  }
-                                }),
-                                child: const Text('Retry'),
-                              ),
+                              Text('Error: ${snapshot.error}'),
                             ],
                           ),
                         ),
                       );
                     }
 
-                    final departmentList = missionProvider.departments;
+                    if (!snapshot.hasData) {
+                      return const SliverFillRemaining(
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+
+                    final departmentList = snapshot.data!;
                     if (departmentList.isEmpty) {
-                      String message = 'No departments available';
-                      String subtitle = 'Please contact the administrator';
-
-                      // If user has a mission, make the message more specific
-                      if (userMission != null && userMission.isNotEmpty) {
-                        message =
-                            'No departments found for "$userMission" mission';
-                        subtitle =
-                            'Please contact your mission administrator to set up departments for your mission';
-
-                        // Add debug button for admins
-                        if (authProvider.isAdmin) {
-                          subtitle += '\n\nAdmin: Tap to reseed departments';
-                        }
-                      } else {
-                        message = 'No mission assigned to your account';
-                        subtitle =
-                            'Please contact an administrator to assign you to a mission';
-
-                        // Show user details for debugging
-                        if (authProvider.isAdmin) {
-                          subtitle +=
-                              '\n\nUser email: ${authProvider.user?.email}';
-                        }
-                      }
-
-                      final children = <Widget>[
-                        const Icon(Icons.dashboard,
-                            size: 64, color: Colors.grey),
-                        const SizedBox(height: 16),
-                        Text(
-                          message,
-                          style:
-                              const TextStyle(fontSize: 18, color: Colors.grey),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          subtitle,
-                          style: const TextStyle(color: Colors.grey),
-                          textAlign: TextAlign.center,
-                        ),
-                      ];
-
-                      // Add admin reseed button if user is admin
-                      if (authProvider.isAdmin) {
-                        children.addAll([
-                          const SizedBox(height: 24),
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Reseed All Departments'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: () async {
-                              try {
-                                // Show loading
-                                _showLoading(context);
-
-                                // Get mission provider
-                                final missionProvider =
-                                    Provider.of<MissionProvider>(context,
-                                        listen: false);
-
-                                // Reseed all data using mission provider
-                                await missionProvider.reseedAllData();
-
-                                // Show success
-                                if (context.mounted) {
-                                  Navigator.pop(
-                                      context); // Remove loading dialog
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                          'Missions and departments have been successfully reseeded!'),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                  setState(() {}); // Refresh the screen
-                                }
-                              } catch (e) {
-                                if (context.mounted) {
-                                  Navigator.pop(
-                                      context); // Remove loading dialog
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Error: $e'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                          ),
-                        ]);
-                      }
-
                       return SliverFillRemaining(
                         child: Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: children,
+                            children: [
+                              const Icon(Icons.dashboard, size: 64, color: Colors.grey),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No departments found for "$userMission" mission',
+                                style: const TextStyle(fontSize: 18, color: Colors.grey),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Please contact your mission administrator to set up departments',
+                                style: TextStyle(color: Colors.grey),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
                         ),
                       );
@@ -613,7 +536,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               final department = filteredDepartments[index];
                               return _DepartmentCard(
                                 department: department,
-                                onTap: () => _handleDepartmentTap(department),
+                                onTap: () => _handleDepartmentTap(department, departmentList),
                               );
                             },
                           ),
@@ -665,41 +588,30 @@ class _DepartmentCard extends StatelessWidget {
 
   Color _getStatusColor() {
     // Red for inactive or no link
-    if (!department.isActive || department.formUrl.isEmpty) {
-      return Colors.red;
+    // Priority: isActive status first
+    if (!department.isActive) {
+      return Colors.red.shade700; // Inactive - Red
     }
 
-    if (department.lastUpdated == null) return Colors.orange;
-
-    final daysSinceUpdate =
-        DateTime.now().difference(department.lastUpdated!).inDays;
-
-    if (daysSinceUpdate > 30) {
-      return Colors.red; // Not updated for a month
-    } else if (daysSinceUpdate > 7) {
-      return Colors.orange; // Not updated for a week
-    } else {
-      return Colors.green; // Recently updated
-    }
+    // If active, show green
+    return Colors.green.shade600; // Active - Green
   }
 
   String _getStatusText() {
-    if (!department.isActive) return 'Inactive';
-
-    if (department.formUrl.isEmpty) return 'No Link';
-
-    if (department.lastUpdated == null) return 'Not Updated';
-
-    final daysSinceUpdate =
-        DateTime.now().difference(department.lastUpdated!).inDays;
-
-    if (daysSinceUpdate > 30) {
-      return 'Outdated';
-    } else if (daysSinceUpdate > 7) {
-      return 'Check Link';
-    } else {
-      return 'Active';
+    // Simple active/inactive status
+    if (!department.isActive) {
+      return 'INACTIVE';
     }
+
+    return 'ACTIVE';
+  }
+
+  IconData _getStatusIcon() {
+    if (!department.isActive) {
+      return Icons.cancel; // X icon for inactive
+    }
+
+    return Icons.check_circle; // Check icon for active
   }
 
   @override
@@ -763,8 +675,8 @@ class _DepartmentCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.circle,
-                          size: 8,
+                          _getStatusIcon(),
+                          size: 12,
                           color: Colors.white,
                         ),
                         const SizedBox(width: 4),
@@ -772,8 +684,9 @@ class _DepartmentCard extends StatelessWidget {
                           _getStatusText(),
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 9,
+                            fontSize: 10,
                             fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ],

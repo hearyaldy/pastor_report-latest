@@ -1,10 +1,12 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/providers/theme_provider.dart';
 import 'package:pastor_report/providers/mission_provider.dart';
+import 'package:pastor_report/services/cache_service.dart';
 import 'package:pastor_report/screens/splash_screen.dart';
 import 'package:pastor_report/screens/main_screen.dart';
 import 'package:pastor_report/screens/modern_sign_in_screen.dart';
@@ -26,7 +28,25 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  // Enable Firestore offline persistence and caching
+  await _enableFirestoreCache();
+
+  // Initialize cache service
+  await CacheService.instance.initialize();
+
   runApp(const PastorReportApp());
+}
+
+/// Enable Firestore caching to reduce reads
+Future<void> _enableFirestoreCache() async {
+  try {
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
+  } catch (e) {
+    debugPrint('Failed to enable Firestore caching: $e');
+  }
 }
 
 class PastorReportApp extends StatelessWidget {

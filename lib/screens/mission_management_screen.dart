@@ -44,6 +44,9 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
         title: const Text('Mission Management'),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
           tabs: const [
             Tab(text: 'Missions'),
             Tab(text: 'Departments'),
@@ -93,19 +96,47 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
     final codeController = TextEditingController();
     final descriptionController = TextEditingController();
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add New Mission'),
-        content: SingleChildScrollView(
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 16,
+          right: 16,
+          top: 16,
+        ),
+        child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Add New Mission',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
               TextField(
                 controller: nameController,
                 decoration: const InputDecoration(
                   labelText: 'Mission Name',
                   hintText: 'Enter mission name',
+                  border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 16),
@@ -114,8 +145,10 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                 decoration: const InputDecoration(
                   labelText: 'Mission Code',
                   hintText: 'Enter 3-letter code',
+                  border: OutlineInputBorder(),
                 ),
                 maxLength: 3,
+                textCapitalization: TextCapitalization.characters,
               ),
               const SizedBox(height: 16),
               TextField(
@@ -123,41 +156,48 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                 decoration: const InputDecoration(
                   labelText: 'Description',
                   hintText: 'Enter mission description',
+                  border: OutlineInputBorder(),
                 ),
                 maxLines: 3,
               ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('CANCEL'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (nameController.text.isNotEmpty &&
+                          codeController.text.isNotEmpty) {
+                        final mission = Mission(
+                          id: '', // Will be assigned by Firestore
+                          name: nameController.text,
+                          code: codeController.text.toUpperCase(),
+                          description: descriptionController.text,
+                        );
+
+                        Provider.of<MissionProvider>(context, listen: false)
+                            .addMission(mission);
+                        Navigator.pop(context);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Please fill in all required fields')),
+                        );
+                      }
+                    },
+                    child: const Text('ADD'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (nameController.text.isNotEmpty &&
-                  codeController.text.isNotEmpty) {
-                final mission = Mission(
-                  id: '', // Will be assigned by Firestore
-                  name: nameController.text,
-                  code: codeController.text.toUpperCase(),
-                  description: descriptionController.text,
-                );
-
-                Provider.of<MissionProvider>(context, listen: false)
-                    .addMission(mission);
-                Navigator.pop(context);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Please fill in all required fields')),
-                );
-              }
-            },
-            child: const Text('ADD'),
-          ),
-        ],
       ),
     );
   }
@@ -168,19 +208,47 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
     final descriptionController =
         TextEditingController(text: mission.description ?? '');
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Mission'),
-        content: SingleChildScrollView(
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 16,
+          right: 16,
+          top: 16,
+        ),
+        child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Edit Mission',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
               TextField(
                 controller: nameController,
                 decoration: const InputDecoration(
                   labelText: 'Mission Name',
                   hintText: 'Enter mission name',
+                  border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 16),
@@ -189,8 +257,10 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                 decoration: const InputDecoration(
                   labelText: 'Mission Code',
                   hintText: 'Enter 3-letter code',
+                  border: OutlineInputBorder(),
                 ),
                 maxLength: 3,
+                textCapitalization: TextCapitalization.characters,
               ),
               const SizedBox(height: 16),
               TextField(
@@ -198,43 +268,50 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                 decoration: const InputDecoration(
                   labelText: 'Description',
                   hintText: 'Enter mission description',
+                  border: OutlineInputBorder(),
                 ),
                 maxLines: 3,
               ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('CANCEL'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (nameController.text.isNotEmpty &&
+                          codeController.text.isNotEmpty) {
+                        final updatedMission = Mission(
+                          id: mission.id,
+                          name: nameController.text,
+                          code: codeController.text.toUpperCase(),
+                          description: descriptionController.text,
+                          departments: mission.departments,
+                          createdAt: mission.createdAt,
+                        );
+
+                        Provider.of<MissionProvider>(context, listen: false)
+                            .updateMission(updatedMission);
+                        Navigator.pop(context);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Please fill in all required fields')),
+                        );
+                      }
+                    },
+                    child: const Text('UPDATE'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (nameController.text.isNotEmpty &&
-                  codeController.text.isNotEmpty) {
-                final updatedMission = Mission(
-                  id: mission.id,
-                  name: nameController.text,
-                  code: codeController.text.toUpperCase(),
-                  description: descriptionController.text,
-                  departments: mission.departments,
-                  createdAt: mission.createdAt,
-                );
-
-                Provider.of<MissionProvider>(context, listen: false)
-                    .updateMission(updatedMission);
-                Navigator.pop(context);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Please fill in all required fields')),
-                );
-              }
-            },
-            child: const Text('UPDATE'),
-          ),
-        ],
       ),
     );
   }
@@ -279,23 +356,76 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
       return;
     }
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
-            title: const Text('Add New Department'),
-            content: SingleChildScrollView(
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 16,
+              right: 16,
+              top: 16,
+            ),
+            child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Adding department to: ${selectedMission.name}'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Add New Department',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline,
+                          size: 20,
+                          color: Colors.blue.shade700,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Adding to: ${selectedMission.name}',
+                            style: TextStyle(
+                              color: Colors.blue.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: nameController,
                     decoration: const InputDecoration(
                       labelText: 'Department Name',
                       hintText: 'Enter department name',
+                      border: OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -303,6 +433,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                     value: selectedIcon,
                     decoration: const InputDecoration(
                       labelText: 'Icon',
+                      border: OutlineInputBorder(),
                     ),
                     items: [
                       Icons.person,
@@ -345,40 +476,47 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                     decoration: const InputDecoration(
                       labelText: 'Form URL',
                       hintText: 'Enter Google Form URL',
+                      border: OutlineInputBorder(),
                     ),
                   ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('CANCEL'),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (nameController.text.isNotEmpty &&
+                              formUrlController.text.isNotEmpty) {
+                            final department = Department(
+                              id: '', // Will be assigned by Firestore
+                              name: nameController.text,
+                              icon: selectedIcon,
+                              formUrl: formUrlController.text,
+                              mission: selectedMission.name,
+                            );
+
+                            missionProvider.addDepartment(department);
+                            Navigator.pop(context);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Please fill in all required fields')),
+                            );
+                          }
+                        },
+                        child: const Text('ADD'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('CANCEL'),
-              ),
-              TextButton(
-                onPressed: () {
-                  if (nameController.text.isNotEmpty &&
-                      formUrlController.text.isNotEmpty) {
-                    final department = Department(
-                      id: '', // Will be assigned by Firestore
-                      name: nameController.text,
-                      icon: selectedIcon,
-                      formUrl: formUrlController.text,
-                      mission: selectedMission.name,
-                    );
-
-                    missionProvider.addDepartment(department);
-                    Navigator.pop(context);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Please fill in all required fields')),
-                    );
-                  }
-                },
-                child: const Text('ADD'),
-              ),
-            ],
           );
         },
       ),
@@ -390,23 +528,76 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
     final formUrlController = TextEditingController(text: department.formUrl);
     IconData selectedIcon = department.icon;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
-            title: const Text('Edit Department'),
-            content: SingleChildScrollView(
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 16,
+              right: 16,
+              top: 16,
+            ),
+            child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Mission: ${department.mission ?? "None"}'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Edit Department',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline,
+                          size: 20,
+                          color: Colors.blue.shade700,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Mission: ${department.mission ?? "None"}',
+                            style: TextStyle(
+                              color: Colors.blue.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: nameController,
                     decoration: const InputDecoration(
                       labelText: 'Department Name',
                       hintText: 'Enter department name',
+                      border: OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -414,6 +605,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                     value: selectedIcon,
                     decoration: const InputDecoration(
                       labelText: 'Icon',
+                      border: OutlineInputBorder(),
                     ),
                     items: [
                       Icons.person,
@@ -456,42 +648,49 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                     decoration: const InputDecoration(
                       labelText: 'Form URL',
                       hintText: 'Enter Google Form URL',
+                      border: OutlineInputBorder(),
                     ),
                   ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('CANCEL'),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (nameController.text.isNotEmpty &&
+                              formUrlController.text.isNotEmpty) {
+                            final updatedDepartment = Department(
+                              id: department.id,
+                              name: nameController.text,
+                              icon: selectedIcon,
+                              formUrl: formUrlController.text,
+                              mission: department.mission,
+                              isActive: department.isActive,
+                            );
+
+                            Provider.of<MissionProvider>(context, listen: false)
+                                .updateDepartment(updatedDepartment);
+                            Navigator.pop(context);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Please fill in all required fields')),
+                            );
+                          }
+                        },
+                        child: const Text('UPDATE'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('CANCEL'),
-              ),
-              TextButton(
-                onPressed: () {
-                  if (nameController.text.isNotEmpty &&
-                      formUrlController.text.isNotEmpty) {
-                    final updatedDepartment = Department(
-                      id: department.id,
-                      name: nameController.text,
-                      icon: selectedIcon,
-                      formUrl: formUrlController.text,
-                      mission: department.mission,
-                      isActive: department.isActive,
-                    );
-
-                    Provider.of<MissionProvider>(context, listen: false)
-                        .updateDepartment(updatedDepartment);
-                    Navigator.pop(context);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Please fill in all required fields')),
-                    );
-                  }
-                },
-                child: const Text('UPDATE'),
-              ),
-            ],
           );
         },
       ),
@@ -563,7 +762,7 @@ class _MissionsTab extends StatelessWidget {
                     margin:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     color: isSelected
-                        ? Theme.of(context).primaryColor.withOpacity(0.1)
+                        ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
                         : null,
                     child: ListTile(
                       title: Text(mission.name),

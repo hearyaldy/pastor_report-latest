@@ -1,8 +1,9 @@
 // lib/screens/admin_utilities_screen.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:pastor_report/providers/mission_provider.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/providers/mission_provider.dart';
 
 class AdminUtilitiesScreen extends StatelessWidget {
   const AdminUtilitiesScreen({super.key});
@@ -66,7 +67,7 @@ class AdminUtilitiesScreen extends StatelessWidget {
                   if (confirmed == true) {
                     try {
                       // Show loading indicator
-                      _showLoading(
+                      _showLoadingDialog(
                           context, 'Migrating data to mission structure...');
 
                       // Migrate data
@@ -100,11 +101,11 @@ class AdminUtilitiesScreen extends StatelessWidget {
               ),
               const _SectionHeader(title: 'Mission & Department Management'),
               _ActionCard(
-                title: 'Open Mission Management',
+                title: 'Mission Management',
                 description:
-                    'Manage missions and their departments in the dedicated management screen.',
+                    'View, add, edit, or delete missions and their departments.',
                 icon: Icons.business,
-                color: Colors.green,
+                color: Colors.blue,
                 onTap: () {
                   Navigator.pushNamed(
                       context, AppConstants.routeMissionManagement);
@@ -141,31 +142,56 @@ class AdminUtilitiesScreen extends StatelessWidget {
 
                   if (confirmed == true) {
                     try {
-                      // Show loading indicator
-                      _showLoading(context, 'Reseeding data...');
+                      // Show loading indicator with more detailed message
+                      _showLoadingDialog(context, 'Reseeding data...\nThis may take a moment. Please wait.', name: 'reseed_loading');
 
-                      // Reseed all data
-                      await missionProvider.reseedAllData();
+                      // Set a timeout to update the loading message after a few seconds
+                      // to reassure the user that the process is still running
+                      Future.delayed(const Duration(seconds: 5), () {
+                        if (context.mounted) {
+                          // Check if the dialog is still showing before updating
+                          _updateLoadingDialog(context, 
+                              'Still working...\nDeleting existing data and creating new missions and departments.',
+                              'reseed_loading');
+                        }
+                      });
+                      
+                      // Add another update after a longer delay
+                      Future.delayed(const Duration(seconds: 15), () {
+                        if (context.mounted) {
+                          _updateLoadingDialog(context, 
+                              'Almost there...\nSetting up new missions and departments structure.',
+                              'reseed_loading');
+                        }
+                      });
+
+                      // Reseed all data with a timeout
+                      await missionProvider.reseedAllData()
+                          .timeout(const Duration(seconds: 60), onTimeout: () {
+                        throw TimeoutException('Operation timed out. The database might be too large or there might be connection issues.');
+                      });
 
                       // Hide loading and show success
                       if (context.mounted) {
-                        Navigator.pop(context); // Remove loading dialog
+                        _dismissLoadingDialog(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
                                 'All data has been successfully reseeded!'),
                             backgroundColor: Colors.green,
+                            duration: Duration(seconds: 5),
                           ),
                         );
                       }
                     } catch (e) {
                       // Hide loading and show error
                       if (context.mounted) {
-                        Navigator.pop(context); // Remove loading dialog
+                        _dismissLoadingDialog(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Error: $e'),
+                            content: Text('Error during reseed: $e'),
                             backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 10),
                           ),
                         );
                       }
@@ -179,27 +205,52 @@ class AdminUtilitiesScreen extends StatelessWidget {
       ),
     );
   }
-
-  void _showLoading(BuildContext context, String message) {
+  
+  // Show a loading dialog with a message
+  void _showLoadingDialog(BuildContext context, String message, {String name = 'loading_dialog'}) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        content: SizedBox(
-          height: 100,
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 16),
-                Text(message),
-              ],
+      routeSettings: RouteSettings(name: name),
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false, // Prevent back button from closing
+        child: AlertDialog(
+          content: SizedBox(
+            height: 120, // Make it taller for multi-line messages
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
+  }
+  
+  // Update an existing loading dialog with a new message
+  void _updateLoadingDialog(BuildContext context, String newMessage, String dialogName) {
+    // First dismiss any existing dialog
+    _dismissLoadingDialog(context);
+    
+    // Then show a new one with the updated message
+    _showLoadingDialog(context, newMessage, name: dialogName);
+  }
+  
+  // Dismiss the loading dialog safely
+  void _dismissLoadingDialog(BuildContext context) {
+    Navigator.of(context, rootNavigator: true).popUntil((route) {
+      return route.settings.name != 'loading_dialog' && 
+             route.settings.name != 'reseed_loading';
+    });
   }
 }
 
@@ -211,13 +262,12 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
       child: Text(
         title,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
       ),
     );
   }
@@ -241,16 +291,31 @@ class _ActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 3,
       margin: const EdgeInsets.symmetric(vertical: 8.0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      elevation: 2,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(4.0),
+        borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: 48, color: color),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: 32,
+                ),
+              ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -259,7 +324,7 @@ class _ActionCard extends StatelessWidget {
                     Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -267,8 +332,8 @@ class _ActionCard extends StatelessWidget {
                     Text(
                       description,
                       style: TextStyle(
-                        color: Colors.grey[600],
                         fontSize: 14,
+                        color: Colors.grey[600],
                       ),
                     ),
                   ],

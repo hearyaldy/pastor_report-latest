@@ -63,21 +63,21 @@ class _AdminDashboardState extends State<AdminDashboard>
           FloatingActionButton.small(
             heroTag: 'mission_management',
             backgroundColor: Colors.blue,
-            child: const Icon(Icons.business),
             tooltip: 'Mission Management',
             onPressed: () {
               Navigator.pushNamed(context, AppConstants.routeMissionManagement);
             },
+            child: const Icon(Icons.business),
           ),
           const SizedBox(height: 10),
           FloatingActionButton(
-            heroTag: 'admin_utilities',
-            backgroundColor: Colors.amber,
-            child: const Icon(Icons.build),
-            tooltip: 'Admin Utilities',
+            heroTag: 'add_department',
+            backgroundColor: AppColors.primaryLight,
+            tooltip: 'Add Department',
             onPressed: () {
-              Navigator.pushNamed(context, AppConstants.routeAdminUtilities);
+              _addDepartment(context);
             },
+            child: const Icon(Icons.add),
           ),
         ],
       ),
@@ -249,32 +249,33 @@ class _AdminDashboardState extends State<AdminDashboard>
     }
   }
 
-  // Removed duplicate declaration
-
   Widget _buildDepartmentsTab() {
+    // Read missions directly from Firestore with real-time updates
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('departments')
-          .orderBy('mission')
+          .collection('missions')
           .orderBy('name')
           .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+      builder: (context, missionsSnapshot) {
+        if (missionsSnapshot.hasError) {
+          return Center(child: Text('Error: ${missionsSnapshot.error}'));
         }
-        if (!snapshot.hasData) {
+
+        if (!missionsSnapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final departments = snapshot.data!.docs;
-        if (departments.isEmpty) {
+        final missionDocs = missionsSnapshot.data!.docs;
+
+        // If no missions, show empty state
+        if (missionDocs.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Icon(Icons.folder_open, size: 64, color: Colors.grey),
                 const SizedBox(height: 16),
-                const Text('No departments found'),
+                const Text('No missions or departments found'),
                 const SizedBox(height: 8),
                 ElevatedButton(
                   onPressed: () => _addDepartment(context),
@@ -289,31 +290,9 @@ class _AdminDashboardState extends State<AdminDashboard>
           );
         }
 
-        // Define missions
-        final missions = <String>{
-          'All Missions',
-          'Sabah Mission',
-          'Sarawak Mission',
-          'Peninsular Mission',
-          'Singapore Mission'
-        };
-        final groupedDepartments = <String, List<QueryDocumentSnapshot>>{};
-
-        // Initialize groups
-        for (var mission in missions) {
-          if (mission != 'All Missions') {
-            groupedDepartments[mission] = [];
-          }
-        }
-
-        // Group departments by mission
-        for (var doc in departments) {
-          final data = doc.data() as Map<String, dynamic>;
-          final mission = data['mission'] as String? ?? 'Uncategorized';
-          if (missions.contains(mission) && mission != 'All Missions') {
-            groupedDepartments[mission]!.add(doc);
-          }
-        }
+        // Build list of mission names for filter
+        final missionNames = ['All Missions'];
+        missionNames.addAll(missionDocs.map((doc) => (doc.data() as Map<String, dynamic>)['name'] as String).toList());
 
         return Stack(
           children: [
@@ -351,7 +330,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                                   contentPadding: EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 10),
                                 ),
-                                items: missions.map((String mission) {
+                                items: missionNames.map((String mission) {
                                   return DropdownMenuItem<String>(
                                     value: mission,
                                     child: Text(mission),
@@ -373,41 +352,14 @@ class _AdminDashboardState extends State<AdminDashboard>
 
                     // Display departments based on filter
                     if (_selectedMissionFilter == 'All Missions')
-                      for (var mission
-                          in missions.where((m) => m != 'All Missions'))
-                        if (groupedDepartments[mission]!.isNotEmpty) ...[
-                          Padding(
-                            padding:
-                                const EdgeInsets.only(top: 16.0, bottom: 8.0),
-                            child: Text(
-                              mission,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primaryLight,
-                              ),
-                            ),
-                          ),
-                          for (var doc in groupedDepartments[mission]!)
-                            _buildDepartmentItem(context, doc),
-                        ],
-                    if (_selectedMissionFilter != 'All Missions' &&
-                        groupedDepartments[_selectedMissionFilter] != null) ...[
-                      Padding(
-                        padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
-                        child: Text(
-                          _selectedMissionFilter,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryLight,
-                          ),
-                        ),
-                      ),
-                      for (var doc
-                          in groupedDepartments[_selectedMissionFilter]!)
-                        _buildDepartmentItem(context, doc),
-                    ],
+                      // Show all missions with their departments
+                      for (var missionDoc in missionDocs)
+                        _buildMissionSection(missionDoc)
+                    else
+                      // Show only selected mission's departments
+                      for (var missionDoc in missionDocs)
+                        if ((missionDoc.data() as Map<String, dynamic>)['name'] == _selectedMissionFilter)
+                          _buildMissionSection(missionDoc),
                   ],
                 ),
               ),
@@ -427,25 +379,84 @@ class _AdminDashboardState extends State<AdminDashboard>
     );
   }
 
-  Widget _buildDepartmentItem(BuildContext context, QueryDocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  // Build a mission section with its departments
+  Widget _buildMissionSection(QueryDocumentSnapshot missionDoc) {
+    final missionData = missionDoc.data() as Map<String, dynamic>;
+    final missionName = missionData['name'] as String;
+    final missionId = missionDoc.id;
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('missions')
+          .doc(missionId)
+          .collection('departments')
+          .orderBy('name')
+          .snapshots(),
+      builder: (context, deptSnapshot) {
+        if (deptSnapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text('Error loading departments for $missionName'),
+          );
+        }
+
+        if (!deptSnapshot.hasData) {
+          return const SizedBox.shrink();
+        }
+
+        final departments = deptSnapshot.data!.docs;
+
+        // Don't show mission if it has no departments
+        if (departments.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+              child: Text(
+                missionName,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryLight,
+                ),
+              ),
+            ),
+            ...departments.map((deptDoc) {
+              final deptData = deptDoc.data() as Map<String, dynamic>;
+              return _buildDepartmentCardFromData(context, deptDoc.id, deptData, missionId);
+            }),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDepartmentCardFromData(BuildContext context, String departmentId, Map<String, dynamic> deptData, String missionId) {
+    final departmentName = deptData['name'] as String? ?? 'Unknown';
+    final formUrl = deptData['formUrl'] as String? ?? '';
+    final iconString = deptData['icon'] as String? ?? 'business';
+    final icon = Department.getIconFromString(iconString);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8.0),
       child: ListTile(
         leading: Icon(
-          Department.getIconFromString(data['icon'] ?? 'business'),
+          icon,
           color: AppColors.primaryLight,
         ),
-        title: Text(data['name'] ?? ''),
+        title: Text(departmentName),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(data['description'] ?? ''),
-            if (data['formUrl']?.isNotEmpty ?? false)
+            if (formUrl.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 4.0),
                 child: Text(
-                  'Form URL: ${data['formUrl']}',
+                  'Form URL: $formUrl',
                   style: const TextStyle(
                     fontSize: 12,
                     color: Colors.blue,
@@ -454,18 +465,32 @@ class _AdminDashboardState extends State<AdminDashboard>
               ),
           ],
         ),
-        isThreeLine: true,
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
               icon: const Icon(Icons.edit),
-              onPressed: () => _editDepartment(context, doc.id, data),
+              onPressed: () => _editDepartmentInMission(
+                context,
+                missionId,
+                Department(
+                  id: departmentId,
+                  name: departmentName,
+                  icon: icon,
+                  formUrl: formUrl,
+                  isActive: deptData['isActive'] as bool? ?? true,
+                  mission: deptData['mission'] as String? ?? '',
+                ),
+              ),
             ),
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: () =>
-                  _confirmDeleteDepartment(context, doc.id, data['name']),
+              onPressed: () => _confirmDeleteDepartmentFromMission(
+                context,
+                missionId,
+                departmentId,
+                departmentName,
+              ),
             ),
           ],
         ),
@@ -550,8 +575,27 @@ class _AdminDashboardState extends State<AdminDashboard>
     );
   }
 
-  Future<void> _editDepartment(BuildContext context, String departmentId,
-      Map<String, dynamic> department) async {
+  // Methods for mission-based department operations
+  Future<void> _editDepartmentInMission(BuildContext context, String missionId, Department department) async {
+    // Get mission name directly from Firestore
+    final missionDoc = await FirebaseFirestore.instance
+        .collection('missions')
+        .doc(missionId)
+        .get();
+
+    if (!missionDoc.exists) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mission not found'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final missionName = (missionDoc.data() as Map<String, dynamic>)['name'] as String;
+
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -559,16 +603,32 @@ class _AdminDashboardState extends State<AdminDashboard>
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => _DepartmentBottomSheet(
-        departmentId: departmentId,
-        initialData: department,
+        departmentId: department.id,
+        initialData: {
+          'name': department.name,
+          'icon': Department.getIconString(department.icon),
+          'formUrl': department.formUrl,
+          'isActive': department.isActive,
+          'mission': missionName,
+        },
         onSave: (departmentData) async {
           try {
-            departmentData['updatedAt'] = FieldValue.serverTimestamp();
+            // Update department directly in Firestore
             await FirebaseFirestore.instance
+                .collection('missions')
+                .doc(missionId)
                 .collection('departments')
-                .doc(departmentId)
-                .update(departmentData);
-            if (!mounted) return;
+                .doc(department.id)
+                .update({
+              'name': departmentData['name'],
+              'icon': departmentData['icon'],
+              'formUrl': departmentData['formUrl'] ?? '',
+              'isActive': departmentData['isActive'] ?? true,
+              'mission': missionName,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+
+            if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Department updated successfully'),
@@ -576,7 +636,7 @@ class _AdminDashboardState extends State<AdminDashboard>
               ),
             );
           } catch (e) {
-            if (!mounted) return;
+            if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Failed to update department: $e'),
@@ -589,14 +649,13 @@ class _AdminDashboardState extends State<AdminDashboard>
     );
   }
 
-  Future<void> _confirmDeleteDepartment(
-      BuildContext context, String departmentId, String? departmentName) async {
+  Future<void> _confirmDeleteDepartmentFromMission(
+      BuildContext context, String missionId, String departmentId, String departmentName) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Department'),
-        content: Text(
-            'Are you sure you want to delete ${departmentName ?? 'this department'}?'),
+        content: Text('Are you sure you want to delete $departmentName?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -610,13 +669,17 @@ class _AdminDashboardState extends State<AdminDashboard>
       ),
     );
 
-    if (confirmed == true && mounted) {
+    if (confirmed == true) {
       try {
+        // Delete department directly from Firestore
         await FirebaseFirestore.instance
+            .collection('missions')
+            .doc(missionId)
             .collection('departments')
             .doc(departmentId)
             .delete();
-        if (!mounted) return;
+
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Department deleted successfully'),
@@ -624,7 +687,7 @@ class _AdminDashboardState extends State<AdminDashboard>
           ),
         );
       } catch (e) {
-        if (!mounted) return;
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to delete department: $e'),

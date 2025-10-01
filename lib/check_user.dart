@@ -25,6 +25,8 @@ class CheckUserApp extends StatelessWidget {
 }
 
 class CheckUserScreen extends StatefulWidget {
+  const CheckUserScreen({super.key});
+
   @override
   _CheckUserScreenState createState() => _CheckUserScreenState();
 }
