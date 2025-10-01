@@ -388,8 +388,62 @@ class _DepartmentCard extends StatelessWidget {
     required this.onTap,
   });
 
+  String _getLastUpdatedText() {
+    if (department.lastUpdated == null) return 'Never updated';
+
+    final now = DateTime.now();
+    final difference = now.difference(department.lastUpdated!);
+
+    if (difference.inDays > 30) {
+      return '${(difference.inDays / 30).floor()} months ago';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays} days ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} hours ago';
+    } else {
+      return 'Recently updated';
+    }
+  }
+
+  Color _getStatusColor() {
+    if (!department.isActive) return Colors.grey;
+
+    if (department.lastUpdated == null) return Colors.orange;
+
+    final daysSinceUpdate = DateTime.now().difference(department.lastUpdated!).inDays;
+
+    if (daysSinceUpdate > 30) {
+      return Colors.red; // Not updated for a month
+    } else if (daysSinceUpdate > 7) {
+      return Colors.orange; // Not updated for a week
+    } else {
+      return Colors.green; // Recently updated
+    }
+  }
+
+  String _getStatusText() {
+    if (!department.isActive) return 'Inactive';
+
+    if (department.formUrl.isEmpty) return 'No link';
+
+    if (department.lastUpdated == null) return 'Never updated';
+
+    final daysSinceUpdate = DateTime.now().difference(department.lastUpdated!).inDays;
+
+    if (daysSinceUpdate > 30) {
+      return 'Outdated';
+    } else if (daysSinceUpdate > 7) {
+      return 'Needs update';
+    } else {
+      return 'Active';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final cardColor = department.color ?? AppColors.cardBackground;
+    final statusColor = _getStatusColor();
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(
@@ -399,48 +453,106 @@ class _DepartmentCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppColors.cardBackground,
-                AppColors.cardBackground.withOpacity(0.8),
+                cardColor,
+                cardColor.withOpacity(0.7),
               ],
             ),
           ),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Icon Container
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  department.icon,
-                  color: AppColors.primaryLight,
-                  size: 28,
-                ),
+              // Top Row: Icon and Status Badge
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Icon Container
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      department.icon,
+                      color: AppColors.primaryLight,
+                      size: 24,
+                    ),
+                  ),
+                  // Status Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.circle,
+                          size: 8,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _getStatusText(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               // Department Name
               Flexible(
                 child: Text(
                   department.name,
-                  textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
+                    height: 1.2,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
+              ),
+              const SizedBox(height: 4),
+              // Last Updated Info
+              Row(
+                children: [
+                  Icon(
+                    Icons.update,
+                    size: 10,
+                    color: Colors.black54,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      _getLastUpdatedText(),
+                      style: const TextStyle(
+                        fontSize: 9,
+                        color: Colors.black54,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

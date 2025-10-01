@@ -15,12 +15,8 @@ class DepartmentService {
         .map((snapshot) {
       return snapshot.docs.map((doc) {
         final data = doc.data();
-        return Department(
-          id: doc.id,
-          name: data['name'] ?? '',
-          icon: Department.getIconFromString(data['icon'] ?? 'dashboard'),
-          formUrl: data['formUrl'] ?? '',
-        );
+        data['id'] = doc.id; // Add id to the map
+        return Department.fromMap(data);
       }).toList();
     });
   }
@@ -35,12 +31,8 @@ class DepartmentService {
 
       return snapshot.docs.map((doc) {
         final data = doc.data();
-        return Department(
-          id: doc.id,
-          name: data['name'] ?? '',
-          icon: Department.getIconFromString(data['icon'] ?? 'dashboard'),
-          formUrl: data['formUrl'] ?? '',
-        );
+        data['id'] = doc.id; // Add id to the map
+        return Department.fromMap(data);
       }).toList();
     } catch (e) {
       throw 'Failed to fetch departments: $e';

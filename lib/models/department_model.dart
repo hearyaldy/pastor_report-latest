@@ -1,25 +1,42 @@
 // lib/models/department_model.dart
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Department {
   final String id;
   final String name;
   final IconData icon;
   final String formUrl;
+  final Color? color;
+  final DateTime? lastUpdated;
+  final bool isActive;
 
   Department({
     required this.id,
     required this.name,
     required this.icon,
     required this.formUrl,
+    this.color,
+    this.lastUpdated,
+    this.isActive = true,
   });
 
   factory Department.fromMap(Map<String, dynamic> map) {
+    DateTime? lastUpdated;
+    if (map['updatedAt'] != null) {
+      lastUpdated = (map['updatedAt'] as Timestamp).toDate();
+    } else if (map['createdAt'] != null) {
+      lastUpdated = (map['createdAt'] as Timestamp).toDate();
+    }
+
     return Department(
       id: map['id'] ?? '',
       name: map['name'] ?? '',
       icon: getIconFromString(map['icon'] ?? 'person'),
       formUrl: map['formUrl'] ?? '',
+      color: map['color'] != null ? Color(map['color']) : null,
+      lastUpdated: lastUpdated,
+      isActive: map['isActive'] ?? true,
     );
   }
 
@@ -29,6 +46,8 @@ class Department {
       'name': name,
       'icon': getIconString(icon),
       'formUrl': formUrl,
+      if (color != null) 'color': color!.value,
+      'isActive': isActive,
     };
   }
 
