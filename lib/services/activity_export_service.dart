@@ -1,5 +1,6 @@
 // lib/services/activity_export_service.dart
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:excel/excel.dart';
@@ -24,6 +25,8 @@ class ActivityExportService {
     required double kmCost,
     required DateTime month,
   }) async {
+    try {
+    debugPrint('📄 Generating PDF for ${activities.length} activities');
     final pdf = pw.Document();
 
     // Calculate totals
@@ -233,12 +236,20 @@ class ActivityExportService {
     );
 
     // Save PDF
+    debugPrint('💾 Saving PDF file...');
     final directory = await getTemporaryDirectory();
     final fileName = 'Activities_${DateFormat('yyyy_MM').format(month)}.pdf';
     final file = File('${directory.path}/$fileName');
-    await file.writeAsBytes(await pdf.save());
+    final pdfBytes = await pdf.save();
+    await file.writeAsBytes(pdfBytes);
+    debugPrint('✅ PDF saved to: ${file.path}');
 
     return file;
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error generating PDF: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 
   /// Generate Excel report
@@ -248,6 +259,8 @@ class ActivityExportService {
     required double kmCost,
     required DateTime month,
   }) async {
+    try {
+    debugPrint('📊 Generating Excel for ${activities.length} activities');
     final excel = Excel.createExcel();
     final sheet = excel['Activities Report'];
 
@@ -362,19 +375,33 @@ class ActivityExportService {
     );
 
     // Set column widths
-    sheet.setColumnWidth(0, 15);
-    sheet.setColumnWidth(1, 40);
-    sheet.setColumnWidth(2, 25);
-    sheet.setColumnWidth(3, 12);
-    sheet.setColumnWidth(4, 15);
+    sheet.setColumnWidth(0, 20);
+    sheet.setColumnWidth(1, 50);
+    sheet.setColumnWidth(2, 30);
+    sheet.setColumnWidth(3, 15);
+    sheet.setColumnWidth(4, 18);
 
     // Save Excel
+    debugPrint('💾 Encoding Excel file...');
     final directory = await getTemporaryDirectory();
     final fileName = 'Activities_${DateFormat('yyyy_MM').format(month)}.xlsx';
     final file = File('${directory.path}/$fileName');
-    await file.writeAsBytes(excel.encode()!);
+    final bytes = excel.encode();
+
+    if (bytes == null) {
+      throw Exception('Failed to encode Excel file');
+    }
+
+    debugPrint('💾 Writing Excel file to disk...');
+    await file.writeAsBytes(bytes);
+    debugPrint('✅ Excel saved to: ${file.path}');
 
     return file;
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error generating Excel: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 
   // Helper methods for PDF
