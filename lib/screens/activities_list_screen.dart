@@ -1,9 +1,11 @@
 // lib/screens/activities_list_screen.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pastor_report/models/activity_model.dart';
 import 'package:pastor_report/services/activity_storage_service.dart';
 import 'package:pastor_report/services/settings_service.dart';
@@ -225,6 +227,191 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
     }
   }
 
+  Future<void> _showBackupOptions() async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.cloud_upload, color: Colors.blue),
+                const SizedBox(width: 12),
+                const Text(
+                  'Cloud Backup',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Colors.blue.shade700),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Back up your activities to cloud storage for safekeeping',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue.shade900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.folder, color: Colors.blue.shade700),
+              ),
+              title: const Text('Google Drive'),
+              subtitle: const Text('Backup to your Google Drive account'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.pop(context);
+                _backupToGoogleDrive();
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.indigo.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.cloud, color: Colors.indigo.shade700),
+              ),
+              title: const Text('OneDrive'),
+              subtitle: const Text('Backup to your OneDrive account'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.pop(context);
+                _backupToOneDrive();
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _backupToGoogleDrive() async {
+    try {
+      final jsonData = await _storageService.exportAsJson();
+
+      if (jsonData.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No activities to backup')),
+          );
+        }
+        return;
+      }
+
+      // For now, share the JSON file - actual Google Drive integration would require google_sign_in and googleapis packages
+      final directory = await getTemporaryDirectory();
+      final file = File('${directory.path}/activities_backup.json');
+      await file.writeAsString(jsonData);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        subject: 'Activities Backup',
+        text: 'Backup your activities data to Google Drive manually by uploading this file.',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Backup file created. Please upload to Google Drive manually.'),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating backup: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _backupToOneDrive() async {
+    try {
+      final jsonData = await _storageService.exportAsJson();
+
+      if (jsonData.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No activities to backup')),
+          );
+        }
+        return;
+      }
+
+      // For now, share the JSON file - actual OneDrive integration would require onedrive package
+      final directory = await getTemporaryDirectory();
+      final file = File('${directory.path}/activities_backup.json');
+      await file.writeAsString(jsonData);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        subject: 'Activities Backup',
+        text: 'Backup your activities data to OneDrive manually by uploading this file.',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Backup file created. Please upload to OneDrive manually.'),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating backup: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _exportToExcel() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
@@ -293,6 +480,11 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
         backgroundColor: AppColors.primaryLight,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.cloud_upload),
+            tooltip: 'Cloud Backup',
+            onPressed: _showBackupOptions,
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             tooltip: 'Settings',
