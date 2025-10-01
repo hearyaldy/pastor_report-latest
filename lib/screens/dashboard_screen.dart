@@ -16,6 +16,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  bool _showQuickAddActivity = false;
 
   @override
   void initState() {
@@ -420,59 +421,112 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () {
-                    // TODO: Navigate to activities list
-                    Navigator.pushNamed(context, '/activities');
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            Icons.event_note,
-                            size: 32,
-                            color: Colors.blue.shade700,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Daily Activity Log',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                child: Column(
+                  children: [
+                    InkWell(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(16),
+                        bottom: Radius.circular(16),
+                      ),
+                      onTap: () {
+                        setState(() {
+                          _showQuickAddActivity = !_showQuickAddActivity;
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Track your activities, mileage & notes',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey.shade600,
-                                ),
+                              child: Icon(
+                                Icons.event_note,
+                                size: 32,
+                                color: Colors.blue.shade700,
                               ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Daily Activity Log',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _showQuickAddActivity
+                                        ? 'Tap to collapse'
+                                        : 'Tap to add or view activities',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              _showQuickAddActivity
+                                  ? Icons.expand_less
+                                  : Icons.expand_more,
+                              size: 24,
+                              color: Colors.grey.shade400,
+                            ),
+                          ],
                         ),
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          size: 18,
-                          color: Colors.grey.shade400,
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                    if (_showQuickAddActivity)
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                        child: Column(
+                          children: [
+                            const Divider(),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      Navigator.pushNamed(context, '/add-activity');
+                                    },
+                                    icon: const Icon(Icons.add),
+                                    label: const Text('Quick Add'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blue.shade700,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () {
+                                      Navigator.pushNamed(context, '/activities');
+                                    },
+                                    icon: const Icon(Icons.list),
+                                    label: const Text('View All'),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
