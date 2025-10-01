@@ -7,6 +7,8 @@ import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/providers/theme_provider.dart';
 import 'package:pastor_report/providers/mission_provider.dart';
 import 'package:pastor_report/services/cache_service.dart';
+import 'package:pastor_report/services/activity_storage_service.dart';
+import 'package:pastor_report/models/activity_model.dart';
 import 'package:pastor_report/screens/splash_screen.dart';
 import 'package:pastor_report/screens/main_screen.dart';
 import 'package:pastor_report/screens/modern_sign_in_screen.dart';
@@ -17,6 +19,8 @@ import 'package:pastor_report/screens/admin_utilities_screen.dart';
 import 'package:pastor_report/screens/inapp_webview_screen.dart';
 import 'package:pastor_report/screens/onboarding_screen.dart';
 import 'package:pastor_report/screens/mission_management_screen.dart';
+import 'package:pastor_report/screens/activities_list_screen.dart';
+import 'package:pastor_report/screens/add_edit_activity_screen.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'firebase_options.dart';
 
@@ -33,6 +37,9 @@ void main() async {
 
   // Initialize cache service
   await CacheService.instance.initialize();
+
+  // Initialize activity storage service
+  await ActivityStorageService.instance.initialize();
 
   runApp(const PastorReportApp());
 }
@@ -82,8 +89,16 @@ class PastorReportApp extends StatelessWidget {
                   const AdminUtilitiesScreen(),
               AppConstants.routeMissionManagement: (context) =>
                   const MissionManagementScreen(),
+              '/activities': (context) => const ActivitiesListScreen(),
+              '/add-activity': (context) => const AddEditActivityScreen(),
             },
             onGenerateRoute: (settings) {
+              if (settings.name == '/edit-activity') {
+                final activity = settings.arguments as Activity?;
+                return MaterialPageRoute(
+                  builder: (context) => AddEditActivityScreen(activity: activity),
+                );
+              }
               if (settings.name == AppConstants.routeInAppWebView) {
                 final args = settings.arguments as Map<String, String>;
                 return MaterialPageRoute(
