@@ -78,9 +78,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _changePassword() async {
-    final TextEditingController currentPasswordController = TextEditingController();
+    final TextEditingController currentPasswordController =
+        TextEditingController();
     final TextEditingController newPasswordController = TextEditingController();
-    final TextEditingController confirmPasswordController = TextEditingController();
+    final TextEditingController confirmPasswordController =
+        TextEditingController();
 
     final result = await showDialog<bool>(
       context: context,
@@ -130,7 +132,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (newPasswordController.text != confirmPasswordController.text) {
+              if (newPasswordController.text !=
+                  confirmPasswordController.text) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Passwords do not match')),
                 );
@@ -189,7 +192,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Reset Password'),
-        content: Text('A password reset link will be sent to:\n\n$email\n\nAre you sure?'),
+        content: Text(
+            'A password reset link will be sent to:\n\n$email\n\nAre you sure?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -255,8 +259,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await authProvider.signOut();
 
       if (context.mounted) {
-        Navigator.pushNamedAndRemoveUntil(
-            context, '/dashboard', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
       }
     }
   }
@@ -384,7 +387,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 // Edit Profile Card
                 Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -402,13 +406,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             if (!_isEditing)
                               IconButton(
-                                icon: const Icon(Icons.edit, color: AppTheme.primary),
+                                icon: const Icon(Icons.edit,
+                                    color: AppTheme.primary),
                                 onPressed: () {
                                   setState(() {
                                     _isEditing = true;
-                                    _displayNameController.text = user.displayName;
+                                    _displayNameController.text =
+                                        user.displayName;
                                     _selectedMission = user.mission;
-                                    _districtController.text = user.district ?? '';
+                                    _districtController.text =
+                                        user.district ?? '';
                                     _regionController.text = user.region ?? '';
                                     _selectedRole = user.role;
                                   });
@@ -436,7 +443,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   border: OutlineInputBorder(),
                                   prefixIcon: Icon(Icons.church_outlined),
                                 ),
-                                items: AppConstants.missions.map((String mission) {
+                                items:
+                                    AppConstants.missions.map((String mission) {
                                   return DropdownMenuItem<String>(
                                     value: mission,
                                     child: Text(mission),
@@ -454,7 +462,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 decoration: const InputDecoration(
                                   labelText: 'District',
                                   border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.location_city_outlined),
+                                  prefixIcon:
+                                      Icon(Icons.location_city_outlined),
                                 ),
                               ),
                               const SizedBox(height: 16),
@@ -528,7 +537,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 // Email (read-only)
                 Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   child: ListTile(
                     leading: const Icon(Icons.email, color: AppTheme.primary),
                     title: const Text('Email'),
@@ -539,9 +549,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // Mission
                 if (user.mission != null && user.mission!.isNotEmpty)
                   Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: ListTile(
-                      leading: const Icon(Icons.church_outlined, color: AppTheme.primary),
+                      leading: const Icon(Icons.church_outlined,
+                          color: AppTheme.primary),
                       title: const Text('Mission'),
                       subtitle: Text(user.mission!),
                     ),
@@ -550,9 +562,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // District
                 if (user.district != null && user.district!.isNotEmpty)
                   Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: ListTile(
-                      leading: const Icon(Icons.location_city_outlined, color: AppTheme.primary),
+                      leading: const Icon(Icons.location_city_outlined,
+                          color: AppTheme.primary),
                       title: const Text('District'),
                       subtitle: Text(user.district!),
                     ),
@@ -561,9 +575,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // Region
                 if (user.region != null && user.region!.isNotEmpty)
                   Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: ListTile(
-                      leading: const Icon(Icons.map_outlined, color: AppTheme.primary),
+                      leading: const Icon(Icons.map_outlined,
+                          color: AppTheme.primary),
                       title: const Text('Region'),
                       subtitle: Text(user.region!),
                     ),
@@ -572,9 +588,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // Role
                 if (user.role != null && user.role!.isNotEmpty)
                   Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: ListTile(
-                      leading: const Icon(Icons.badge_outlined, color: AppTheme.primary),
+                      leading: const Icon(Icons.badge_outlined,
+                          color: AppTheme.primary),
                       title: const Text('Role'),
                       subtitle: Text(user.role!),
                     ),

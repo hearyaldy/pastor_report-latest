@@ -17,6 +17,8 @@ class AppConstants {
   static const String routeDepartments = '/departments';
   static const String routeInAppWebView = '/inapp_webview';
   static const String routeOnboarding = '/onboarding';
+  static const String routeAdminUtilities = '/admin_utilities';
+  static const String routeMissionManagement = '/mission_management';
 
   // Storage Keys
   static const String keyRememberMe = 'remember_me';

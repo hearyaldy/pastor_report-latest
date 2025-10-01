@@ -31,13 +31,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // App Theme Card
             Card(
               elevation: 2,
+              margin: const EdgeInsets.only(bottom: 16.0),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Theme Settings',
+                      'Display Settings',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -48,18 +49,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       builder: (context, themeProvider, child) {
                         return ListTile(
                           leading: Icon(
-                            themeProvider.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                            themeProvider.isDarkMode
+                                ? Icons.dark_mode
+                                : Icons.light_mode,
                             color: themeProvider.primaryColor,
                           ),
                           title: const Text('Dark Mode'),
-                          subtitle: const Text('Toggle between light and dark theme'),
+                          subtitle:
+                              const Text('Toggle between light and dark theme'),
                           trailing: Switch(
                             value: themeProvider.isDarkMode,
                             onChanged: (bool value) {
                               themeProvider.toggleDarkMode(value);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(value ? 'Dark mode enabled' : 'Light mode enabled'),
+                                  content: Text(value
+                                      ? 'Dark mode enabled'
+                                      : 'Light mode enabled'),
                                   duration: const Duration(seconds: 1),
                                 ),
                               );
@@ -92,15 +98,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const Divider(),
                     ListTile(
-                      leading: Icon(Icons.format_size, color: AppColors.primaryLight),
+                      leading: Icon(Icons.format_size,
+                          color: AppColors.primaryLight),
                       title: const Text('Font Size'),
-                      subtitle: const Text('Adjust text size throughout the app'),
+                      subtitle:
+                          const Text('Adjust text size throughout the app'),
                       trailing: DropdownButton<String>(
                         value: _fontSize,
                         items: const [
-                          DropdownMenuItem(value: 'Small', child: Text('Small')),
-                          DropdownMenuItem(value: 'Normal', child: Text('Normal')),
-                          DropdownMenuItem(value: 'Large', child: Text('Large')),
+                          DropdownMenuItem(
+                              value: 'Small', child: Text('Small')),
+                          DropdownMenuItem(
+                              value: 'Normal', child: Text('Normal')),
+                          DropdownMenuItem(
+                              value: 'Large', child: Text('Large')),
                         ],
                         onChanged: (String? value) {
                           setState(() {
@@ -119,15 +130,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const Divider(),
                     ListTile(
-                      leading: Icon(Icons.font_download, color: AppColors.primaryLight),
+                      leading: Icon(Icons.font_download,
+                          color: AppColors.primaryLight),
                       title: const Text('Font Family'),
                       subtitle: const Text('Choose your preferred font style'),
                       trailing: DropdownButton<String>(
                         value: _fontFamily,
                         items: const [
-                          DropdownMenuItem(value: 'Default', child: Text('Default')),
-                          DropdownMenuItem(value: 'Roboto', child: Text('Roboto')),
-                          DropdownMenuItem(value: 'OpenSans', child: Text('Open Sans')),
+                          DropdownMenuItem(
+                              value: 'Default', child: Text('Default')),
+                          DropdownMenuItem(
+                              value: 'Roboto', child: Text('Roboto')),
+                          DropdownMenuItem(
+                              value: 'OpenSans', child: Text('Open Sans')),
                         ],
                         onChanged: (String? value) {
                           setState(() {
@@ -169,16 +184,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const Divider(),
                         ListTile(
-                          leading: Icon(Icons.palette, color: themeProvider.primaryColor),
+                          leading: Icon(Icons.palette,
+                              color: themeProvider.primaryColor),
                           title: const Text('Primary Color'),
-                          subtitle: const Text('Customize the app\'s primary color'),
+                          subtitle:
+                              const Text('Customize the app\'s primary color'),
                           trailing: Container(
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
                               color: themeProvider.primaryColor,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey.shade300, width: 2),
+                              border: Border.all(
+                                  color: Colors.grey.shade300, width: 2),
                             ),
                           ),
                           onTap: () {
@@ -211,13 +229,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const Divider(),
                     ListTile(
-                      leading: const Icon(Icons.info, color: AppColors.primaryLight),
+                      leading:
+                          const Icon(Icons.info, color: AppColors.primaryLight),
                       title: const Text('Version'),
                       subtitle: Text(AppConstants.appVersion),
                       contentPadding: EdgeInsets.zero,
                     ),
                     ListTile(
-                      leading: const Icon(Icons.apps, color: AppColors.primaryLight),
+                      leading:
+                          const Icon(Icons.apps, color: AppColors.primaryLight),
                       title: const Text('App Name'),
                       subtitle: Text(AppConstants.appName),
                       contentPadding: EdgeInsets.zero,
@@ -281,7 +301,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 spacing: 12,
                 runSpacing: 12,
                 children: predefinedColors.map((color) {
-                  final isSelected = color.toARGB32() == themeProvider.primaryColor.toARGB32();
+                  final isSelected =
+                      color.toARGB32() == themeProvider.primaryColor.toARGB32();
                   return GestureDetector(
                     onTap: () {
                       themeProvider.setPrimaryColor(color);
@@ -300,7 +321,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         color: color,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected ? Colors.white : Colors.grey.shade300,
+                          color:
+                              isSelected ? Colors.white : Colors.grey.shade300,
                           width: isSelected ? 4 : 2,
                         ),
                         boxShadow: isSelected

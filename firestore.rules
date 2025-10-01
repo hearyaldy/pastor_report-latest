@@ -17,6 +17,12 @@ service cloud.firestore {
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
+    
+    // Helper function to check if user belongs to a specific mission
+    function isMissionMember(missionName) {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.mission == missionName;
+    }
 
     // Users collection
     match /users/{userId} {
@@ -37,13 +43,49 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Departments collection
+    // Departments collection (legacy structure)
     match /departments/{departmentId} {
       // Anyone can read departments
       allow read: if true;
 
       // Only admins can create, update, or delete departments
       allow create, update, delete: if isAdmin();
+    }
+    
+    // Missions collection (new mission-based structure)
+    match /missions/{missionId} {
+      // Anyone can read mission details
+      allow read: if true;
+      
+      // Only admins can create, update, or delete missions
+      allow create, update, delete: if isAdmin();
+      
+      // Function to get mission name from document
+      function getMissionName() {
+        return get(/databases/$(database)/documents/missions/$(missionId)).data.name;
+      }
+      
+      // Departments subcollection within missions
+      match /departments/{departmentId} {
+        // Anyone can read mission departments
+        allow read: if true;
+        
+        // Only admins can create, update, or delete departments within missions
+        allow create, update, delete: if isAdmin();
+        
+        // Future enhancement: Mission-specific reports
+        match /reports/{reportId} {
+          // Anyone in the mission can read their mission's reports
+          allow read: if isMissionMember(getMissionName()) || isAdmin();
+          
+          // Only mission members and admins can create reports for their mission
+          allow create: if isMissionMember(getMissionName()) || isAdmin();
+          
+          // Only report creators and admins can update or delete reports
+          allow update, delete: if isAdmin() || 
+                               (isAuthenticated() && request.auth.uid == resource.data.createdBy);
+        }
+      }
     }
 
     // App settings collection (for global app configuration)

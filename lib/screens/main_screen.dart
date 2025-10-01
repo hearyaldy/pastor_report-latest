@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/screens/dashboard_screen.dart';
 import 'package:pastor_report/screens/profile_screen.dart';
-import 'package:pastor_report/screens/settings_screen.dart';
 import 'package:pastor_report/screens/admin_dashboard.dart';
 import 'package:pastor_report/utils/theme.dart';
 
@@ -16,6 +15,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+  bool _showDebugInfo = false;
 
   List<Widget> get _screens {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -23,16 +23,60 @@ class _MainScreenState extends State<MainScreen> {
         authProvider.isAuthenticated && (authProvider.user?.isAdmin ?? false);
 
     return [
-      const DashboardScreen(),
+      Stack(
+        children: [
+          const DashboardScreen(),
+          if (_showDebugInfo && authProvider.isAuthenticated)
+            _buildDebugOverlay(authProvider),
+        ],
+      ),
       const ProfileScreen(),
-      const SettingsScreen(),
       if (isAdmin) const AdminDashboard(),
     ];
   }
 
+  Widget _buildDebugOverlay(AuthProvider authProvider) {
+    return Positioned(
+      top: 100,
+      left: 10,
+      right: 10,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.7),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Debug Info (${authProvider.user?.email})',
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
+            const Divider(color: Colors.white30),
+            Text('Mission: ${authProvider.user?.mission ?? "Not set"}',
+                style: const TextStyle(color: Colors.white)),
+            Text('District: ${authProvider.user?.district ?? "Not set"}',
+                style: const TextStyle(color: Colors.white)),
+            Text('Region: ${authProvider.user?.region ?? "Not set"}',
+                style: const TextStyle(color: Colors.white)),
+            Text('Role: ${authProvider.user?.role ?? "Not set"}',
+                style: const TextStyle(color: Colors.white)),
+            Text('Admin: ${authProvider.user?.isAdmin}',
+                style: const TextStyle(color: Colors.white)),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: () => setState(() => _showDebugInfo = false),
+              child: const Text('Close Debug'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _onTabTapped(int index) {
-    // Check if trying to access profile or settings without login
-    if (index == 1 || index == 2) {
+    // Check if trying to access profile without login
+    if (index == 1) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       if (!authProvider.isAuthenticated) {
         _showLoginPrompt();
@@ -85,43 +129,50 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppTheme.primary,
-        unselectedItemColor: AppTheme.textSecondary,
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            activeIcon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings_outlined),
-            activeIcon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-          if (Provider.of<AuthProvider>(context).isAuthenticated &&
-              (Provider.of<AuthProvider>(context).user?.isAdmin ?? false))
+    return GestureDetector(
+      onTap: () {},
+      onLongPress: () {
+        // Toggle debug info on long press anywhere in the app
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        if (authProvider.isAuthenticated && !_showDebugInfo) {
+          setState(() {
+            _showDebugInfo = true;
+          });
+        }
+      },
+      child: Scaffold(
+        body: IndexedStack(
+          index: _currentIndex,
+          children: _screens,
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: _onTabTapped,
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: AppTheme.primary,
+          unselectedItemColor: AppTheme.textSecondary,
+          selectedFontSize: 12,
+          unselectedFontSize: 12,
+          items: [
             const BottomNavigationBarItem(
-              icon: Icon(Icons.admin_panel_settings_outlined),
-              activeIcon: Icon(Icons.admin_panel_settings),
-              label: 'Admin',
+              icon: Icon(Icons.dashboard_outlined),
+              activeIcon: Icon(Icons.dashboard),
+              label: 'Dashboard',
             ),
-        ],
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person),
+              label: 'Profile',
+            ),
+            if (Provider.of<AuthProvider>(context).isAuthenticated &&
+                (Provider.of<AuthProvider>(context).user?.isAdmin ?? false))
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.admin_panel_settings_outlined),
+                activeIcon: Icon(Icons.admin_panel_settings),
+                label: 'Admin',
+              ),
+          ],
+        ),
       ),
     );
   }
