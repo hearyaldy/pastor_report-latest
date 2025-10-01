@@ -124,8 +124,8 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
             TextField(
               controller: controller,
               decoration: const InputDecoration(
-                labelText: 'Cost per KM (\$)',
-                prefixText: '\$ ',
+                labelText: 'Cost per KM (RM)',
+                prefixText: 'RM ',
                 border: OutlineInputBorder(),
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -156,7 +156,7 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
       await _loadKmCost();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('KM cost updated to \$${result.toStringAsFixed(2)}')),
+          SnackBar(content: Text('KM cost updated to RM${result.toStringAsFixed(2)}')),
         );
       }
     }
@@ -371,7 +371,7 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '\$${_totalCost.toStringAsFixed(2)}',
+                          'RM${_totalCost.toStringAsFixed(2)}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 20,
@@ -379,7 +379,7 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                           ),
                         ),
                         Text(
-                          'Total Cost (\$${_kmCost.toStringAsFixed(2)}/km)',
+                          'Total Cost (RM${_kmCost.toStringAsFixed(2)}/km)',
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 12,
@@ -550,7 +550,7 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '\$${activity.calculateCost(_kmCost).toStringAsFixed(2)}',
+                    'RM${activity.calculateCost(_kmCost).toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.green.shade700,
