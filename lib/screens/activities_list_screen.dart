@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:pastor_report/models/activity_model.dart';
 import 'package:pastor_report/services/activity_storage_service.dart';
 import 'package:pastor_report/services/settings_service.dart';
+import 'package:pastor_report/services/activity_export_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/constants.dart';
 
@@ -19,8 +21,10 @@ class ActivitiesListScreen extends StatefulWidget {
 class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
   final ActivityStorageService _storageService = ActivityStorageService.instance;
   final SettingsService _settingsService = SettingsService.instance;
+  final ActivityExportService _exportService = ActivityExportService.instance;
   List<Activity> _activities = [];
   bool _isLoading = true;
+  bool _isExporting = false;
   DateTime _selectedMonth = DateTime.now();
   double _kmCost = 0.50;
 
@@ -164,6 +168,120 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
     controller.dispose();
   }
 
+  Future<void> _exportToPDF() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not found')),
+      );
+      return;
+    }
+
+    if (_activities.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No activities to export')),
+      );
+      return;
+    }
+
+    setState(() => _isExporting = true);
+
+    try {
+      // Generate PDF
+      final file = await _exportService.generatePDF(
+        activities: _activities,
+        user: user,
+        kmCost: _kmCost,
+        month: _selectedMonth,
+      );
+
+      // Share the file
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        subject: 'Monthly Activities Report - ${DateFormat('MMMM yyyy').format(_selectedMonth)}',
+        text: 'Please find attached my monthly activities report for ${DateFormat('MMMM yyyy').format(_selectedMonth)}.',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PDF exported successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error exporting PDF: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+
+  Future<void> _exportToExcel() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not found')),
+      );
+      return;
+    }
+
+    if (_activities.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No activities to export')),
+      );
+      return;
+    }
+
+    setState(() => _isExporting = true);
+
+    try {
+      // Generate Excel
+      final file = await _exportService.generateExcel(
+        activities: _activities,
+        user: user,
+        kmCost: _kmCost,
+        month: _selectedMonth,
+      );
+
+      // Share the file
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        subject: 'Monthly Activities Report - ${DateFormat('MMMM yyyy').format(_selectedMonth)}',
+        text: 'Please find attached my monthly activities report for ${DateFormat('MMMM yyyy').format(_selectedMonth)}.',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Excel exported successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error exporting Excel: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -183,22 +301,12 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
             tooltip: 'Export to PDF',
-            onPressed: () {
-              // TODO: Export to PDF
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('PDF export coming soon!')),
-              );
-            },
+            onPressed: _isExporting ? null : _exportToPDF,
           ),
           IconButton(
             icon: const Icon(Icons.table_chart),
             tooltip: 'Export to Excel',
-            onPressed: () {
-              // TODO: Export to Excel
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Excel export coming soon!')),
-              );
-            },
+            onPressed: _isExporting ? null : _exportToExcel,
           ),
         ],
       ),

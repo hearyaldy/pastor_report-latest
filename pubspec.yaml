@@ -34,6 +34,12 @@ dependencies:
   # Utilities
   uuid: ^4.5.1
 
+  # PDF & Excel Export
+  pdf: ^3.11.1
+  excel: ^4.0.6
+  path_provider: ^2.1.5
+  share_plus: ^10.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
