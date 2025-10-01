@@ -5,6 +5,7 @@ import 'package:pastor_report/services/department_service.dart';
 import 'package:pastor_report/models/department_model.dart';
 import 'package:pastor_report/screens/inapp_webview_screen.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/utils/theme.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -15,6 +16,8 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final DepartmentService _departmentService = DepartmentService();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   // Handle department tap - check auth first
   Future<void> _handleDepartmentTap(Department department) async {
@@ -79,43 +82,71 @@ class _DashboardScreenState extends State<DashboardScreen> {
           builder: (context) => InAppWebViewScreen(
             initialUrl: department.formUrl,
             initialDepartmentName: department.name,
-            departments: departments.map((dept) => {
-              'name': dept.name,
-              'icon': dept.icon,
-              'link': dept.formUrl,
-            }).toList(),
+            departments: departments
+                .map((dept) => {
+                      'name': dept.name,
+                      'icon': Department.getIconString(dept.icon),
+                      'link': dept.formUrl,
+                    })
+                .toList(),
           ),
         ),
       );
     });
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // Modern App Bar with Header Image
           SliverAppBar(
             expandedHeight: 250,
             floating: false,
             pinned: true,
             backgroundColor: AppColors.primaryLight,
-            flexibleSpace: FlexibleSpaceBar(
-              title: const Text(
-                AppConstants.appName,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black45,
-                      blurRadius: 10,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
+            actions: [
+              // Settings button for all users
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () => Navigator.pushNamed(context, '/settings'),
+                tooltip: 'Settings',
               ),
+              // Login button for non-authenticated users
+              Consumer<AuthProvider>(
+                builder: (context, authProvider, child) {
+                  if (!authProvider.isAuthenticated) {
+                    return TextButton.icon(
+                      icon: const Icon(Icons.login, color: Colors.white),
+                      label: const Text('Login',
+                          style: TextStyle(color: Colors.white)),
+                      onPressed: () => Navigator.pushNamed(context, '/login'),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+              // Avatar for authenticated users
+              Consumer<AuthProvider>(
+                builder: (context, authProvider, child) {
+                  if (authProvider.isAuthenticated) {
+                    return Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: CircleAvatar(
+                        backgroundColor: Colors.white,
+                        child: Text(
+                          (authProvider.user!.displayName ?? 'U')[0]
+                              .toUpperCase(),
+                          style: TextStyle(color: AppColors.primaryLight),
+                        ),
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -137,78 +168,97 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                   ),
-                  // Welcome Text
+                  // Welcome Text and Search
                   Positioned(
                     left: 20,
+                    right: 20,
                     bottom: 60,
-                    child: Consumer<AuthProvider>(
-                      builder: (context, authProvider, child) {
-                        if (authProvider.isAuthenticated) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Welcome back,',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
-                                  fontSize: 16,
-                                ),
-                              ),
-                              Text(
-                                authProvider.user?.displayName ?? 'User',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Consumer<AuthProvider>(
+                          builder: (context, authProvider, child) {
+                            if (authProvider.isAuthenticated) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Welcome back,',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.9),
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  Text(
+                                    authProvider.user!.displayName ?? 'User',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            } else {
+                              return const Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Welcome to',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Digital Ministry',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        // Search Bar
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
                               ),
                             ],
-                          );
-                        } else {
-                          return const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Welcome to',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              Text(
-                                'Digital Ministry',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          );
-                        }
-                      },
+                          ),
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: const InputDecoration(
+                              hintText: 'Search departments...',
+                              prefixIcon: Icon(Icons.search),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                            ),
+                            onChanged: (value) {
+                              setState(() {
+                                _searchQuery = value;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            actions: [
-              // Login Button (only when not authenticated)
-              Consumer<AuthProvider>(
-                builder: (context, authProvider, child) {
-                  if (!authProvider.isAuthenticated) {
-                    return IconButton(
-                      icon: const Icon(Icons.login),
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/login');
-                      },
-                      tooltip: 'Login',
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-            ],
           ),
 
           // Department Grid
@@ -229,7 +279,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                          const Icon(Icons.error_outline,
+                              size: 64, color: Colors.red),
                           const SizedBox(height: 16),
                           Text('Error: ${snapshot.error}'),
                           const SizedBox(height: 16),
@@ -267,6 +318,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 }
 
                 final departments = snapshot.data!;
+                final filteredDepartments = _searchQuery.isEmpty
+                    ? departments
+                    : departments
+                        .where((dept) => dept.name
+                            .toLowerCase()
+                            .contains(_searchQuery.toLowerCase()))
+                        .toList();
+
+                if (filteredDepartments.isEmpty) {
+                  return SliverFillRemaining(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.search_off,
+                              size: 64, color: Colors.grey),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No results found for "$_searchQuery"',
+                            style: const TextStyle(
+                                fontSize: 18, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
 
                 return SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -277,13 +355,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                      final department = departments[index];
+                      final department = filteredDepartments[index];
                       return _DepartmentCard(
                         department: department,
                         onTap: () => _handleDepartmentTap(department),
                       );
                     },
-                    childCount: departments.length,
+                    childCount: filteredDepartments.length,
                   ),
                 );
               },
@@ -292,6 +370,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 }
 
@@ -329,18 +413,19 @@ class _DepartmentCard extends StatelessWidget {
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Icon Container
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: AppColors.primaryLight.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   department.icon,
-                  size: 32,
                   color: AppColors.primaryLight,
+                  size: 28,
                 ),
               ),
               const SizedBox(height: 8),
@@ -350,9 +435,8 @@ class _DepartmentCard extends StatelessWidget {
                   department.name,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.primaryDark,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,

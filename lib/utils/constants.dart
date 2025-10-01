@@ -5,13 +5,16 @@ import 'package:pastor_report/models/department_model.dart';
 class AppConstants {
   // App Info
   static const String appName = 'Pastor Report';
-  static const String appVersion = '2.0.0';
+  static const String appVersion = '2.1.0';
 
   // Routes
+  static const String routeSplash = '/splash';
   static const String routeHome = '/';
+  static const String routeLogin = '/login';
+  static const String routeRegister = '/register';
+  static const String routeSettings = '/settings';
   static const String routeAdmin = '/admin';
   static const String routeDepartments = '/departments';
-  static const String routeSettings = '/settings';
   static const String routeInAppWebView = '/inapp_webview';
 
   // Storage Keys
@@ -51,7 +54,8 @@ class DepartmentData {
       id: 'ministerial',
       name: 'Ministerial',
       icon: Icons.person,
-      formUrl: 'https://forms.gle/MinisterialLink', // TODO: Replace with actual URL
+      formUrl:
+          'https://forms.gle/MinisterialLink', // TODO: Replace with actual URL
     ),
     Department(
       id: 'stewardship',
@@ -81,7 +85,8 @@ class DepartmentData {
       id: 'education',
       name: 'Education',
       icon: Icons.school,
-      formUrl: 'https://forms.gle/EducationLink', // TODO: Replace with actual URL
+      formUrl:
+          'https://forms.gle/EducationLink', // TODO: Replace with actual URL
     ),
     Department(
       id: 'family',
@@ -111,25 +116,29 @@ class DepartmentData {
       id: 'publishing',
       name: 'Publishing',
       icon: Icons.book,
-      formUrl: 'https://forms.gle/PublishingLink', // TODO: Replace with actual URL
+      formUrl:
+          'https://forms.gle/PublishingLink', // TODO: Replace with actual URL
     ),
     Department(
       id: 'personal_ministry',
       name: 'Personal Ministry',
       icon: Icons.person_pin,
-      formUrl: 'https://forms.gle/PersonalMinistryLink', // TODO: Replace with actual URL
+      formUrl:
+          'https://forms.gle/PersonalMinistryLink', // TODO: Replace with actual URL
     ),
     Department(
       id: 'sabbath_school',
       name: 'Sabbath School',
       icon: Icons.access_time,
-      formUrl: 'https://docs.google.com/forms/d/1JTupBS6yVIePQmgTHih8ptlG9zxUSVv2aJzJc3c3V10/edit',
+      formUrl:
+          'https://docs.google.com/forms/d/1JTupBS6yVIePQmgTHih8ptlG9zxUSVv2aJzJc3c3V10/edit',
     ),
     Department(
       id: 'acs',
       name: 'Adventist Community Services',
       icon: Icons.volunteer_activism,
-      formUrl: 'https://forms.gle/AdventistCommunityServicesLink', // TODO: Replace with actual URL
+      formUrl:
+          'https://forms.gle/AdventistCommunityServicesLink', // TODO: Replace with actual URL
     ),
   ];
 }

@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:pastor_report/theme_manager.dart';
+import 'package:pastor_report/models/department_model.dart';
+import 'package:pastor_report/utils/constants.dart';
 
 class InAppWebViewScreen extends StatefulWidget {
   final String initialUrl;
@@ -82,7 +84,7 @@ class InAppWebViewScreenState extends State<InAppWebViewScreen> {
               ),
             ],
           ),
-          // Bottom Navigation Bar with additional link to go back to Departments list
+          // Bottom Navigation Bar
           bottomNavigationBar: BottomNavigationBar(
             items: const [
               BottomNavigationBarItem(
@@ -91,7 +93,7 @@ class InAppWebViewScreenState extends State<InAppWebViewScreen> {
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.list),
-                label: 'Departments', // New item for navigating back to the departments list
+                label: 'Dashboard',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.settings),
@@ -99,52 +101,22 @@ class InAppWebViewScreenState extends State<InAppWebViewScreen> {
               ),
             ],
             onTap: (index) {
-              if (index == 0) {
-                Navigator.pushNamed(context, '/'); // Navigate to Home
-              } else if (index == 1) {
-                Navigator.pushNamed(context, '/departments'); // Navigate back to Departments list
+              if (index == 0 || index == 1) {
+                Navigator.pushNamed(context, '/'); // Navigate to Home/Dashboard
               } else if (index == 2) {
-                _showSettingsMenu(context); // Show settings menu
+                Navigator.pushNamed(context,
+                    AppConstants.routeSettings); // Navigate to Settings
               }
             },
           ),
           // Floating Action Button for Departments
           floatingActionButton: FloatingActionButton(
             onPressed: () {
-              _showDepartmentMenu(context); // Ensure this correctly calls the menu function
+              _showDepartmentMenu(
+                  context); // Ensure this correctly calls the menu function
             },
             backgroundColor: const Color.fromARGB(255, 26, 72, 112),
             child: const Icon(Icons.menu),
-          ),
-        );
-      },
-    );
-  }
-
-  // Function to Show Settings Menu with Theme Toggle
-  void _showSettingsMenu(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Settings',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const Divider(),
-              SwitchListTile(
-                title: const Text('Dark Theme'),
-                value: ThemeManager.isDarkTheme.value,
-                onChanged: (value) {
-                  ThemeManager.isDarkTheme.value = value;
-                  Navigator.pop(context);
-                },
-              ),
-            ],
           ),
         );
       },
@@ -181,7 +153,8 @@ class InAppWebViewScreenState extends State<InAppWebViewScreen> {
                     // Display all departments passed from the DepartmentsScreen
                     ...widget.departments.map((department) {
                       return ListTile(
-                        leading: Icon(department['icon']),
+                        leading: Icon(
+                            Department.getIconFromString(department['icon'])),
                         title: Text(department['name']),
                         onTap: () {
                           setState(() {

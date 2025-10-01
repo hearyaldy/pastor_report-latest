@@ -1,8 +1,5 @@
 // lib/screens/settings_screen.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:pastor_report/providers/auth_provider.dart';
-import 'package:pastor_report/services/user_management_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -80,9 +77,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _changePassword() async {
-    final TextEditingController currentPasswordController = TextEditingController();
+    final TextEditingController currentPasswordController =
+        TextEditingController();
     final TextEditingController newPasswordController = TextEditingController();
-    final TextEditingController confirmPasswordController = TextEditingController();
+    final TextEditingController confirmPasswordController =
+        TextEditingController();
 
     final result = await showDialog<bool>(
       context: context,
@@ -129,7 +128,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              if (newPasswordController.text != confirmPasswordController.text) {
+              if (newPasswordController.text !=
+                  confirmPasswordController.text) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Passwords do not match')),
                 );
@@ -138,7 +138,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               if (newPasswordController.text.length < 6) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Password must be at least 6 characters')),
+                  const SnackBar(
+                      content: Text('Password must be at least 6 characters')),
                 );
                 return;
               }
@@ -180,20 +181,135 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: const Text('App Settings'),
         backgroundColor: AppColors.primaryLight,
         foregroundColor: Colors.white,
-        actions: [
-          if (_isEditing)
-            TextButton.icon(
-              onPressed: _isLoading ? null : _saveProfile,
-              icon: _isLoading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(Colors.white),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // App Theme Card
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Theme Settings',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: Icon(Icons.brightness_6, color: AppColors.primaryLight),
+                      title: const Text('Dark Mode'),
+                      trailing: Switch(
+                        value: Theme.of(context).brightness == Brightness.dark,
+                        onChanged: (bool value) {
+                          // TODO: Implement theme change
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Font Settings Card
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Font Settings',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: Icon(Icons.format_size, color: AppColors.primaryLight),
+                      title: const Text('Font Size'),
+                      trailing: DropdownButton<String>(
+                        value: 'Normal',
+                        items: const [
+                          DropdownMenuItem(value: 'Small', child: Text('Small')),
+                          DropdownMenuItem(value: 'Normal', child: Text('Normal')),
+                          DropdownMenuItem(value: 'Large', child: Text('Large')),
+                        ],
+                        onChanged: (String? value) {
+                          // TODO: Implement font size change
+                        },
+                      ),
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.font_download, color: AppColors.primaryLight),
+                      title: const Text('Font Family'),
+                      trailing: DropdownButton<String>(
+                        value: 'Default',
+                        items: const [
+                          DropdownMenuItem(value: 'Default', child: Text('Default')),
+                          DropdownMenuItem(value: 'Roboto', child: Text('Roboto')),
+                          DropdownMenuItem(value: 'OpenSans', child: Text('Open Sans')),
+                        ],
+                        onChanged: (String? value) {
+                          // TODO: Implement font family change
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Color Theme Card
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Color Theme',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: Icon(Icons.palette, color: AppColors.primaryLight),
+                      title: const Text('Primary Color'),
+                      trailing: Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onTap: () {
+                        // TODO: Implement color picker
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
                       ),
                     )
                   : const Icon(Icons.save, color: Colors.white),
@@ -214,6 +330,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Admin Dashboard Button
+                if (user.isAdmin)
+                  Card(
+                    elevation: 2,
+                    child: ListTile(
+                      leading: const Icon(Icons.admin_panel_settings,
+                          color: Colors.red),
+                      title: const Text('Admin Dashboard'),
+                      subtitle: const Text('Manage users and app settings'),
+                      trailing: const Icon(Icons.arrow_forward_ios),
+                      onTap: () =>
+                          Navigator.pushNamed(context, AppConstants.routeAdmin),
+                    ),
+                  ),
+                const SizedBox(height: 16),
+
                 // Profile Section
                 Card(
                   elevation: 2,
@@ -235,7 +367,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             if (!_isEditing)
                               IconButton(
                                 icon: const Icon(Icons.edit),
-                                onPressed: () => setState(() => _isEditing = true),
+                                onPressed: () =>
+                                    setState(() => _isEditing = true),
                               ),
                           ],
                         ),
@@ -270,11 +403,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         // Role
                         ListTile(
                           leading: Icon(
-                            user.isAdmin ? Icons.admin_panel_settings : Icons.person_outline,
+                            user.isAdmin
+                                ? Icons.admin_panel_settings
+                                : Icons.person_outline,
                             color: user.isAdmin ? Colors.red : null,
                           ),
                           title: const Text('Role'),
-                          subtitle: Text(user.isAdmin ? 'Administrator' : 'User'),
+                          subtitle:
+                              Text(user.isAdmin ? 'Administrator' : 'User'),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ],
@@ -332,7 +468,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ListTile(
                             leading: const Icon(Icons.people),
                             title: const Text('User Management'),
-                            subtitle: const Text('Manage users and permissions'),
+                            subtitle:
+                                const Text('Manage users and permissions'),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () {
                               Navigator.pushNamed(context, '/user_management');
@@ -342,10 +479,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ListTile(
                             leading: const Icon(Icons.dashboard),
                             title: const Text('Department Management'),
-                            subtitle: const Text('Edit department forms and links'),
+                            subtitle:
+                                const Text('Edit department forms and links'),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () {
-                              Navigator.pushNamed(context, '/department_management');
+                              Navigator.pushNamed(
+                                  context, '/department_management');
                             },
                             contentPadding: EdgeInsets.zero,
                           ),

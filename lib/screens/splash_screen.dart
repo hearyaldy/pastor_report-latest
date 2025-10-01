@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:pastor_report/utils/constants.dart';
-import 'dart:async';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -9,7 +8,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
 
@@ -28,10 +28,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    // Navigate to dashboard after 3 seconds
-    Timer(const Duration(seconds: 3), () {
+    // Navigate to home after animation completes
+    Future.delayed(const Duration(milliseconds: 2000), () {
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/dashboard');
+        Navigator.pushReplacementNamed(context, AppConstants.routeHome);
       }
     });
   }

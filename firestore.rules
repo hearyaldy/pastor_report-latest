@@ -39,8 +39,8 @@ service cloud.firestore {
 
     // Departments collection
     match /departments/{departmentId} {
-      // Anyone authenticated can read departments
-      allow read: if isAuthenticated();
+      // Anyone can read departments
+      allow read: if true;
 
       // Only admins can create, update, or delete departments
       allow create, update, delete: if isAdmin();

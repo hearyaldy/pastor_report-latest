@@ -34,7 +34,8 @@ class ProfileScreen extends StatelessWidget {
       await authProvider.signOut();
 
       if (context.mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+            context, '/dashboard', (route) => false);
       }
     }
   }
@@ -133,9 +134,11 @@ class ProfileScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       // Role Badge
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 6),
                         decoration: BoxDecoration(
-                          color: user.isAdmin ? AppTheme.error : AppTheme.success,
+                          color:
+                              user.isAdmin ? AppTheme.error : AppTheme.success,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -161,38 +164,16 @@ class ProfileScreen extends StatelessWidget {
                   context,
                   icon: Icons.person_outline,
                   title: 'Edit Profile',
-                  onTap: () => Navigator.pushNamed(context, AppConstants.routeSettings),
+                  onTap: () =>
+                      Navigator.pushNamed(context, AppConstants.routeSettings),
                 ),
                 _buildListTile(
                   context,
                   icon: Icons.lock_outline,
                   title: 'Change Password',
-                  onTap: () => Navigator.pushNamed(context, AppConstants.routeSettings),
+                  onTap: () =>
+                      Navigator.pushNamed(context, AppConstants.routeSettings),
                 ),
-
-                // Admin Section
-                if (user.isAdmin) ...[
-                  const SizedBox(height: 16),
-                  _buildSectionHeader(context, 'Administration'),
-                  _buildListTile(
-                    context,
-                    icon: Icons.dashboard,
-                    title: 'Admin Dashboard',
-                    onTap: () => Navigator.pushNamed(context, AppConstants.routeAdmin),
-                  ),
-                  _buildListTile(
-                    context,
-                    icon: Icons.people,
-                    title: 'User Management',
-                    onTap: () => Navigator.pushNamed(context, '/user_management'),
-                  ),
-                  _buildListTile(
-                    context,
-                    icon: Icons.category,
-                    title: 'Department Management',
-                    onTap: () => Navigator.pushNamed(context, '/department_management'),
-                  ),
-                ],
 
                 // App Section
                 const SizedBox(height: 16),
@@ -270,7 +251,8 @@ class ProfileScreen extends StatelessWidget {
       child: ListTile(
         leading: Icon(icon, color: AppTheme.primary),
         title: Text(title),
-        trailing: trailing ?? const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+        trailing: trailing ??
+            const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
         onTap: onTap,
       ),
     );

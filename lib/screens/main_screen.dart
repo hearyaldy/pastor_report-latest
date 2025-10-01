@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/screens/dashboard_screen.dart';
 import 'package:pastor_report/screens/profile_screen.dart';
+import 'package:pastor_report/screens/settings_screen.dart';
+import 'package:pastor_report/screens/admin_dashboard.dart';
 import 'package:pastor_report/utils/theme.dart';
 
 class MainScreen extends StatefulWidget {
@@ -15,14 +17,22 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const DashboardScreen(),
-    const ProfileScreen(),
-  ];
+  List<Widget> get _screens {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final isAdmin =
+        authProvider.isAuthenticated && (authProvider.user?.isAdmin ?? false);
+
+    return [
+      const DashboardScreen(),
+      const ProfileScreen(),
+      const SettingsScreen(),
+      if (isAdmin) const AdminDashboard(),
+    ];
+  }
 
   void _onTabTapped(int index) {
-    // Check if trying to access profile without login
-    if (index == 1) {
+    // Check if trying to access profile or settings without login
+    if (index == 1 || index == 2) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       if (!authProvider.isAuthenticated) {
         _showLoginPrompt();
@@ -88,17 +98,29 @@ class _MainScreenState extends State<MainScreen> {
         unselectedItemColor: AppTheme.textSecondary,
         selectedFontSize: 12,
         unselectedFontSize: 12,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
+            icon: Icon(Icons.dashboard),
+            activeIcon: Icon(Icons.dashboard),
+            label: 'Dashboard',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'Profile',
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings_outlined),
+            activeIcon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+          if (Provider.of<AuthProvider>(context).isAuthenticated &&
+              (Provider.of<AuthProvider>(context).user?.isAdmin ?? false))
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.admin_panel_settings_outlined),
+              activeIcon: Icon(Icons.admin_panel_settings),
+              label: 'Admin',
+            ),
         ],
       ),
     );

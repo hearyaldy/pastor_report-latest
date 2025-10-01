@@ -7,11 +7,8 @@ import 'package:pastor_report/screens/splash_screen.dart';
 import 'package:pastor_report/screens/main_screen.dart';
 import 'package:pastor_report/screens/modern_sign_in_screen.dart';
 import 'package:pastor_report/screens/registration_screen.dart';
-import 'package:pastor_report/screens/admin_dashboard.dart';
-import 'package:pastor_report/screens/departments_screen.dart';
 import 'package:pastor_report/screens/settings_screen.dart';
-import 'package:pastor_report/screens/user_management_screen.dart';
-import 'package:pastor_report/screens/department_management_screen.dart';
+import 'package:pastor_report/screens/admin_dashboard.dart';
 import 'package:pastor_report/screens/inapp_webview_screen.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/utils/theme.dart';
@@ -41,20 +38,14 @@ class PastorReportApp extends StatelessWidget {
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        initialRoute: '/',
+        initialRoute: AppConstants.routeSplash,
         routes: {
-          '/': (context) => const SplashScreen(),
-          '/dashboard': (context) => const MainScreen(),
-          '/login': (context) => const ModernSignInScreen(),
-          '/register': (context) => const RegistrationScreen(),
-          AppConstants.routeAdmin: (context) => const AdminDashboard(),
-          AppConstants.routeDepartments: (context) {
-            final authProvider = Provider.of<AuthProvider>(context, listen: false);
-            return DepartmentsScreen(isAdmin: authProvider.isAdmin);
-          },
+          AppConstants.routeSplash: (context) => const SplashScreen(),
+          AppConstants.routeHome: (context) => const MainScreen(),
+          AppConstants.routeLogin: (context) => const ModernSignInScreen(),
+          AppConstants.routeRegister: (context) => const RegistrationScreen(),
           AppConstants.routeSettings: (context) => const SettingsScreen(),
-          '/user_management': (context) => const UserManagementScreen(),
-          '/department_management': (context) => const DepartmentManagementScreen(),
+          AppConstants.routeAdmin: (context) => const AdminDashboard(),
         },
         onGenerateRoute: (settings) {
           if (settings.name == AppConstants.routeInAppWebView) {
