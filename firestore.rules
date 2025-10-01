@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Helper function to check if user is accessing their own document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Anyone authenticated can read any user (for displaying user lists)
+      allow read: if isAuthenticated();
+
+      // Users can create their own document (during registration)
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+
+      // Users can update their own document (except isAdmin field)
+      allow update: if isOwner(userId) &&
+                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin']));
+
+      // Only admins can update any user's isAdmin field
+      allow update: if isAdmin();
+
+      // Only admins can delete users
+      allow delete: if isAdmin();
+    }
+
+    // Departments collection
+    match /departments/{departmentId} {
+      // Anyone authenticated can read departments
+      allow read: if isAuthenticated();
+
+      // Only admins can create, update, or delete departments
+      allow create, update, delete: if isAdmin();
+    }
+
+    // App settings collection (for global app configuration)
+    match /settings/{settingId} {
+      // Anyone authenticated can read settings
+      allow read: if isAuthenticated();
+
+      // Only admins can modify settings
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}

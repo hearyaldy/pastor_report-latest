@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "695678872591",
+    "project_id": "pastor-report-e4c52",
+    "storage_bucket": "pastor-report-e4c52.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:695678872591:android:99bcf1ea5f2e4dcef4c77a",
+        "android_client_info": {
+          "package_name": "com.haweeinc.pastor_report"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAniv7LEQzRI0Mx3LuiHTKcIiiQ9TiofkU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

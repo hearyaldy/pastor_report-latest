@@ -1,5 +1,6 @@
 // lib/screens/admin_dashboard.dart
 import 'package:flutter/material.dart';
+import 'package:pastor_report/services/department_service.dart';
 
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
@@ -28,7 +29,8 @@ class AdminDashboard extends StatelessWidget {
               icon: const Icon(Icons.dashboard),
               label: const Text('Go to Departments'),
               style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50), // Make button full-width
+                minimumSize:
+                    const Size.fromHeight(50), // Make button full-width
               ),
             ),
             const SizedBox(height: 16),
@@ -41,32 +43,67 @@ class AdminDashboard extends StatelessWidget {
               icon: const Icon(Icons.settings),
               label: const Text('Settings'),
               style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50), // Make button full-width
+                minimumSize:
+                    const Size.fromHeight(50), // Make button full-width
               ),
             ),
             const SizedBox(height: 16),
+            // Seed Departments Button (Run once, then can be removed)
             ElevatedButton.icon(
-              onPressed: () {
-                // Placeholder for future admin functionalities
-                // For example, user management or reports
+              onPressed: () async {
+                // Show loading dialog
                 showDialog(
                   context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Feature Coming Soon'),
-                    content: const Text('More admin features will be added here.'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('OK'),
-                      ),
-                    ],
+                  barrierDismissible: false,
+                  builder: (context) => const Center(
+                    child: CircularProgressIndicator(),
                   ),
                 );
+
+                try {
+                  await DepartmentService().seedDepartments();
+
+                  if (!context.mounted) return;
+                  Navigator.pop(context); // Close loading dialog
+
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Success'),
+                      content: const Text(
+                          '✅ Departments seeded successfully!\n\nYou can now remove this button.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('OK'),
+                        ),
+                      ],
+                    ),
+                  );
+                } catch (e) {
+                  if (!context.mounted) return;
+                  Navigator.pop(context); // Close loading dialog
+
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Error'),
+                      content: Text('Failed to seed departments:\n$e'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('OK'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
               },
-              icon: const Icon(Icons.info),
-              label: const Text('More Features'),
+              icon: const Icon(Icons.cloud_upload),
+              label: const Text('Seed Departments (Run Once)'),
               style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50), // Make button full-width
+                minimumSize: const Size.fromHeight(50),
+                backgroundColor: Colors.orange,
               ),
             ),
           ],

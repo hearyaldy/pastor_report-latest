@@ -1,6 +1,11 @@
 // lib/screens/departments_screen.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/screens/inapp_webview_screen.dart';
+import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/models/department_model.dart';
+import 'package:pastor_report/services/department_service.dart';
 
 class DepartmentsScreen extends StatefulWidget {
   final bool isAdmin;
@@ -8,78 +13,10 @@ class DepartmentsScreen extends StatefulWidget {
   const DepartmentsScreen({super.key, required this.isAdmin});
 
   @override
-  _DepartmentsScreenState createState() => _DepartmentsScreenState();
+  State<DepartmentsScreen> createState() => _DepartmentsScreenState();
 }
 
 class _DepartmentsScreenState extends State<DepartmentsScreen> {
-  final List<Map<String, dynamic>> departments = [
-    {
-      'name': 'Ministerial',
-      'icon': Icons.person,
-      'link': 'https://forms.gle/MinisterialLink',
-    },
-    {
-      'name': 'Stewardship',
-      'icon': Icons.account_balance,
-      'link': 'https://forms.gle/Fwud8srq8aXikzY48',
-    },
-    {
-      'name': 'Youth',
-      'icon': Icons.group,
-      'link': 'https://tinyurl.com/laporan-jpba',
-    },
-    {
-      'name': 'Communication',
-      'icon': Icons.message,
-      'link': 'https://forms.gle/QRKusCXvhShcbi766',
-    },
-    {
-      'name': 'Health Ministry',
-      'icon': Icons.local_hospital,
-      'link': 'https://forms.gle/aR4mRU8HopXGQ6cq5',
-    },
-    {
-      'name': 'Education',
-      'icon': Icons.school,
-      'link': 'https://forms.gle/EducationLink',
-    },
-    {
-      'name': 'Family Life',
-      'icon': Icons.family_restroom,
-      'link': 'https://forms.gle/iak14RPeULZ18BCD6',
-    },
-    {
-      'name': 'Women\'s Ministry',
-      'icon': Icons.woman,
-      'link': 'https://forms.gle/1tzirnartRswrDbb6',
-    },
-    {
-      'name': 'Children',
-      'icon': Icons.child_care,
-      'link': 'https://docs.google.com/forms/d/e/1FAIpQLScEof1Gbwv1WccmcEnQyZlY10CTpE040IvybbQavAN-1OKctQ/viewform',
-    },
-    {
-      'name': 'Publishing',
-      'icon': Icons.book,
-      'link': 'https://forms.gle/PublishingLink',
-    },
-    {
-      'name': 'Personal Ministry',
-      'icon': Icons.person_pin,
-      'link': 'https://forms.gle/PersonalMinistryLink',
-    },
-    {
-      'name': 'Sabbath School',
-      'icon': Icons.access_time,
-      'link': 'https://forms.gle/muGXDfhyvLvvh5So8',
-    },
-    {
-      'name': 'Adventist Community Services',
-      'icon': Icons.volunteer_activism,
-      'link': 'https://forms.gle/AdventistCommunityServicesLink',
-    },
-  ];
-
   // Utility function to get the current formatted date
   String _getCurrentDate() {
     final now = DateTime.now();
@@ -89,93 +26,224 @@ class _DepartmentsScreenState extends State<DepartmentsScreen> {
   // Utility function to get the day of the week
   String _getDayOfWeek(int weekday) {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return days[weekday - 1];
+    return days[weekday % 7];
+  }
+
+  Future<void> _handleLogout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.signOut();
+
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, AppConstants.routeHome);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text(AppConstants.appName),
+        backgroundColor: AppColors.primaryLight,
+        foregroundColor: Colors.white,
+        actions: [
+          // Show admin badge if user is admin
+          if (widget.isAdmin)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.0),
+              child: Chip(
+                label: Text(
+                  'ADMIN',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                backgroundColor: Colors.red,
+                padding: EdgeInsets.all(0),
+              ),
+            ),
+          // Logout button
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () => _handleLogout(context),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           // Header with image, app name, and date
           Stack(
             children: [
               Container(
-                height: 150, // Set height to 150px
-                width: double.infinity, // Stretch to full width of the screen
+                height: 150,
+                width: double.infinity,
                 decoration: const BoxDecoration(
                   image: DecorationImage(
-                    image: AssetImage('assets/images/header_image.png'), // Ensure this image exists
+                    image: AssetImage('assets/images/header_image.png'),
                     fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-              const Positioned(
-                left: 16,
-                bottom: 20,
-                child: Text(
-                  'Pastor Report',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    shadows: [Shadow(color: Colors.black54, blurRadius: 5)],
                   ),
                 ),
               ),
               Positioned(
                 left: 16,
                 bottom: 5,
-                child: Text(
-                  _getCurrentDate(),
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Consumer<AuthProvider>(
+                  builder: (context, authProvider, child) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome, ${authProvider.user?.displayName ?? "User"}!',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            shadows: [Shadow(color: Colors.black54, blurRadius: 5)],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _getCurrentDate(),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ],
           ),
           // List of departments
           Expanded(
-            child: ListView.builder(
-              itemCount: departments.length,
-              itemBuilder: (context, index) {
-                final department = departments[index];
-                return Card(
-                  color: const Color(0xFFF9DBBA), // Background color from your palette
-                  margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  child: ListTile(
-                    leading: Icon(department['icon'], color: const Color(0xFF1A4870)), // Icon color
-                    title: Text(
-                      department['name'],
-                      style: const TextStyle(
-                        fontSize: 16.0,
-                        color: Color(0xFF1F316F),
-                      ),
+            child: StreamBuilder<List<Department>>(
+              stream: DepartmentService().getDepartmentsStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text('Error: ${snapshot.error}'),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () => setState(() {}),
+                          child: const Text('Retry'),
+                        ),
+                      ],
                     ),
-                    onTap: () {
-                      // Navigate to the in-app WebView with the department link and name
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => InAppWebViewScreen(
-                            initialUrl: department['link'],
-                            initialDepartmentName: department['name'],
-                            departments: departments, // Pass the full list of departments
+                  );
+                }
+
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.inbox, size: 64, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text('No departments found'),
+                        SizedBox(height: 8),
+                        Text(
+                          'Ask admin to add departments',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final departments = snapshot.data!;
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: departments.length,
+                  itemBuilder: (context, index) {
+                    final department = departments[index];
+                    return Card(
+                      color: AppColors.cardBackground,
+                      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      elevation: 2,
+                      child: ListTile(
+                        leading: Icon(
+                          department.icon,
+                          color: AppColors.primaryLight,
+                          size: 32,
+                        ),
+                        title: Text(
+                          department.name,
+                          style: const TextStyle(
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.primaryDark,
                           ),
                         ),
-                      );
-                    },
-                  ),
+                        trailing: const Icon(
+                          Icons.arrow_forward_ios,
+                          color: AppColors.primaryLight,
+                          size: 18,
+                        ),
+                        onTap: () {
+                          // Navigate to the in-app WebView with the department link and name
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => InAppWebViewScreen(
+                                initialUrl: department.formUrl,
+                                initialDepartmentName: department.name,
+                                departments: departments.map((dept) => {
+                                  'name': dept.name,
+                                  'icon': dept.icon,
+                                  'link': dept.formUrl,
+                                }).toList(),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
                 );
               },
             ),
           ),
         ],
       ),
-      // Bottom navigation bar with settings button triggering a bottom sheet
+      // Bottom navigation bar with settings button
       bottomNavigationBar: BottomNavigationBar(
         items: const [
           BottomNavigationBarItem(
@@ -187,11 +255,12 @@ class _DepartmentsScreenState extends State<DepartmentsScreen> {
             label: 'Settings',
           ),
         ],
+        selectedItemColor: AppColors.primaryLight,
         onTap: (index) {
           if (index == 0) {
-            Navigator.pushNamed(context, '/');
+            // Already on home/departments
           } else if (index == 1) {
-            // Display settings or bottom sheet for settings if needed
+            Navigator.pushNamed(context, AppConstants.routeSettings);
           }
         },
       ),

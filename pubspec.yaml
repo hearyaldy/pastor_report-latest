@@ -3,7 +3,7 @@ description: A simple Flutter app for pastors to submit reports to different dep
 
 publish_to: 'none' # This prevents the package from being published to pub.dev
 
-version: 1.0.0+1
+version: 2.0.0+2
 
 environment:
   sdk: ">=2.19.0 <3.0.0"
@@ -13,18 +13,29 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.2
-  url_launcher: ^6.1.6
-  intl: ^0.19.0
-  webview_flutter: ^4.0.0
-  webview_flutter_android: ^3.16.7
-  webview_flutter_wkwebview: ^3.2.0
-  http: ^1.1.0
+  url_launcher: ^6.3.2
+  intl: ^0.20.2
+  webview_flutter: ^4.13.0
+  webview_flutter_android: ^4.10.1
+  webview_flutter_wkwebview: ^3.23.0
+  http: ^1.5.0
+
+  # Firebase
+  firebase_core: ^3.8.1
+  firebase_auth: ^5.3.3
+  cloud_firestore: ^5.5.1
+
+  # State Management
+  provider: ^6.1.2
+
+  # Storage
+  shared_preferences: ^2.3.4
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
-  flutter_launcher_icons: ^0.14.1 # Add the flutter_launcher_icons package
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 # Configuration for flutter_launcher_icons to generate app icons for Android and iOS
 flutter_icons:

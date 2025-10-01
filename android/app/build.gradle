@@ -1,5 +1,8 @@
 plugins {
     id "com.android.application"
+    // START: FlutterFire Configuration
+    id 'com.google.gms.google-services'
+    // END: FlutterFire Configuration
     id "kotlin-android"
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id "dev.flutter.flutter-gradle-plugin"
@@ -24,17 +27,45 @@ android {
         applicationId = "com.haweeinc.pastor_report"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 23  // Updated for Firebase Auth requirement
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    // Signing configuration for release builds
+    // IMPORTANT: Before releasing to production, create a proper keystore:
+    // 1. Generate keystore: keytool -genkey -v -keystore ~/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+    // 2. Create android/key.properties file with:
+    //    storePassword=<password>
+    //    keyPassword=<password>
+    //    keyAlias=upload
+    //    storeFile=/path/to/upload-keystore.jks
+    // 3. Uncomment the signingConfigs section below
+
+    // Uncomment this after creating key.properties and keystore
+    // def keystoreProperties = new Properties()
+    // def keystorePropertiesFile = rootProject.file('key.properties')
+    // if (keystorePropertiesFile.exists()) {
+    //     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    // }
+
+    // signingConfigs {
+    //     release {
+    //         keyAlias keystoreProperties['keyAlias']
+    //         keyPassword keystoreProperties['keyPassword']
+    //         storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+    //         storePassword keystoreProperties['storePassword']
+    //     }
+    // }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
+            // WARNING: Do NOT use debug keys for production releases!
             signingConfig = signingConfigs.debug
+            // After configuring signing, use: signingConfig = signingConfigs.release
         }
     }
 }
