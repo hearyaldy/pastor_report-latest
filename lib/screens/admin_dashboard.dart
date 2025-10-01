@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pastor_report/services/user_management_service.dart';
-import 'package:pastor_report/services/department_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -422,9 +421,12 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
 
     if (confirmed == true && mounted && nameController.text.isNotEmpty) {
       try {
-        await DepartmentService().addDepartment({
+        await FirebaseFirestore.instance.collection('departments').add({
           'name': nameController.text.trim(),
           'description': descriptionController.text.trim(),
+          'icon': 'business', // default icon
+          'formUrl': '', // empty form URL for now
+          'createdAt': FieldValue.serverTimestamp(),
         });
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -489,13 +491,11 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
 
     if (confirmed == true && mounted && nameController.text.isNotEmpty) {
       try {
-        await DepartmentService().updateDepartment(
-          departmentId,
-          {
-            'name': nameController.text.trim(),
-            'description': descriptionController.text.trim(),
-          },
-        );
+        await FirebaseFirestore.instance.collection('departments').doc(departmentId).update({
+          'name': nameController.text.trim(),
+          'description': descriptionController.text.trim(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -536,7 +536,7 @@ class _AdminDashboardState extends State<AdminDashboard> with SingleTickerProvid
 
     if (confirmed == true && mounted) {
       try {
-        await DepartmentService().deleteDepartment(departmentId);
+        await FirebaseFirestore.instance.collection('departments').doc(departmentId).delete();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
