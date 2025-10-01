@@ -408,30 +408,66 @@ class MissionService {
       // Get all existing missions
       final missionsSnapshot =
           await _firestore.collection(_missionsCollection).get();
-
-      // Delete all missions and their subcollections
+          
+      // Use batched writes for better performance and reliability
+      // Firestore batches are limited to 500 operations, so we need to handle that
+      
+      // First, collect all documents that need to be deleted
+      List<DocumentReference> allDocsToDelete = [];
+      
+      // For logging/debugging
+      int totalDepartments = 0;
+      int totalMissions = missionsSnapshot.docs.length;
+      
+      // First pass: collect all departments to delete
       for (var missionDoc in missionsSnapshot.docs) {
-        // First, delete all departments in the subcollection
         final departmentsSnapshot = await _firestore
             .collection(_missionsCollection)
             .doc(missionDoc.id)
             .collection(_departmentsCollection)
             .get();
-
-        final batch = _firestore.batch();
+            
+        totalDepartments += departmentsSnapshot.docs.length;
+            
+        // Add all department docs to delete list
         for (var deptDoc in departmentsSnapshot.docs) {
-          batch.delete(deptDoc.reference);
+          allDocsToDelete.add(deptDoc.reference);
         }
-
-        // Then delete the mission
-        batch.delete(missionDoc.reference);
-
-        await batch.commit();
+        
+        // Add the mission doc itself
+        allDocsToDelete.add(missionDoc.reference);
       }
+      
+      // Now process deletions in batches of 400 (below the 500 limit)
+      int batchCounter = 0;
+      int batchSize = 400;
+      WriteBatch currentBatch = _firestore.batch();
+      
+      for (var docRef in allDocsToDelete) {
+        currentBatch.delete(docRef);
+        batchCounter++;
+        
+        if (batchCounter >= batchSize) {
+          // Commit current batch and start a new one
+          await currentBatch.commit();
+          currentBatch = _firestore.batch();
+          batchCounter = 0;
+        }
+      }
+      
+      // Commit any remaining operations
+      if (batchCounter > 0) {
+        await currentBatch.commit();
+      }
+      
+      print('Deleted $totalMissions missions and $totalDepartments departments');
 
       // Now seed fresh missions with departments
       await seedMissionsWithDepartments();
+      
+      print('Successfully reseeded all missions and departments');
     } catch (e) {
+      print('Error during mission reseed: $e');
       throw 'Failed to reseed missions with departments: $e';
     }
   }

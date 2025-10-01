@@ -221,14 +221,24 @@ class MissionProvider with ChangeNotifier {
   Future<void> reseedAllData() async {
     _setLoading(true);
     try {
+      print('Starting reseed operation. Using mission structure: $isUsingMissionStructure');
+      
+      // Only need to call one reseed method, not both
       if (isUsingMissionStructure) {
+        print('Reseeding with mission structure');
         await _missionService.reseedAllMissionsWithDepartments();
+        // No need to also call departmentService.reseedAllDepartments() as it would cause duplication
       } else {
+        print('Reseeding with legacy structure');
         await _departmentService.reseedAllDepartments();
       }
+      
+      print('Reseed completed successfully, reloading data');
       await loadMissions();
       await loadDepartments();
+      print('Data reload completed');
     } catch (e) {
+      print('Error during reseed: $e');
       _setError('Failed to reseed data: $e');
     }
     _setLoading(false);
