@@ -3,9 +3,18 @@ import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/models/department_model.dart';
 import 'package:pastor_report/models/user_model.dart';
+import 'package:pastor_report/models/todo_model.dart';
+import 'package:pastor_report/models/appointment_model.dart';
+import 'package:pastor_report/models/event_model.dart';
+import 'package:pastor_report/models/activity_model.dart';
 import 'package:pastor_report/services/optimized_data_service.dart';
+import 'package:pastor_report/services/todo_storage_service.dart';
+import 'package:pastor_report/services/appointment_storage_service.dart';
+import 'package:pastor_report/services/event_service.dart';
+import 'package:pastor_report/services/activity_storage_service.dart';
 import 'package:pastor_report/screens/inapp_webview_screen.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:intl/intl.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -18,6 +27,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _showQuickAddActivity = false;
+  bool _showStorageWarning = false;
 
   @override
   void initState() {
@@ -602,6 +612,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
 
+          // My Todos Section
+          _buildTodosSection(),
+
+          // My Appointments Section
+          _buildAppointmentsSection(),
+
+          // Upcoming Events Section
+          _buildEventsSection(),
+
+          // Recent Activities Section
+          _buildRecentActivitiesSection(),
+
           // Department Reports Section
           SliverToBoxAdapter(
             child: Container(
@@ -769,6 +791,471 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Build Todos Section
+  Widget _buildTodosSection() {
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blue.shade50, Colors.blue.shade100.withValues(alpha: 0.3)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.checklist, color: Colors.blue.shade700, size: 28),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Text(
+                        'My Todos',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle, color: Colors.blue),
+                      onPressed: () => Navigator.pushNamed(context, '/todos'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                FutureBuilder<List<Todo>>(
+                  future: TodoStorageService.instance.getTodos(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Text('No todos yet. Tap + to add one!',
+                          style: TextStyle(color: Colors.grey));
+                    }
+                    final incompleteTodos = snapshot.data!
+                        .where((t) => !t.isCompleted)
+                        .take(3)
+                        .toList();
+                    if (incompleteTodos.isEmpty) {
+                      return const Text('All done! 🎉',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500));
+                    }
+                    return Column(
+                      children: incompleteTodos.map((todo) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              Icon(Icons.circle_outlined, size: 16, color: Colors.blue.shade400),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(todo.content,
+                                    style: const TextStyle(fontSize: 14),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis),
+                              ),
+                              if (todo.priority == 2) // High priority
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text('!',
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold)),
+                                ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/todos'),
+                  child: const Text('View All Todos →'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Build Appointments Section
+  Widget _buildAppointmentsSection() {
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.orange.shade50, Colors.orange.shade100.withValues(alpha: 0.3)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.orange.shade200),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.calendar_today, color: Colors.orange.shade700, size: 28),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Text(
+                        'My Appointments',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle, color: Colors.orange),
+                      onPressed: () => Navigator.pushNamed(context, '/appointments'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                FutureBuilder<List<Appointment>>(
+                  future: AppointmentStorageService.instance.getAppointments(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Text('No appointments scheduled',
+                          style: TextStyle(color: Colors.grey));
+                    }
+                    final upcoming = snapshot.data!
+                        .where((a) => a.dateTime.isAfter(DateTime.now()))
+                        .take(2)
+                        .toList();
+                    if (upcoming.isEmpty) {
+                      return const Text('No upcoming appointments',
+                          style: TextStyle(color: Colors.grey));
+                    }
+                    return Column(
+                      children: upcoming.map((appt) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              Icon(Icons.access_time, size: 16, color: Colors.orange.shade400),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(appt.title,
+                                        style: const TextStyle(
+                                            fontSize: 14, fontWeight: FontWeight.w500),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis),
+                                    Text(DateFormat('MMM dd, h:mm a').format(appt.dateTime),
+                                        style: TextStyle(
+                                            fontSize: 11, color: Colors.grey.shade600)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/appointments'),
+                  child: const Text('View All Appointments →'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Build Events Section
+  Widget _buildEventsSection() {
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.purple.shade50, Colors.purple.shade100.withValues(alpha: 0.3)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.purple.shade200),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.event, color: Colors.purple.shade700, size: 28),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Text(
+                        'Upcoming Events',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle, color: Colors.purple),
+                      onPressed: () => Navigator.pushNamed(context, '/events'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                FutureBuilder<List<Event>>(
+                  future: EventService.instance.getAllEvents(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Text('No upcoming events',
+                          style: TextStyle(color: Colors.grey));
+                    }
+                    final upcoming = snapshot.data!
+                        .where((e) => e.startDate.isAfter(DateTime.now()))
+                        .take(2)
+                        .toList();
+                    if (upcoming.isEmpty) {
+                      return const Text('No upcoming events',
+                          style: TextStyle(color: Colors.grey));
+                    }
+                    return Column(
+                      children: upcoming.map((event) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              Icon(
+                                  event.isGlobal ? Icons.public : Icons.event,
+                                  size: 16,
+                                  color: event.isGlobal
+                                      ? Colors.purple.shade700
+                                      : Colors.purple.shade400),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(event.title,
+                                        style: const TextStyle(
+                                            fontSize: 14, fontWeight: FontWeight.w500),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis),
+                                    Text(DateFormat('MMM dd, yyyy').format(event.startDate),
+                                        style: TextStyle(
+                                            fontSize: 11, color: Colors.grey.shade600)),
+                                  ],
+                                ),
+                              ),
+                              if (event.isGlobal)
+                                Container(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple.shade200,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text('Global',
+                                      style: TextStyle(
+                                          fontSize: 9,
+                                          color: Colors.purple,
+                                          fontWeight: FontWeight.bold)),
+                                ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/events'),
+                  child: const Text('View All Events →'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Build Recent Activities Section
+  Widget _buildRecentActivitiesSection() {
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.green.shade50, Colors.green.shade100.withValues(alpha: 0.3)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.history, color: Colors.green.shade700, size: 28),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          const Text(
+                            'My Recent Activities',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _showStorageWarning = !_showStorageWarning;
+                              });
+                            },
+                            child: Icon(Icons.info_outline, size: 18, color: Colors.amber.shade700),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (_showStorageWarning) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning_amber, size: 16, color: Colors.amber.shade800),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Data saved locally. Back up to cloud for safekeeping.',
+                            style: TextStyle(fontSize: 11, color: Colors.amber.shade900),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                FutureBuilder<List<Activity>>(
+                  future: ActivityStorageService.instance.getActivities(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Text('No activities logged yet',
+                          style: TextStyle(color: Colors.grey));
+                    }
+                    final recent = snapshot.data!.take(5).toList();
+                    return Column(
+                      children: recent.map((activity) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              Icon(Icons.fiber_manual_record,
+                                  size: 12, color: Colors.green.shade400),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(activity.activities,
+                                        style: const TextStyle(
+                                            fontSize: 14, fontWeight: FontWeight.w500),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis),
+                                    Text(DateFormat('MMM dd, yyyy').format(activity.date),
+                                        style: TextStyle(
+                                            fontSize: 11, color: Colors.grey.shade600)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/activities'),
+                  child: const Text('View All Activities →'),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
