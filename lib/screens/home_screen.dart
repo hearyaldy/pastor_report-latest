@@ -19,7 +19,7 @@ class HomeScreen extends StatelessWidget {
       body: Column(
         children: [
           const Header(
-            title: 'Pastor Report',
+            title: 'PastorPro',
           ),
           Expanded(
             child: Center(

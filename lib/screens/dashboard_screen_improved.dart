@@ -21,14 +21,16 @@ class ImprovedDashboardScreen extends StatefulWidget {
   const ImprovedDashboardScreen({super.key});
 
   @override
-  State<ImprovedDashboardScreen> createState() => _ImprovedDashboardScreenState();
+  State<ImprovedDashboardScreen> createState() =>
+      _ImprovedDashboardScreenState();
 }
 
 class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _todoController = TextEditingController();
   final TextEditingController _activityController = TextEditingController();
-  final TextEditingController _mileageController = TextEditingController(text: '0');
+  final TextEditingController _mileageController =
+      TextEditingController(text: '0');
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
   String _searchQuery = '';
@@ -50,7 +52,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   }
 
   Stream<List<Department>> _getDepartmentsStream(String missionName) {
-    return OptimizedDataService.instance.streamDepartmentsByMissionName(missionName);
+    return OptimizedDataService.instance
+        .streamDepartmentsByMissionName(missionName);
   }
 
   @override
@@ -169,7 +172,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                     ),
                   ] else ...[
                     const Text(
-                      'Pastor Report',
+                      'PastorPro',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -217,7 +220,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
       ),
       child: TextField(
         controller: _searchController,
-        onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
+        onChanged: (value) =>
+            setState(() => _searchQuery = value.toLowerCase()),
         decoration: InputDecoration(
           hintText: 'Search departments...',
           hintStyle: TextStyle(color: Colors.grey[400]),
@@ -232,7 +236,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 )
               : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         ),
       ),
     );
@@ -467,7 +472,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                       const SizedBox(height: 16),
 
                       // Show Activity Form or Todo Form based on selected tab
-                      if (_quickActionTab == 'activity') ..._buildActivityForm(),
+                      if (_quickActionTab == 'activity')
+                        ..._buildActivityForm(),
                       if (_quickActionTab == 'todo') ..._buildTodoForm(),
                     ],
                   ),
@@ -480,7 +486,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   }
 
   // Tab Button for Quick Actions
-  Widget _buildTabButton(String label, IconData icon, String tabValue, Color color) {
+  Widget _buildTabButton(
+      String label, IconData icon, String tabValue, Color color) {
     final isSelected = _quickActionTab == tabValue;
     return InkWell(
       onTap: () {
@@ -503,9 +510,9 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : color,
-                fontWeight: FontWeight.w600,
-                fontSize: 14),
+                  color: isSelected ? Colors.white : color,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14),
             ),
           ],
         ),
@@ -551,7 +558,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           ),
           child: Row(
             children: [
-              Icon(Icons.calendar_today, size: 18, color: Colors.green.shade700),
+              Icon(Icons.calendar_today,
+                  size: 18, color: Colors.green.shade700),
               const SizedBox(width: 8),
               Text(
                 'Date: ${DateFormat('MMM dd, yyyy').format(_selectedActivityDate)}',
@@ -570,7 +578,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         decoration: BoxDecoration(
           color: Colors.grey.shade50,
           border: Border.all(color: Colors.grey.shade300),
-          borderRadius: const BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8)),
+          borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(8), topRight: Radius.circular(8)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: DropdownButtonHideUnderline(
@@ -583,21 +592,31 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   _selectedActivityType = newValue;
                   if (newValue != 'Other') {
                     _activityController.text = {
-                      'Visitation': 'Visitation to ',
-                      'Bible Study': 'Bible Study on ',
-                      'Prayer Meeting': 'Prayer Meeting with ',
-                      'Wedding': 'Wedding of ',
-                      'Funeral': 'Funeral service for ',
-                      'Counseling': 'Counseling session with ',
-                    }[newValue] ?? '';
-                    _activityController.selection = TextSelection.fromPosition(TextPosition(offset: _activityController.text.length));
+                          'Visitation': 'Visitation to ',
+                          'Bible Study': 'Bible Study on ',
+                          'Prayer Meeting': 'Prayer Meeting with ',
+                          'Wedding': 'Wedding of ',
+                          'Funeral': 'Funeral service for ',
+                          'Counseling': 'Counseling session with ',
+                        }[newValue] ??
+                        '';
+                    _activityController.selection = TextSelection.fromPosition(
+                        TextPosition(offset: _activityController.text.length));
                   } else {
                     _activityController.clear();
                   }
                 });
               }
             },
-            items: ['Visitation', 'Bible Study', 'Prayer Meeting', 'Wedding', 'Funeral', 'Counseling', 'Other'].map<DropdownMenuItem<String>>((String type) {
+            items: [
+              'Visitation',
+              'Bible Study',
+              'Prayer Meeting',
+              'Wedding',
+              'Funeral',
+              'Counseling',
+              'Other'
+            ].map<DropdownMenuItem<String>>((String type) {
               return DropdownMenuItem<String>(
                 value: type,
                 child: Row(
@@ -615,12 +634,15 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
       Container(
         decoration: BoxDecoration(
           border: Border.all(color: Colors.grey.shade300),
-          borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
+          borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
         ),
         child: TextField(
           controller: _activityController,
           decoration: InputDecoration(
-            hintText: _selectedActivityType == 'Other' ? 'Enter your activity' : 'Details about ${_selectedActivityType.toLowerCase()}',
+            hintText: _selectedActivityType == 'Other'
+                ? 'Enter your activity'
+                : 'Details about ${_selectedActivityType.toLowerCase()}',
             border: InputBorder.none,
             contentPadding: const EdgeInsets.all(12),
           ),
@@ -650,11 +672,15 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
               controller: _mileageController,
               decoration: InputDecoration(
                 labelText: 'Mileage (km)',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               ),
               keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
+              ],
             ),
           ),
           const SizedBox(width: 8),
@@ -664,8 +690,10 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
               controller: _locationController,
               decoration: InputDecoration(
                 labelText: 'Location (Optional)',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               ),
             ),
           ),
@@ -679,7 +707,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         decoration: InputDecoration(
           labelText: 'Notes (Optional)',
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         ),
         maxLines: 2,
       ),
@@ -697,7 +726,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 backgroundColor: Colors.green.shade700,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
             ),
           ),
@@ -711,7 +741,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 foregroundColor: Colors.green.shade700,
                 side: BorderSide(color: Colors.green.shade700),
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
             ),
           ),
@@ -740,7 +771,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         decoration: InputDecoration(
           hintText: 'Enter your todo item',
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         ),
         maxLines: 2,
         textCapitalization: TextCapitalization.sentences,
@@ -750,7 +782,9 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
       // Priority
       Row(
         children: [
-          Text('Priority:', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
+          Text('Priority:',
+              style: TextStyle(
+                  fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
           const SizedBox(width: 12),
           Expanded(child: _buildInlinePriorityChip('Low', 0, Colors.green)),
           const SizedBox(width: 8),
@@ -773,7 +807,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 backgroundColor: Colors.blue.shade700,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
             ),
           ),
@@ -787,7 +822,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 foregroundColor: Colors.blue.shade700,
                 side: BorderSide(color: Colors.blue.shade700),
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
             ),
           ),
@@ -795,7 +831,6 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
       ),
     ];
   }
-
 
   Widget _buildUpcomingSection() {
     return SliverToBoxAdapter(
@@ -850,7 +885,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final incompleteTodos = snapshot.data!.where((t) => !t.isCompleted).take(3).toList();
+        final incompleteTodos =
+            snapshot.data!.where((t) => !t.isCompleted).take(3).toList();
 
         return GestureDetector(
           onTap: () => Navigator.pushNamed(context, '/todos'),
@@ -880,9 +916,11 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(Icons.check_circle_outline, color: Colors.white, size: 28),
+                    const Icon(Icons.check_circle_outline,
+                        color: Colors.white, size: 28),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(12),
@@ -912,7 +950,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                       ? const Center(
                           child: Text(
                             'No pending todos',
-                            style: TextStyle(color: Colors.white70, fontSize: 12),
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 12),
                           ),
                         )
                       : ListView.builder(
@@ -924,7 +963,9 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                               child: Row(
                                 children: [
                                   Icon(
-                                    todo.priority == 2 ? Icons.priority_high : Icons.circle,
+                                    todo.priority == 2
+                                        ? Icons.priority_high
+                                        : Icons.circle,
                                     size: 12,
                                     color: Colors.white,
                                   ),
@@ -971,7 +1012,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         // Combine appointments and events
         final upcomingAppointments = appointments
             .where((a) => a.dateTime.isAfter(DateTime.now()))
-            .map((a) => {'type': 'appointment', 'data': a, 'dateTime': a.dateTime})
+            .map((a) =>
+                {'type': 'appointment', 'data': a, 'dateTime': a.dateTime})
             .toList();
 
         final upcomingEvents = events
@@ -980,7 +1022,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
             .toList();
 
         final upcoming = [...upcomingAppointments, ...upcomingEvents]
-          ..sort((a, b) => (a['dateTime'] as DateTime).compareTo(b['dateTime'] as DateTime));
+          ..sort((a, b) =>
+              (a['dateTime'] as DateTime).compareTo(b['dateTime'] as DateTime));
 
         final displayItems = upcoming.take(3).toList();
 
@@ -1012,9 +1055,11 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(Icons.calendar_today, color: Colors.white, size: 28),
+                    const Icon(Icons.calendar_today,
+                        color: Colors.white, size: 28),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(12),
@@ -1044,7 +1089,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                       ? const Center(
                           child: Text(
                             'No upcoming events',
-                            style: TextStyle(color: Colors.white70, fontSize: 12),
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 12),
                           ),
                         )
                       : ListView.builder(
@@ -1062,14 +1108,17 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                               child: Row(
                                 children: [
                                   Icon(
-                                    isEvent ? Icons.event : Icons.calendar_today,
+                                    isEvent
+                                        ? Icons.event
+                                        : Icons.calendar_today,
                                     size: 12,
                                     color: Colors.white70,
                                   ),
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           title,
@@ -1082,7 +1131,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         Text(
-                                          DateFormat('MMM dd, hh:mm a').format(dateTime),
+                                          DateFormat('MMM dd, hh:mm a')
+                                              .format(dateTime),
                                           style: const TextStyle(
                                             color: Colors.white70,
                                             fontSize: 11,
@@ -1125,7 +1175,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 ),
                 if (user != null)
                   TextButton(
-                    onPressed: () => Navigator.pushNamed(context, '/departments'),
+                    onPressed: () =>
+                        Navigator.pushNamed(context, '/departments'),
                     child: const Text('View All'),
                   ),
               ],
@@ -1182,7 +1233,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 ),
                 itemCount: displayDepartments.length,
                 itemBuilder: (context, index) {
-                  return _buildDepartmentCard(displayDepartments[index], departments);
+                  return _buildDepartmentCard(
+                      displayDepartments[index], departments);
                 },
               ),
               if (hasMore) ...[
@@ -1192,7 +1244,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   icon: const Icon(Icons.grid_view),
                   label: Text(
                     'View All ${departments.length} Departments',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -1203,7 +1256,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
     );
   }
 
-  Widget _buildDepartmentCard(Department department, List<Department> allDepartments) {
+  Widget _buildDepartmentCard(
+      Department department, List<Department> allDepartments) {
     // Use department's custom color if available, otherwise use default gradient
     List<Color> colors;
 
@@ -1370,7 +1424,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                         color: Colors.green[50],
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(Icons.description, color: Colors.green[600], size: 24),
+                      child: Icon(Icons.description,
+                          color: Colors.green[600], size: 24),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -1409,7 +1464,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   }
 
   // Helper methods
-  Future<void> _handleDepartmentTap(Department department, List<Department> allDepartments) async {
+  Future<void> _handleDepartmentTap(
+      Department department, List<Department> allDepartments) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     if (!authProvider.isAuthenticated) {
@@ -1458,7 +1514,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
     );
   }
 
-  void _navigateToDepartment(Department department, List<Department> allDepartments) {
+  void _navigateToDepartment(
+      Department department, List<Department> allDepartments) {
     Navigator.pushNamed(
       context,
       AppConstants.routeInAppWebView,
@@ -1473,12 +1530,15 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
     if (user == null) return {};
 
     final todos = await TodoStorageService.instance.getTodos();
-    final appointments = await AppointmentStorageService.instance.getAppointments();
+    final appointments =
+        await AppointmentStorageService.instance.getAppointments();
     final events = await EventService.instance.getLocalEvents();
     final activities = await ActivityStorageService.instance.getActivities();
 
-    final upcomingAppointments = appointments.where((a) => a.dateTime.isAfter(DateTime.now())).length;
-    final upcomingEvents = events.where((e) => e.startDate.isAfter(DateTime.now())).length;
+    final upcomingAppointments =
+        appointments.where((a) => a.dateTime.isAfter(DateTime.now())).length;
+    final upcomingEvents =
+        events.where((e) => e.startDate.isAfter(DateTime.now())).length;
 
     return {
       'todos': todos.where((t) => !t.isCompleted).length,
@@ -1558,11 +1618,16 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.event_note, color: AppColors.primaryLight, size: 24),
+                      Icon(Icons.event_note,
+                          color: AppColors.primaryLight, size: 24),
                       const SizedBox(width: 12),
-                      const Text('Quick Add Activity', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      const Text('Quick Add Activity',
+                          style: TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.bold)),
                       const Spacer(),
-                      IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                      IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context)),
                     ],
                   ),
                   const Divider(),
@@ -1580,16 +1645,20 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                       }
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12, horizontal: 12),
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey.shade300),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.calendar_today, size: 18, color: AppColors.primaryLight),
+                          Icon(Icons.calendar_today,
+                              size: 18, color: AppColors.primaryLight),
                           const SizedBox(width: 8),
-                          Text('Date: ${DateFormat('MMM dd, yyyy').format(selectedDate)}', style: const TextStyle(fontSize: 16)),
+                          Text(
+                              'Date: ${DateFormat('MMM dd, yyyy').format(selectedDate)}',
+                              style: const TextStyle(fontSize: 16)),
                           const Spacer(),
                           const Icon(Icons.arrow_drop_down),
                         ],
@@ -1601,7 +1670,9 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                     decoration: BoxDecoration(
                       color: Colors.grey.shade50,
                       border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: const BorderRadius.only(topLeft: Radius.circular(4), topRight: Radius.circular(4)),
+                      borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(4),
+                          topRight: Radius.circular(4)),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: DropdownButtonHideUnderline(
@@ -1614,19 +1685,24 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                               selectedActivityType = newValue;
                               if (newValue != 'Other') {
                                 activityController.text = {
-                                  'Visitation': 'Visitation to ',
-                                  'Bible Study': 'Bible Study on ',
-                                  'Prayer Meeting': 'Prayer Meeting with ',
-                                  'Wedding': 'Wedding of ',
-                                  'Funeral': 'Funeral service for ',
-                                  'Counseling': 'Counseling session with ',
-                                }[newValue] ?? '';
-                                activityController.selection = TextSelection.fromPosition(TextPosition(offset: activityController.text.length));
+                                      'Visitation': 'Visitation to ',
+                                      'Bible Study': 'Bible Study on ',
+                                      'Prayer Meeting': 'Prayer Meeting with ',
+                                      'Wedding': 'Wedding of ',
+                                      'Funeral': 'Funeral service for ',
+                                      'Counseling': 'Counseling session with ',
+                                    }[newValue] ??
+                                    '';
+                                activityController.selection =
+                                    TextSelection.fromPosition(TextPosition(
+                                        offset:
+                                            activityController.text.length));
                               }
                             });
                           }
                         },
-                        items: activityTypes.map<DropdownMenuItem<String>>((String type) {
+                        items: activityTypes
+                            .map<DropdownMenuItem<String>>((String type) {
                           return DropdownMenuItem<String>(
                             value: type,
                             child: Row(
@@ -1644,12 +1720,16 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   Container(
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(4), bottomRight: Radius.circular(4)),
+                      borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(4),
+                          bottomRight: Radius.circular(4)),
                     ),
                     child: TextField(
                       controller: activityController,
                       decoration: InputDecoration(
-                        hintText: selectedActivityType == 'Other' ? 'Enter your activity' : 'Details about ${selectedActivityType.toLowerCase()}',
+                        hintText: selectedActivityType == 'Other'
+                            ? 'Enter your activity'
+                            : 'Details about ${selectedActivityType.toLowerCase()}',
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.all(12),
                       ),
@@ -1660,9 +1740,15 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: mileageController,
-                    decoration: const InputDecoration(labelText: 'Mileage', hintText: 'Enter distance in km', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(
+                        labelText: 'Mileage',
+                        hintText: 'Enter distance in km',
+                        border: OutlineInputBorder()),
                     keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d+\.?\d{0,2}'))
+                    ],
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -1670,14 +1756,18 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                       Expanded(
                         child: TextField(
                           controller: locationController,
-                          decoration: const InputDecoration(labelText: 'Location (Optional)', border: OutlineInputBorder()),
+                          decoration: const InputDecoration(
+                              labelText: 'Location (Optional)',
+                              border: OutlineInputBorder()),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: TextField(
                           controller: noteController,
-                          decoration: const InputDecoration(labelText: 'Notes (Optional)', border: OutlineInputBorder()),
+                          decoration: const InputDecoration(
+                              labelText: 'Notes (Optional)',
+                              border: OutlineInputBorder()),
                         ),
                       ),
                     ],
@@ -1691,13 +1781,18 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                     ),
                     onPressed: () async {
                       if (activityController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter activity details')));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content:
+                                    Text('Please enter activity details')));
                         return;
                       }
 
                       try {
-                        final mileage = double.tryParse(mileageController.text) ?? 0.0;
-                        final formattedActivity = selectedActivityType == 'Other'
+                        final mileage =
+                            double.tryParse(mileageController.text) ?? 0.0;
+                        final formattedActivity = selectedActivityType ==
+                                'Other'
                             ? activityController.text.trim()
                             : '[$selectedActivityType] ${activityController.text.trim()}';
 
@@ -1707,28 +1802,34 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                           activities: formattedActivity,
                           mileage: mileage,
                           note: noteController.text.trim(),
-                          location: locationController.text.trim().isEmpty ? null : locationController.text.trim(),
+                          location: locationController.text.trim().isEmpty
+                              ? null
+                              : locationController.text.trim(),
                           createdAt: DateTime.now(),
                         );
 
-                        final success = await ActivityStorageService.instance.addActivity(activity);
+                        final success = await ActivityStorageService.instance
+                            .addActivity(activity);
 
                         if (success && context.mounted) {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('$selectedActivityType activity added successfully'),
+                              content: Text(
+                                  '$selectedActivityType activity added successfully'),
                               behavior: SnackBarBehavior.floating,
                               action: SnackBarAction(
                                 label: 'View All',
-                                onPressed: () => Navigator.pushNamed(context, '/activities'),
+                                onPressed: () =>
+                                    Navigator.pushNamed(context, '/activities'),
                               ),
                             ),
                           );
                           if (mounted) setState(() {});
                         }
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: ${e.toString()}')));
                       }
                     },
                     child: const Text('SAVE ACTIVITY'),
@@ -1769,11 +1870,16 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.add_task, color: AppColors.primaryLight, size: 24),
+                    Icon(Icons.add_task,
+                        color: AppColors.primaryLight, size: 24),
                     const SizedBox(width: 12),
-                    const Text('Quick Add Todo', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    const Text('Quick Add Todo',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold)),
                     const Spacer(),
-                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                    IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context)),
                   ],
                 ),
                 const Divider(),
@@ -1790,24 +1896,29 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   autofocus: true,
                 ),
                 const SizedBox(height: 16),
-                const Text('Priority:', style: TextStyle(fontWeight: FontWeight.w600)),
+                const Text('Priority:',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(
-                      child: _buildPriorityChip('Low', 0, selectedPriority, Colors.green, (priority) {
+                      child: _buildPriorityChip(
+                          'Low', 0, selectedPriority, Colors.green, (priority) {
                         setState(() => selectedPriority = priority);
                       }),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: _buildPriorityChip('Medium', 1, selectedPriority, Colors.orange, (priority) {
+                      child: _buildPriorityChip(
+                          'Medium', 1, selectedPriority, Colors.orange,
+                          (priority) {
                         setState(() => selectedPriority = priority);
                       }),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: _buildPriorityChip('High', 2, selectedPriority, Colors.red, (priority) {
+                      child: _buildPriorityChip(
+                          'High', 2, selectedPriority, Colors.red, (priority) {
                         setState(() => selectedPriority = priority);
                       }),
                     ),
@@ -1822,7 +1933,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   ),
                   onPressed: () async {
                     if (todoController.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter todo details')));
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Please enter todo details')));
                       return;
                     }
 
@@ -1845,14 +1957,16 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                             behavior: SnackBarBehavior.floating,
                             action: SnackBarAction(
                               label: 'View All',
-                              onPressed: () => Navigator.pushNamed(context, '/todos'),
+                              onPressed: () =>
+                                  Navigator.pushNamed(context, '/todos'),
                             ),
                           ),
                         );
                         if (mounted) setState(() {});
                       }
                     } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: ${e.toString()}')));
                     }
                   },
                   child: const Text('ADD TODO'),
@@ -1866,7 +1980,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
     );
   }
 
-  Widget _buildPriorityChip(String label, int priority, int selectedPriority, Color color, Function(int) onSelect) {
+  Widget _buildPriorityChip(String label, int priority, int selectedPriority,
+      Color color, Function(int) onSelect) {
     final isSelected = priority == selectedPriority;
     return InkWell(
       onTap: () => onSelect(priority),
@@ -1939,11 +2054,14 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         activities: formattedActivity,
         mileage: mileage,
         note: _noteController.text.trim(),
-        location: _locationController.text.trim().isEmpty ? null : _locationController.text.trim(),
+        location: _locationController.text.trim().isEmpty
+            ? null
+            : _locationController.text.trim(),
         createdAt: DateTime.now(),
       );
 
-      final success = await ActivityStorageService.instance.addActivity(activity);
+      final success =
+          await ActivityStorageService.instance.addActivity(activity);
 
       if (success && mounted) {
         // Clear the inputs

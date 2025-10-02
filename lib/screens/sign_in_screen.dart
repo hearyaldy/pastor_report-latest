@@ -94,7 +94,8 @@ class _SignInScreenState extends State<SignInScreen> {
                           top: 40,
                           left: 8,
                           child: IconButton(
-                            icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                            icon: const Icon(Icons.arrow_back,
+                                color: Colors.white, size: 28),
                             onPressed: () => Navigator.pop(context, false),
                           ),
                         ),
@@ -102,12 +103,14 @@ class _SignInScreenState extends State<SignInScreen> {
                           left: 16,
                           bottom: 50,
                           child: Text(
-                            'Pastor Report',
+                            'PastorPro',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
-                              shadows: [Shadow(color: Colors.black54, blurRadius: 5)],
+                              shadows: [
+                                Shadow(color: Colors.black54, blurRadius: 5)
+                              ],
                             ),
                           ),
                         ),
@@ -141,15 +144,19 @@ class _SignInScreenState extends State<SignInScreen> {
                               keyboardType: TextInputType.emailAddress,
                               decoration: InputDecoration(
                                 labelText: 'Email',
-                                labelStyle: const TextStyle(color: AppColors.primaryDark),
-                                prefixIcon: const Icon(Icons.email, color: AppColors.primaryLight),
+                                labelStyle: const TextStyle(
+                                    color: AppColors.primaryDark),
+                                prefixIcon: const Icon(Icons.email,
+                                    color: AppColors.primaryLight),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: AppColors.primaryLight),
+                                  borderSide: const BorderSide(
+                                      color: AppColors.primaryLight),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: AppColors.primaryDark),
+                                  borderSide: const BorderSide(
+                                      color: AppColors.primaryDark),
                                 ),
                               ),
                               validator: (value) {
@@ -169,19 +176,25 @@ class _SignInScreenState extends State<SignInScreen> {
                               obscureText: !_isPasswordVisible,
                               decoration: InputDecoration(
                                 labelText: 'Password',
-                                labelStyle: const TextStyle(color: AppColors.primaryDark),
-                                prefixIcon: const Icon(Icons.lock, color: AppColors.primaryLight),
+                                labelStyle: const TextStyle(
+                                    color: AppColors.primaryDark),
+                                prefixIcon: const Icon(Icons.lock,
+                                    color: AppColors.primaryLight),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: AppColors.primaryLight),
+                                  borderSide: const BorderSide(
+                                      color: AppColors.primaryLight),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: AppColors.primaryDark),
+                                  borderSide: const BorderSide(
+                                      color: AppColors.primaryDark),
                                 ),
                                 suffixIcon: IconButton(
                                   icon: Icon(
-                                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                    _isPasswordVisible
+                                        ? Icons.visibility
+                                        : Icons.visibility_off,
                                     color: AppColors.primaryLight,
                                   ),
                                   onPressed: () {
@@ -221,7 +234,8 @@ class _SignInScreenState extends State<SignInScreen> {
                               width: double.infinity,
                               height: 50,
                               child: ElevatedButton(
-                                onPressed: authProvider.isLoading ? null : _signIn,
+                                onPressed:
+                                    authProvider.isLoading ? null : _signIn,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.accent,
                                   shape: RoundedRectangleBorder(
@@ -234,12 +248,15 @@ class _SignInScreenState extends State<SignInScreen> {
                                         width: 20,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.white),
                                         ),
                                       )
                                     : const Text(
                                         'Sign In',
-                                        style: TextStyle(fontSize: 18, color: Colors.white),
+                                        style: TextStyle(
+                                            fontSize: 18, color: Colors.white),
                                       ),
                               ),
                             ),
@@ -315,7 +332,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
               Navigator.pop(context);
 
-              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              final authProvider =
+                  Provider.of<AuthProvider>(context, listen: false);
               final success = await authProvider.resetPassword(email);
 
               if (!mounted) return;
@@ -325,7 +343,8 @@ class _SignInScreenState extends State<SignInScreen> {
                   content: Text(
                     success
                         ? 'Password reset email sent!'
-                        : authProvider.errorMessage ?? 'Failed to send reset email',
+                        : authProvider.errorMessage ??
+                            'Failed to send reset email',
                   ),
                   backgroundColor: success ? Colors.green : Colors.red,
                 ),
@@ -344,7 +363,15 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   String _getDayOfWeek(int weekday) {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const days = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday'
+    ];
     return days[weekday % 7];
   }
 }
