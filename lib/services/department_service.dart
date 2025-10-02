@@ -88,22 +88,44 @@ class DepartmentService {
     }
   }
 
+  // Add new department directly to a mission by ID
+  Future<void> addDepartmentToMissionById(String missionId, Department department) async {
+    try {
+      print('DepartmentService: Adding department ${department.name} directly to mission ID: $missionId');
+      await _missionService.addDepartmentToMission(missionId, department);
+      print('DepartmentService: Department added successfully');
+    } catch (e) {
+      print('DepartmentService: Error adding department to mission: $e');
+      throw 'Failed to add department to mission: $e';
+    }
+  }
+
   // Add new department
   Future<void> addDepartment(Department department) async {
     try {
+      print('DepartmentService: Adding department ${department.name} with mission: ${department.mission}');
+      print('DepartmentService: Using mission structure: $_useNewMissionStructure');
+
       if (_useNewMissionStructure &&
           department.mission != null &&
           department.mission!.isNotEmpty) {
         // Find mission ID by name
+        print('DepartmentService: Looking for mission: ${department.mission}');
         final mission =
             await _missionService.getMissionByName(department.mission!);
+
         if (mission != null) {
+          print('DepartmentService: Found mission with ID: ${mission.id}');
           await _missionService.addDepartmentToMission(mission.id, department);
+          print('DepartmentService: Department added successfully to mission');
           return;
+        } else {
+          print('DepartmentService: Mission not found! Will fallback to legacy structure');
         }
       }
 
       // Fallback to legacy structure
+      print('DepartmentService: Using legacy structure to add department');
       await _firestore.collection(_collection).add({
         'name': department.name,
         'icon': Department.getIconString(department.icon),
@@ -111,7 +133,9 @@ class DepartmentService {
         'mission': department.mission,
         'createdAt': FieldValue.serverTimestamp(),
       });
+      print('DepartmentService: Department added to legacy collection');
     } catch (e) {
+      print('DepartmentService: Error adding department: $e');
       throw 'Failed to add department: $e';
     }
   }

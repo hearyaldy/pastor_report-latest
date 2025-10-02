@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 import 'package:pastor_report/models/activity_model.dart';
 import 'package:pastor_report/services/activity_storage_service.dart';
 import 'package:pastor_report/services/settings_service.dart';
@@ -412,6 +413,192 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
     }
   }
 
+  void _showAddActivityBottomSheet() {
+    final activitiesController = TextEditingController();
+    final mileageController = TextEditingController();
+    final noteController = TextEditingController();
+    final locationController = TextEditingController();
+    DateTime selectedDate = DateTime.now();
+    final formKey = GlobalKey<FormState>();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 16,
+                right: 16,
+                top: 16,
+              ),
+              child: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Add Activity',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Date Picker
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Date'),
+                        subtitle: Text(DateFormat('MMM dd, yyyy').format(selectedDate)),
+                        trailing: const Icon(Icons.calendar_today),
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                          );
+                          if (picked != null) {
+                            setModalState(() {
+                              selectedDate = picked;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      // Activities
+                      TextFormField(
+                        controller: activitiesController,
+                        decoration: const InputDecoration(
+                          labelText: 'Activities',
+                          hintText: 'Enter activity description',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 3,
+                        textCapitalization: TextCapitalization.sentences,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter activities';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      // Location
+                      TextFormField(
+                        controller: locationController,
+                        decoration: const InputDecoration(
+                          labelText: 'Location (optional)',
+                          hintText: 'Enter location',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.location_on),
+                        ),
+                        textCapitalization: TextCapitalization.words,
+                      ),
+                      const SizedBox(height: 16),
+                      // Mileage
+                      TextFormField(
+                        controller: mileageController,
+                        decoration: const InputDecoration(
+                          labelText: 'Mileage (km)',
+                          hintText: 'Enter mileage',
+                          border: OutlineInputBorder(),
+                          suffixText: 'km',
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                        ],
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter mileage';
+                          }
+                          if (double.tryParse(value) == null) {
+                            return 'Please enter a valid number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      // Notes
+                      TextFormField(
+                        controller: noteController,
+                        decoration: const InputDecoration(
+                          labelText: 'Notes (optional)',
+                          hintText: 'Enter notes',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 2,
+                        textCapitalization: TextCapitalization.sentences,
+                      ),
+                      const SizedBox(height: 24),
+                      // Save Button
+                      ElevatedButton(
+                        onPressed: () async {
+                          if (formKey.currentState!.validate()) {
+                            final activity = Activity(
+                              id: const Uuid().v4(),
+                              date: selectedDate,
+                              activities: activitiesController.text.trim(),
+                              mileage: double.parse(mileageController.text.trim()),
+                              note: noteController.text.trim(),
+                              location: locationController.text.trim().isEmpty
+                                  ? null
+                                  : locationController.text.trim(),
+                              createdAt: DateTime.now(),
+                            );
+
+                            await _storageService.addActivity(activity);
+
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Activity added successfully')),
+                              );
+                              _loadActivities();
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryLight,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(50),
+                        ),
+                        child: const Text('Save', style: TextStyle(fontSize: 16)),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ).then((_) {
+      activitiesController.dispose();
+      mileageController.dispose();
+      noteController.dispose();
+      locationController.dispose();
+    });
+  }
+
   Future<void> _exportToExcel() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
@@ -504,67 +691,95 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
       ),
       body: Column(
         children: [
-          // User Profile Card
+          // User Profile Header (matching dashboard style)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppColors.primaryLight.withValues(alpha: 0.1),
-              border: Border(
-                bottom: BorderSide(
-                  color: AppColors.primaryLight.withValues(alpha: 0.2),
-                ),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.primaryLight,
+                  AppColors.primaryLight.withValues(alpha: 0.8),
+                  AppColors.primaryDark,
+                ],
               ),
             ),
             child: Column(
               children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundColor: AppColors.primaryLight,
-                  child: Text(
-                    user?.displayName.isNotEmpty == true
-                        ? user!.displayName[0].toUpperCase()
-                        : 'U',
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  user?.displayName ?? 'User',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                if (user?.role != null && user!.role!.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    user.role!,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ],
-                if (user?.mission != null && user!.mission!.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.business, size: 14, color: Colors.grey.shade600),
-                      const SizedBox(width: 4),
-                      Text(
-                        user.mission!,
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 32,
+                      backgroundColor: Colors.white,
+                      child: Text(
+                        user?.displayName.isNotEmpty == true
+                            ? user!.displayName[0].toUpperCase()
+                            : 'U',
                         style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryLight,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user?.displayName ?? 'User',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          if (user?.role != null && user!.role!.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              user.role!,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white.withValues(alpha: 0.9),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Location Information
+                Row(
+                  children: [
+                    if (user?.mission != null && user!.mission!.isNotEmpty) ...[
+                      Expanded(
+                        child: _buildInfoChip(
+                          Icons.church,
+                          user.mission!,
                         ),
                       ),
                     ],
+                    if (user?.district != null && user!.district!.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildInfoChip(
+                          Icons.location_city,
+                          user.district!,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                if (user?.region != null && user!.region!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  _buildInfoChip(
+                    Icons.public,
+                    user.region!,
                   ),
                 ],
               ],
@@ -716,11 +931,7 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                             ),
                             const SizedBox(height: 24),
                             ElevatedButton.icon(
-                              onPressed: () {
-                                // TODO: Navigate to add activity
-                                Navigator.pushNamed(context, '/add-activity')
-                                    .then((_) => _loadActivities());
-                              },
+                              onPressed: _showAddActivityBottomSheet,
                               icon: const Icon(Icons.add),
                               label: const Text('Add Activity'),
                               style: ElevatedButton.styleFrom(
@@ -743,13 +954,44 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: Navigate to add activity
-          Navigator.pushNamed(context, '/add-activity')
-              .then((_) => _loadActivities());
-        },
+        onPressed: _showAddActivityBottomSheet,
         backgroundColor: AppColors.primaryLight,
         child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color: Colors.white,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }

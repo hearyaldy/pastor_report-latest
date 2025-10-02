@@ -740,10 +740,37 @@ class _AdminDashboardState extends State<AdminDashboard>
       builder: (context) => _DepartmentBottomSheet(
         onSave: (departmentData) async {
           try {
+            // Get the mission name from department data
+            final missionName = departmentData['mission'] as String?;
+
+            if (missionName == null || missionName.isEmpty) {
+              throw 'Mission is required';
+            }
+
+            // Find the mission ID by name
+            final missionSnapshot = await FirebaseFirestore.instance
+                .collection('missions')
+                .where('name', isEqualTo: missionName)
+                .limit(1)
+                .get();
+
+            if (missionSnapshot.docs.isEmpty) {
+              throw 'Mission "$missionName" not found';
+            }
+
+            final missionId = missionSnapshot.docs.first.id;
+
+            // Add department to the mission's subcollection
             await FirebaseFirestore.instance
+                .collection('missions')
+                .doc(missionId)
                 .collection('departments')
-                .add(departmentData);
-            if (!mounted) return;
+                .add({
+              ...departmentData,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+
+            if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Department added successfully'),
@@ -751,7 +778,7 @@ class _AdminDashboardState extends State<AdminDashboard>
               ),
             );
           } catch (e) {
-            if (!mounted) return;
+            if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Failed to add department: $e'),
@@ -1225,7 +1252,7 @@ class _DepartmentBottomSheetState extends State<_DepartmentBottomSheet> {
         'description': _descriptionController.text.trim(),
         'formUrl': _linkController.text.trim(),
         'icon': _selectedIcon,
-        'color': _selectedColor.value,
+        'color': _selectedColor.toARGB32(),
         'isActive': _isActive,
         'mission': _selectedMission, // Using selected mission
       };

@@ -77,7 +77,7 @@ class Department {
       'name': name,
       'icon': getIconString(icon),
       'formUrl': formUrl,
-      if (color != null) 'color': color!.value,
+      if (color != null) 'color': color!.toARGB32(),
       'isActive': isActive,
       if (mission != null) 'mission': mission,
     };

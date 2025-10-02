@@ -958,7 +958,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
     return FutureBuilder<List<dynamic>>(
       future: Future.wait([
         AppointmentStorageService.instance.getAppointments(),
-        EventService.instance.getAllEvents(),
+        EventService.instance.getLocalEvents(),
       ]),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
@@ -1204,17 +1204,34 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   }
 
   Widget _buildDepartmentCard(Department department, List<Department> allDepartments) {
-    // Generate a unique color for each department based on its name
-    final colorIndex = department.name.hashCode % 6;
-    final cardColors = [
-      [Colors.indigo[400]!, Colors.indigo[600]!],
-      [Colors.teal[400]!, Colors.teal[600]!],
-      [Colors.purple[400]!, Colors.purple[600]!],
-      [Colors.pink[400]!, Colors.pink[600]!],
-      [Colors.cyan[400]!, Colors.cyan[600]!],
-      [Colors.deepOrange[400]!, Colors.deepOrange[600]!],
-    ];
-    final colors = cardColors[colorIndex];
+    // Use department's custom color if available, otherwise use default gradient
+    List<Color> colors;
+
+    if (department.color != null) {
+      // Create a gradient from the department's color
+      final baseColor = department.color!;
+      colors = [
+        baseColor,
+        Color.fromARGB(
+          baseColor.alpha,
+          (baseColor.red * 0.7).toInt().clamp(0, 255),
+          (baseColor.green * 0.7).toInt().clamp(0, 255),
+          (baseColor.blue * 0.7).toInt().clamp(0, 255),
+        ),
+      ];
+    } else {
+      // Fallback: Generate a unique color based on department name
+      final colorIndex = department.name.hashCode % 6;
+      final cardColors = [
+        [Colors.indigo[400]!, Colors.indigo[600]!],
+        [Colors.teal[400]!, Colors.teal[600]!],
+        [Colors.purple[400]!, Colors.purple[600]!],
+        [Colors.pink[400]!, Colors.pink[600]!],
+        [Colors.cyan[400]!, Colors.cyan[600]!],
+        [Colors.deepOrange[400]!, Colors.deepOrange[600]!],
+      ];
+      colors = cardColors[colorIndex];
+    }
 
     return GestureDetector(
       onTap: () => _handleDepartmentTap(department, allDepartments),
@@ -1457,7 +1474,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
 
     final todos = await TodoStorageService.instance.getTodos();
     final appointments = await AppointmentStorageService.instance.getAppointments();
-    final events = await EventService.instance.getAllEvents();
+    final events = await EventService.instance.getLocalEvents();
     final activities = await ActivityStorageService.instance.getActivities();
 
     final upcomingAppointments = appointments.where((a) => a.dateTime.isAfter(DateTime.now())).length;

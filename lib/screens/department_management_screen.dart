@@ -209,6 +209,10 @@ class DepartmentManagementScreen extends StatelessWidget {
 
                   try {
                     final deptService = DepartmentService();
+
+                    // Debug: Log the mission value
+                    print('Adding department with mission: $userMission');
+
                     final newDept = Department(
                       id: department?.id ?? '',
                       name: nameController.text,
@@ -220,9 +224,12 @@ class DepartmentManagementScreen extends StatelessWidget {
                     );
 
                     if (department == null) {
+                      // Add department - it will lookup the mission by name
                       await deptService.addDepartment(newDept);
+                      print('Department added successfully');
                     } else {
                       await deptService.updateDepartment(newDept);
+                      print('Department updated successfully');
                     }
 
                     if (!context.mounted) return;
@@ -231,6 +238,7 @@ class DepartmentManagementScreen extends StatelessWidget {
                       SnackBar(content: Text('Department ${department == null ? 'added' : 'updated'}')),
                     );
                   } catch (e) {
+                    print('Error adding/updating department: $e');
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Error: $e')),

@@ -114,19 +114,29 @@ class MissionService {
   // Get a mission by its name
   Future<Mission?> getMissionByName(String name) async {
     try {
+      print('MissionService: Looking for mission with name: "$name"');
       final snapshot = await _firestore
           .collection(_missionsCollection)
           .where('name', isEqualTo: name)
           .limit(1)
           .get();
 
+      print('MissionService: Found ${snapshot.docs.length} missions');
       if (snapshot.docs.isEmpty) {
+        // Debug: List all missions to see what names exist
+        final allMissions = await _firestore.collection(_missionsCollection).get();
+        print('MissionService: Available missions:');
+        for (var doc in allMissions.docs) {
+          print('  - ID: ${doc.id}, Name: "${doc.data()['name']}"');
+        }
         return null;
       }
 
       final doc = snapshot.docs.first;
+      print('MissionService: Found mission - ID: ${doc.id}, Name: "${doc.data()['name']}"');
       return Mission.fromMap(doc.data(), doc.id);
     } catch (e) {
+      print('MissionService: Error fetching mission: $e');
       throw 'Failed to fetch mission: $e';
     }
   }

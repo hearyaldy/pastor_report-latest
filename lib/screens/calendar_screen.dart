@@ -120,7 +120,7 @@ class _CalendarScreenState extends State<CalendarScreen>
     // Load appointments
     final appointments =
         await AppointmentStorageService.instance.getAppointments();
-    final events = await EventService.instance.getAllEvents();
+    final events = await EventService.instance.getLocalEvents();
 
     final Map<DateTime, List<CalendarItem>> itemsMap = {};
 
@@ -163,7 +163,9 @@ class _CalendarScreenState extends State<CalendarScreen>
 
   List<CalendarItem> _filterItemsByView(List<CalendarItem> items) {
     if (_selectedView == 'all') return items;
-    return items.where((item) => item.type == _selectedView).toList();
+    // Match singular type with plural view (appointments -> appointment, events -> event)
+    final typeToMatch = _selectedView == 'appointments' ? 'appointment' : 'event';
+    return items.where((item) => item.type == typeToMatch).toList();
   }
 
   void _filterItems() {
