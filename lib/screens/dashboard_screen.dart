@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/models/department_model.dart';
 import 'package:pastor_report/models/user_model.dart';
@@ -14,7 +16,7 @@ import 'package:pastor_report/services/event_service.dart';
 import 'package:pastor_report/services/activity_storage_service.dart';
 import 'package:pastor_report/screens/inapp_webview_screen.dart';
 import 'package:pastor_report/utils/constants.dart';
-import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -25,9 +27,11 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _quickTodoController = TextEditingController();
   String _searchQuery = '';
   bool _showQuickAddActivity = false;
   bool _showStorageWarning = false;
+  String _calendarView = 'appointments'; // 'appointments' or 'events'
 
   @override
   void initState() {
@@ -37,11 +41,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // Stream departments with caching - uses OptimizedDataService
   Stream<List<Department>> _getDepartmentsStream(String missionName) {
-    return OptimizedDataService.instance.streamDepartmentsByMissionName(missionName);
+    return OptimizedDataService.instance
+        .streamDepartmentsByMissionName(missionName);
   }
 
   // Handle department tap - check auth first
-  Future<void> _handleDepartmentTap(Department department, List<Department> allDepartments) async {
+  Future<void> _handleDepartmentTap(
+      Department department, List<Department> allDepartments) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     // If not authenticated, show login dialog
@@ -95,7 +101,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _navigateToDepartment(Department department, List<Department> allDepartments) {
+  void _navigateToDepartment(
+      Department department, List<Department> allDepartments) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -117,6 +124,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showQuickAddActivityBottomSheet,
+        backgroundColor: AppColors.primaryLight,
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
+        tooltip: 'Quick Add Activity',
+      ),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -184,7 +198,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.7),
+                          Colors.black.withValues(alpha: 0.7),
                         ],
                       ),
                     ),
@@ -247,7 +261,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             horizontal: 10, vertical: 4),
                                         decoration: BoxDecoration(
                                           color: _getRoleColor(user),
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
@@ -274,13 +289,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                               horizontal: 8, vertical: 4),
                                           decoration: BoxDecoration(
                                             color: Colors.amber,
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
                                           ),
                                           child: const Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Icon(Icons.star,
-                                                  size: 12, color: Colors.white),
+                                                  size: 12,
+                                                  color: Colors.white),
                                               SizedBox(width: 4),
                                               Text(
                                                 'PREMIUM',
@@ -354,7 +371,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             borderRadius: BorderRadius.circular(8),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
+                                color: Colors.black.withValues(alpha: 0.1),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -452,41 +469,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'My Activities',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryLight,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.amber.shade200),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          size: 16,
-                          color: Colors.amber.shade800,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Text(
+                        'My Activities',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryLight,
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'All data is saved locally and will be lost if app is deleted. Back up to cloud for safekeeping.',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.amber.shade900,
-                            ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Info icon button
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _showStorageWarning = !_showStorageWarning;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: Icon(
+                            Icons.info_outline,
+                            size: 18,
+                            color: Colors.amber.shade700,
                           ),
                         ),
-                      ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  // Collapsible info box
+                  AnimatedCrossFade(
+                    firstChild: const SizedBox(height: 0),
+                    secondChild: Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.amber.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 16,
+                            color: Colors.amber.shade800,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'All data is saved locally and will be lost if app is deleted. Back up to cloud for safekeeping.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.amber.shade900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    crossFadeState: _showStorageWarning
+                        ? CrossFadeState.showSecond
+                        : CrossFadeState.showFirst,
+                    duration: const Duration(milliseconds: 300),
                   ),
                 ],
               ),
@@ -577,14 +627,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 Expanded(
                                   child: ElevatedButton.icon(
                                     onPressed: () {
-                                      Navigator.pushNamed(context, '/add-activity');
+                                      // Use our new bottom sheet
+                                      _showQuickAddActivityBottomSheet();
                                     },
                                     icon: const Icon(Icons.add),
                                     label: const Text('Quick Add'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.blue.shade700,
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 12),
                                     ),
                                   ),
                                 ),
@@ -592,12 +644,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 Expanded(
                                   child: OutlinedButton.icon(
                                     onPressed: () {
-                                      Navigator.pushNamed(context, '/activities');
+                                      Navigator.pushNamed(
+                                          context, '/activities');
                                     },
                                     icon: const Icon(Icons.list),
                                     label: const Text('View All'),
                                     style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 12),
                                     ),
                                   ),
                                 ),
@@ -615,11 +669,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // My Todos Section
           _buildTodosSection(),
 
-          // My Appointments Section
+          // Calendar Section (combined Appointments and Events)
           _buildAppointmentsSection(),
-
-          // Upcoming Events Section
-          _buildEventsSection(),
 
           // Recent Activities Section
           _buildRecentActivitiesSection(),
@@ -654,7 +705,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.dashboard, size: 64, color: Colors.grey),
+                          const Icon(Icons.dashboard,
+                              size: 64, color: Colors.grey),
                           const SizedBox(height: 16),
                           const Text(
                             'No mission assigned to your account',
@@ -683,7 +735,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                              const Icon(Icons.error_outline,
+                                  size: 64, color: Colors.red),
                               const SizedBox(height: 16),
                               Text('Error: ${snapshot.error}'),
                             ],
@@ -705,11 +758,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.dashboard, size: 64, color: Colors.grey),
+                              const Icon(Icons.dashboard,
+                                  size: 64, color: Colors.grey),
                               const SizedBox(height: 16),
                               Text(
                                 'No departments found for "$userMission" mission',
-                                style: const TextStyle(fontSize: 18, color: Colors.grey),
+                                style: const TextStyle(
+                                    fontSize: 18, color: Colors.grey),
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 8),
@@ -755,14 +810,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       );
                     }
 
-                    // Use SliverList for the banner and SliverGrid for departments
+                    // Show only first 4 departments on dashboard
+                    final displayDepartments =
+                        filteredDepartments.take(4).toList();
+                    final hasMore = filteredDepartments.length > 4;
+
                     return SliverToBoxAdapter(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Mission-specific departments are enforced at service level
-
-                          // Department grid in a non-scrollable grid view
+                          // Department grid - show max 4
                           GridView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
@@ -773,15 +830,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               crossAxisSpacing: 12,
                               mainAxisSpacing: 12,
                             ),
-                            itemCount: filteredDepartments.length,
+                            itemCount: displayDepartments.length,
                             itemBuilder: (context, index) {
-                              final department = filteredDepartments[index];
+                              final department = displayDepartments[index];
                               return _DepartmentCard(
                                 department: department,
-                                onTap: () => _handleDepartmentTap(department, departmentList),
+                                onTap: () => _handleDepartmentTap(
+                                    department, departmentList),
                               );
                             },
                           ),
+                          // View All Departments link
+                          if (hasMore) ...[
+                            const SizedBox(height: 16),
+                            Center(
+                              child: TextButton.icon(
+                                onPressed: () {
+                                  Navigator.pushNamed(context, '/departments');
+                                },
+                                icon: const Icon(Icons.grid_view),
+                                label: Text(
+                                  'View All Departments (${filteredDepartments.length})',
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     );
@@ -802,11 +878,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         child: Card(
           elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.blue.shade50, Colors.blue.shade100.withValues(alpha: 0.3)],
+                colors: [
+                  Colors.blue.shade50,
+                  Colors.blue.shade100.withValues(alpha: 0.3)
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -825,18 +905,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: Colors.blue.shade100,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(Icons.checklist, color: Colors.blue.shade700, size: 28),
+                      child: Icon(Icons.checklist,
+                          color: Colors.blue.shade700, size: 28),
                     ),
                     const SizedBox(width: 16),
                     const Expanded(
                       child: Text(
                         'My Todos',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.add_circle, color: Colors.blue),
                       onPressed: () => Navigator.pushNamed(context, '/todos'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Quick Entry Text Field
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: TextField(
+                          controller: _quickTodoController,
+                          decoration: InputDecoration(
+                            hintText: 'Add a quick todo...',
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            border: InputBorder.none,
+                            isDense: true,
+                          ),
+                          textCapitalization: TextCapitalization.sentences,
+                          onSubmitted: _addQuickTodo,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: Icon(Icons.add_task, color: Colors.blue.shade700),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.blue.shade50,
+                        padding: const EdgeInsets.all(8),
+                      ),
+                      onPressed: () {
+                        // Add the todo and clear the field
+                        _addQuickTodo(_quickTodoController.text);
+                        _quickTodoController.clear();
+                        FocusScope.of(context).unfocus();
+                      },
+                      tooltip: 'Add Todo',
                     ),
                   ],
                 ),
@@ -854,7 +978,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         .toList();
                     if (incompleteTodos.isEmpty) {
                       return const Text('All done! 🎉',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500));
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w500));
                     }
                     return Column(
                       children: incompleteTodos.map((todo) {
@@ -862,7 +987,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Row(
                             children: [
-                              Icon(Icons.circle_outlined, size: 16, color: Colors.blue.shade400),
+                              Icon(Icons.circle_outlined,
+                                  size: 16, color: Colors.blue.shade400),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(todo.content,
@@ -872,7 +998,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                               if (todo.priority == 2) // High priority
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: Colors.red,
                                     borderRadius: BorderRadius.circular(8),
@@ -903,23 +1030,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Build Appointments Section
+  // Build Calendar Section (combined Appointments and Events)
   Widget _buildAppointmentsSection() {
     return SliverToBoxAdapter(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Card(
           elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.orange.shade50, Colors.orange.shade100.withValues(alpha: 0.3)],
+                colors: [
+                  Colors.indigo.shade50,
+                  Colors.indigo.shade100.withValues(alpha: 0.3)
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.orange.shade200),
+              border: Border.all(color: Colors.indigo.shade200),
             ),
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -930,75 +1061,296 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.orange.shade100,
+                        color: Colors.indigo.shade100,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(Icons.calendar_today, color: Colors.orange.shade700, size: 28),
+                      child: Icon(Icons.event,
+                          color: Colors.indigo.shade700, size: 28),
                     ),
                     const SizedBox(width: 16),
                     const Expanded(
                       child: Text(
-                        'My Appointments',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        'Calendar',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.add_circle, color: Colors.orange),
-                      onPressed: () => Navigator.pushNamed(context, '/appointments'),
+                    // Add button with popup menu for events/appointments
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.add_circle, color: Colors.indigo),
+                      tooltip: 'Add to Calendar',
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      onSelected: (value) {
+                        Navigator.pushNamed(context, '/calendar');
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'appointment',
+                          child: Row(
+                            children: [
+                              Icon(Icons.calendar_today),
+                              SizedBox(width: 8),
+                              Text('Add Appointment'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'event',
+                          child: Row(
+                            children: [
+                              Icon(Icons.event),
+                              SizedBox(width: 8),
+                              Text('Add Event'),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                FutureBuilder<List<Appointment>>(
-                  future: AppointmentStorageService.instance.getAppointments(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return const Text('No appointments scheduled',
-                          style: TextStyle(color: Colors.grey));
-                    }
-                    final upcoming = snapshot.data!
-                        .where((a) => a.dateTime.isAfter(DateTime.now()))
-                        .take(2)
-                        .toList();
-                    if (upcoming.isEmpty) {
-                      return const Text('No upcoming appointments',
-                          style: TextStyle(color: Colors.grey));
-                    }
-                    return Column(
-                      children: upcoming.map((appt) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            children: [
-                              Icon(Icons.access_time, size: 16, color: Colors.orange.shade400),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(appt.title,
-                                        style: const TextStyle(
-                                            fontSize: 14, fontWeight: FontWeight.w500),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis),
-                                    Text(DateFormat('MMM dd, h:mm a').format(appt.dateTime),
-                                        style: TextStyle(
-                                            fontSize: 11, color: Colors.grey.shade600)),
-                                  ],
+                const SizedBox(height: 8),
+
+                // Segmented control for toggling between appointments and events
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.shade50,
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: Row(
+                    children: [
+                      // Appointments tab
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _calendarView = 'appointments';
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: _calendarView == 'appointments'
+                                  ? Colors.indigo.shade100
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.calendar_today,
+                                  size: 16,
+                                  color: _calendarView == 'appointments'
+                                      ? Colors.indigo.shade700
+                                      : Colors.grey.shade600,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Appointments',
+                                  style: TextStyle(
+                                    fontWeight: _calendarView == 'appointments'
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: _calendarView == 'appointments'
+                                        ? Colors.indigo.shade700
+                                        : Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        );
-                      }).toList(),
-                    );
-                  },
+                        ),
+                      ),
+
+                      // Events tab
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _calendarView = 'events';
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: _calendarView == 'events'
+                                  ? Colors.indigo.shade100
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.event,
+                                  size: 16,
+                                  color: _calendarView == 'events'
+                                      ? Colors.indigo.shade700
+                                      : Colors.grey.shade600,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Events',
+                                  style: TextStyle(
+                                    fontWeight: _calendarView == 'events'
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: _calendarView == 'events'
+                                        ? Colors.indigo.shade700
+                                        : Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+
+                const SizedBox(height: 16),
+
+                // Content based on selected view
+                if (_calendarView == 'appointments')
+                  FutureBuilder<List<Appointment>>(
+                    future:
+                        AppointmentStorageService.instance.getAppointments(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return const Text('No appointments scheduled',
+                            style: TextStyle(color: Colors.grey));
+                      }
+                      final upcoming = snapshot.data!
+                          .where((a) => a.dateTime.isAfter(DateTime.now()))
+                          .take(2)
+                          .toList();
+                      if (upcoming.isEmpty) {
+                        return const Text('No upcoming appointments',
+                            style: TextStyle(color: Colors.grey));
+                      }
+                      return Column(
+                        children: upcoming.map((appt) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                Icon(Icons.access_time,
+                                    size: 16, color: Colors.orange.shade400),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(appt.title,
+                                          style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis),
+                                      Text(
+                                          DateFormat('MMM dd, h:mm a')
+                                              .format(appt.dateTime),
+                                          style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.grey.shade600)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
                 const SizedBox(height: 12),
                 TextButton(
-                  onPressed: () => Navigator.pushNamed(context, '/appointments'),
-                  child: const Text('View All Appointments →'),
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/calendar');
+                  },
+                  child: const Text('View Full Calendar →'),
                 ),
+
+                // Events view
+                if (_calendarView == 'events')
+                  FutureBuilder<List<Event>>(
+                    future: EventService.instance.getAllEvents(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return const Text('No upcoming events',
+                            style: TextStyle(color: Colors.grey));
+                      }
+                      final upcoming = snapshot.data!
+                          .where((e) => e.startDate.isAfter(DateTime.now()))
+                          .take(2)
+                          .toList();
+                      if (upcoming.isEmpty) {
+                        return const Text('No upcoming events',
+                            style: TextStyle(color: Colors.grey));
+                      }
+                      return Column(
+                        children: upcoming.map((event) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.indigo.shade100,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(
+                                    _getEventIcon(event.title),
+                                    color: Colors.indigo.shade700,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        event.title,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${DateFormat('MMM d, yyyy • h:mm a').format(event.startDate)}',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade700,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      if (event.location != null &&
+                                          event.location!.isNotEmpty)
+                                        Text(
+                                          event.location!,
+                                          style: TextStyle(
+                                            color: Colors.grey.shade600,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
               ],
             ),
           ),
@@ -1007,18 +1359,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Build Events Section
+  // Helper method to get appropriate icon for event based on title keywords
+  IconData _getEventIcon(String title) {
+    final lowercaseTitle = title.toLowerCase();
+
+    if (lowercaseTitle.contains('meeting') ||
+        lowercaseTitle.contains('fellowship')) {
+      return Icons.group;
+    } else if (lowercaseTitle.contains('service') ||
+        lowercaseTitle.contains('worship') ||
+        lowercaseTitle.contains('prayer')) {
+      return Icons.church;
+    } else if (lowercaseTitle.contains('conference') ||
+        lowercaseTitle.contains('seminar')) {
+      return Icons.business_center;
+    } else if (lowercaseTitle.contains('class') ||
+        lowercaseTitle.contains('training') ||
+        lowercaseTitle.contains('workshop')) {
+      return Icons.school;
+    } else if (lowercaseTitle.contains('celebration') ||
+        lowercaseTitle.contains('party')) {
+      return Icons.celebration;
+    } else if (lowercaseTitle.contains('outreach') ||
+        lowercaseTitle.contains('mission')) {
+      return Icons.public;
+    } else {
+      return Icons.event;
+    }
+  }
+
+  // Build Events Section - This method is kept for reference
+  @pragma('vm:prefer-inline')
   Widget _buildEventsSection() {
     return SliverToBoxAdapter(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Card(
           elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.purple.shade50, Colors.purple.shade100.withValues(alpha: 0.3)],
+                colors: [
+                  Colors.purple.shade50,
+                  Colors.purple.shade100.withValues(alpha: 0.3)
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -1037,13 +1423,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: Colors.purple.shade100,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(Icons.event, color: Colors.purple.shade700, size: 28),
+                      child: Icon(Icons.event,
+                          color: Colors.purple.shade700, size: 28),
                     ),
                     const SizedBox(width: 16),
                     const Expanded(
                       child: Text(
                         'Upcoming Events',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                     ),
                     IconButton(
@@ -1074,8 +1462,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Row(
                             children: [
-                              Icon(
-                                  event.isGlobal ? Icons.public : Icons.event,
+                              Icon(event.isGlobal ? Icons.public : Icons.event,
                                   size: 16,
                                   color: event.isGlobal
                                       ? Colors.purple.shade700
@@ -1087,19 +1474,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   children: [
                                     Text(event.title,
                                         style: const TextStyle(
-                                            fontSize: 14, fontWeight: FontWeight.w500),
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis),
-                                    Text(DateFormat('MMM dd, yyyy').format(event.startDate),
+                                    Text(
+                                        DateFormat('MMM dd, yyyy')
+                                            .format(event.startDate),
                                         style: TextStyle(
-                                            fontSize: 11, color: Colors.grey.shade600)),
+                                            fontSize: 11,
+                                            color: Colors.grey.shade600)),
                                   ],
                                 ),
                               ),
                               if (event.isGlobal)
                                 Container(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: Colors.purple.shade200,
                                     borderRadius: BorderRadius.circular(8),
@@ -1137,11 +1528,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Card(
           elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.green.shade50, Colors.green.shade100.withValues(alpha: 0.3)],
+                colors: [
+                  Colors.green.shade50,
+                  Colors.green.shade100.withValues(alpha: 0.3)
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -1160,7 +1555,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: Colors.green.shade100,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(Icons.history, color: Colors.green.shade700, size: 28),
+                      child: Icon(Icons.history,
+                          color: Colors.green.shade700, size: 28),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -1168,7 +1564,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           const Text(
                             'My Recent Activities',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 8),
                           GestureDetector(
@@ -1177,7 +1574,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 _showStorageWarning = !_showStorageWarning;
                               });
                             },
-                            child: Icon(Icons.info_outline, size: 18, color: Colors.amber.shade700),
+                            child: Icon(Icons.info_outline,
+                                size: 18, color: Colors.amber.shade700),
                           ),
                         ],
                       ),
@@ -1195,12 +1593,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.warning_amber, size: 16, color: Colors.amber.shade800),
+                        Icon(Icons.warning_amber,
+                            size: 16, color: Colors.amber.shade800),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Data saved locally. Back up to cloud for safekeeping.',
-                            style: TextStyle(fontSize: 11, color: Colors.amber.shade900),
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.amber.shade900),
                           ),
                         ),
                       ],
@@ -1231,12 +1631,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   children: [
                                     Text(activity.activities,
                                         style: const TextStyle(
-                                            fontSize: 14, fontWeight: FontWeight.w500),
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis),
-                                    Text(DateFormat('MMM dd, yyyy').format(activity.date),
+                                    Text(
+                                        DateFormat('MMM dd, yyyy')
+                                            .format(activity.date),
                                         style: TextStyle(
-                                            fontSize: 11, color: Colors.grey.shade600)),
+                                            fontSize: 11,
+                                            color: Colors.grey.shade600)),
                                   ],
                                 ),
                               ),
@@ -1290,9 +1694,461 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  // Helper method to get appropriate icon for each activity type
+  Widget _getActivityTypeIcon(String activityType) {
+    IconData iconData;
+    Color iconColor;
+
+    switch (activityType) {
+      case 'Visitation':
+        iconData = Icons.home;
+        iconColor = Colors.green;
+        break;
+      case 'Bible Study':
+        iconData = Icons.book;
+        iconColor = Colors.blue;
+        break;
+      case 'Prayer Meeting':
+        iconData = Icons.people;
+        iconColor = Colors.indigo;
+        break;
+      case 'Wedding':
+        iconData = Icons.favorite;
+        iconColor = Colors.pink;
+        break;
+      case 'Funeral':
+        iconData = Icons.assistant;
+        iconColor = Colors.grey;
+        break;
+      case 'Counseling':
+        iconData = Icons.psychology;
+        iconColor = Colors.purple;
+        break;
+      case 'Other':
+      default:
+        iconData = Icons.event_note;
+        iconColor = Colors.orange;
+        break;
+    }
+
+    return Icon(iconData, size: 20, color: iconColor);
+  }
+
+  // Handle quick todo entry from dashboard
+  Future<void> _addQuickTodo(String content) async {
+    if (content.trim().isEmpty) return;
+
+    // Create a new Todo with medium priority by default
+    final newTodo = Todo(
+      id: const Uuid().v4(),
+      content: content.trim(),
+      createdAt: DateTime.now(),
+      priority: 1, // Medium priority
+    );
+
+    await TodoStorageService.instance.saveTodo(newTodo);
+
+    // Clear the input field if called from onSubmitted
+    if (_quickTodoController.text == content) {
+      _quickTodoController.clear();
+    }
+
+    // Show confirmation and refresh the UI
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Todo added: ${newTodo.content}'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'View All',
+            onPressed: () => Navigator.pushNamed(context, '/todos'),
+          ),
+        ),
+      );
+
+      // Need to refresh the todos list
+      setState(() {
+        // This will cause the FutureBuilder to rebuild with new data
+      });
+    }
+  } // Show bottom sheet for quick activity entry
+
+  void _showQuickAddActivityBottomSheet() {
+    final activityController = TextEditingController();
+    final mileageController = TextEditingController(text: '0');
+    final noteController = TextEditingController();
+    final locationController = TextEditingController();
+    DateTime selectedDate = DateTime.now();
+    String selectedActivityType = 'Other'; // Default activity type
+
+    // Define activity types
+    final activityTypes = [
+      'Visitation',
+      'Bible Study',
+      'Prayer Meeting',
+      'Wedding',
+      'Funeral',
+      'Counseling',
+      'Other'
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) => Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 20,
+              right: 20,
+              top: 20,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Icon(Icons.event_note,
+                        color: AppColors.primaryLight, size: 24),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Quick Add Activity',
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const Divider(),
+                const SizedBox(height: 8),
+
+                // Date Picker
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now().add(const Duration(days: 1)),
+                    );
+                    if (picked != null) {
+                      setState(() => selectedDate = picked);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.calendar_today,
+                            size: 18, color: AppColors.primaryLight),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Date: ${DateFormat('MMM dd, yyyy').format(selectedDate)}',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const Spacer(),
+                        const Icon(Icons.arrow_drop_down),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Activity field with integrated dropdown
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Label for the entire field
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4, bottom: 8),
+                      child: Text(
+                        'Activity',
+                        style: TextStyle(
+                          color: Colors.grey[700],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+
+                    // Activity Type Dropdown (without border)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(4),
+                          topRight: Radius.circular(4),
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: selectedActivityType,
+                          hint: const Text('Select Activity Type'),
+                          icon: Icon(Icons.arrow_drop_down,
+                              color: AppColors.primaryLight),
+                          style: TextStyle(
+                            color: AppColors.primaryLight,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                selectedActivityType = newValue;
+
+                                // Always prefill the activity field with the selected type as a hint
+                                if (newValue == 'Other') {
+                                  // For "Other", just keep empty
+                                  activityController.text = '';
+                                } else {
+                                  // For specific activity types, set an appropriate prompt
+                                  String prompt = '';
+                                  switch (newValue) {
+                                    case 'Visitation':
+                                      prompt = 'Visitation to ';
+                                      break;
+                                    case 'Bible Study':
+                                      prompt = 'Bible Study on ';
+                                      break;
+                                    case 'Prayer Meeting':
+                                      prompt = 'Prayer Meeting with ';
+                                      break;
+                                    case 'Wedding':
+                                      prompt = 'Wedding of ';
+                                      break;
+                                    case 'Funeral':
+                                      prompt = 'Funeral service for ';
+                                      break;
+                                    case 'Counseling':
+                                      prompt = 'Counseling session with ';
+                                      break;
+                                    default:
+                                      prompt = '';
+                                  }
+                                  activityController.text = prompt;
+                                  activityController.selection =
+                                      TextSelection.fromPosition(
+                                    TextPosition(
+                                        offset: activityController.text.length),
+                                  );
+                                }
+                              });
+                            }
+                          },
+                          items: activityTypes
+                              .map<DropdownMenuItem<String>>((String type) {
+                            return DropdownMenuItem<String>(
+                              value: type,
+                              child: Row(
+                                children: [
+                                  _getActivityTypeIcon(type),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    type,
+                                    style: TextStyle(
+                                      color: type == selectedActivityType
+                                          ? AppColors.primaryLight
+                                          : Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+
+                    // Activity Details Field
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(4),
+                          bottomRight: Radius.circular(4),
+                        ),
+                      ),
+                      child: TextField(
+                        controller: activityController,
+                        decoration: InputDecoration(
+                          hintText: selectedActivityType == 'Other'
+                              ? 'Enter your activity'
+                              : 'Details about ${selectedActivityType.toLowerCase()}',
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.all(12),
+                        ),
+                        maxLines: 2,
+                        textCapitalization: TextCapitalization.sentences,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12), // Mileage Field
+                TextField(
+                  controller: mileageController,
+                  decoration: const InputDecoration(
+                    labelText: 'Mileage',
+                    hintText: 'Enter distance in km',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d+\.?\d{0,2}')),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Quick access row for location and notes
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: locationController,
+                        decoration: const InputDecoration(
+                          labelText: 'Location (Optional)',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: noteController,
+                        decoration: const InputDecoration(
+                          labelText: 'Notes (Optional)',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Save Button
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryLight,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  onPressed: () async {
+                    // Validation
+                    if (activityController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Please enter activity details')),
+                      );
+                      return;
+                    }
+
+                    try {
+                      final mileage =
+                          double.tryParse(mileageController.text) ?? 0.0;
+
+                      // Format activity text to include the activity type
+                      final String formattedActivity;
+
+                      // Check if the activity already starts with the activity type
+                      if (selectedActivityType == 'Other') {
+                        formattedActivity = activityController.text.trim();
+                      } else if (activityController.text
+                              .startsWith('${selectedActivityType} to ') ||
+                          activityController.text
+                              .startsWith('${selectedActivityType} on ') ||
+                          activityController.text
+                              .startsWith('${selectedActivityType} with ') ||
+                          activityController.text
+                              .startsWith('${selectedActivityType} of ') ||
+                          activityController.text
+                              .startsWith('${selectedActivityType} for ') ||
+                          activityController.text
+                              .startsWith('${selectedActivityType} session ')) {
+                        // If the text already includes the activity type in a natural way, keep it as is
+                        formattedActivity = activityController.text.trim();
+                      } else {
+                        // Otherwise add the activity type in brackets as a prefix
+                        formattedActivity =
+                            '[$selectedActivityType] ${activityController.text.trim()}';
+                      }
+
+                      // Create activity object
+                      final activity = Activity(
+                        id: const Uuid().v4(),
+                        date: selectedDate,
+                        activities: formattedActivity,
+                        mileage: mileage,
+                        note: noteController.text.trim(),
+                        location: locationController.text.trim().isEmpty
+                            ? null
+                            : locationController.text.trim(),
+                        createdAt: DateTime.now(),
+                      );
+
+                      // Save the activity
+                      final success = await ActivityStorageService.instance
+                          .addActivity(activity);
+
+                      if (success && context.mounted) {
+                        Navigator.pop(context);
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                '$selectedActivityType activity added successfully'),
+                            behavior: SnackBarBehavior.floating,
+                            action: SnackBarAction(
+                              label: 'View All',
+                              onPressed: () =>
+                                  Navigator.pushNamed(context, '/activities'),
+                            ),
+                          ),
+                        );
+
+                        // Refresh UI if needed
+                        if (mounted) {
+                          setState(() {});
+                        }
+                      }
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: ${e.toString()}')),
+                      );
+                    }
+                  },
+                  child: const Text('SAVE ACTIVITY'),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
+    _quickTodoController.dispose();
     super.dispose();
   }
 }
@@ -1373,7 +2229,7 @@ class _DepartmentCard extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 cardColor,
-                cardColor.withOpacity(0.7),
+                cardColor.withValues(alpha: 0.7),
               ],
             ),
           ),
@@ -1391,7 +2247,7 @@ class _DepartmentCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryLight.withOpacity(0.15),
+                      color: AppColors.primaryLight.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(

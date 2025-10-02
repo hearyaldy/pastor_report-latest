@@ -138,6 +138,8 @@ class DepartmentService {
         'icon': Department.getIconString(department.icon),
         'formUrl': department.formUrl,
         'mission': department.mission,
+        'isActive': department.isActive,
+        if (department.color != null) 'color': department.color!.value,
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {

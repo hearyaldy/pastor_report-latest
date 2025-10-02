@@ -76,12 +76,12 @@ class _AdminDashboardState extends State<AdminDashboard>
                   backgroundColor: Colors.blue,
                   tooltip: 'Mission Management',
                   onPressed: () {
-                    Navigator.pushNamed(context, AppConstants.routeMissionManagement);
+                    Navigator.pushNamed(
+                        context, AppConstants.routeMissionManagement);
                   },
                   child: const Icon(Icons.business),
                 ),
-              if (currentUser.canManageMissions())
-                const SizedBox(height: 10),
+              if (currentUser.canManageMissions()) const SizedBox(height: 10),
               // Add Department (for MissionAdmin and above)
               if (currentUser.canManageDepartments())
                 FloatingActionButton(
@@ -160,8 +160,8 @@ class _AdminDashboardState extends State<AdminDashboard>
                 final name =
                     userData['displayName']?.toString().toLowerCase() ?? '';
                 final email = userData['email']?.toString().toLowerCase() ?? '';
-                final matchesSearch = name.contains(_searchQuery) ||
-                    email.contains(_searchQuery);
+                final matchesSearch =
+                    name.contains(_searchQuery) || email.contains(_searchQuery);
 
                 if (!matchesSearch) return false;
 
@@ -224,8 +224,8 @@ class _AdminDashboardState extends State<AdminDashboard>
                     roleColor: roleColor,
                     roleIcon: roleIcon,
                     roleText: roleText,
-                    onActionSelected: (value) =>
-                        _handleUserAction(value, userId, userData, targetUser, currentUser),
+                    onActionSelected: (value) => _handleUserAction(
+                        value, userId, userData, targetUser, currentUser),
                   );
                 },
               );
@@ -237,7 +237,11 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   Future<void> _handleUserAction(
-      String action, String userId, Map<String, dynamic> userData, UserModel targetUser, UserModel currentUser) async {
+      String action,
+      String userId,
+      Map<String, dynamic> userData,
+      UserModel targetUser,
+      UserModel currentUser) async {
     try {
       if (action == 'changeRole') {
         _showRoleSelectionDialog(userId, userData, targetUser, currentUser);
@@ -273,7 +277,10 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   Future<void> _showRoleSelectionDialog(
-      String userId, Map<String, dynamic> userData, UserModel targetUser, UserModel currentUser) async {
+      String userId,
+      Map<String, dynamic> userData,
+      UserModel targetUser,
+      UserModel currentUser) async {
     final availableRoles = RoleService.instance.getAssignableRoles(currentUser);
 
     if (availableRoles.isEmpty) {
@@ -354,8 +361,8 @@ class _AdminDashboardState extends State<AdminDashboard>
     }
   }
 
-  Future<void> _showMissionSelectionDialog(
-      String userId, Map<String, dynamic> userData, UserModel currentUser) async {
+  Future<void> _showMissionSelectionDialog(String userId,
+      Map<String, dynamic> userData, UserModel currentUser) async {
     // Get all missions
     final missionsSnapshot = await FirebaseFirestore.instance
         .collection('missions')
@@ -467,7 +474,10 @@ class _AdminDashboardState extends State<AdminDashboard>
 
         // Build list of mission names for filter
         final missionNames = ['All Missions'];
-        missionNames.addAll(missionDocs.map((doc) => (doc.data() as Map<String, dynamic>)['name'] as String).toList());
+        missionNames.addAll(missionDocs
+            .map(
+                (doc) => (doc.data() as Map<String, dynamic>)['name'] as String)
+            .toList());
 
         return Stack(
           children: [
@@ -533,7 +543,9 @@ class _AdminDashboardState extends State<AdminDashboard>
                     else
                       // Show only selected mission's departments
                       for (var missionDoc in missionDocs)
-                        if ((missionDoc.data() as Map<String, dynamic>)['name'] == _selectedMissionFilter)
+                        if ((missionDoc.data()
+                                as Map<String, dynamic>)['name'] ==
+                            _selectedMissionFilter)
                           _buildMissionSection(missionDoc),
                   ],
                 ),
@@ -602,7 +614,8 @@ class _AdminDashboardState extends State<AdminDashboard>
             ),
             ...departments.map((deptDoc) {
               final deptData = deptDoc.data() as Map<String, dynamic>;
-              return _buildDepartmentCardFromData(context, deptDoc.id, deptData, missionId);
+              return _buildDepartmentCardFromData(
+                  context, deptDoc.id, deptData, missionId);
             }),
           ],
         );
@@ -610,7 +623,8 @@ class _AdminDashboardState extends State<AdminDashboard>
     );
   }
 
-  Widget _buildDepartmentCardFromData(BuildContext context, String departmentId, Map<String, dynamic> deptData, String missionId) {
+  Widget _buildDepartmentCardFromData(BuildContext context, String departmentId,
+      Map<String, dynamic> deptData, String missionId) {
     final departmentName = deptData['name'] as String? ?? 'Unknown';
     final formUrl = deptData['formUrl'] as String? ?? '';
     final iconString = deptData['icon'] as String? ?? 'business';
@@ -751,7 +765,8 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   // Methods for mission-based department operations
-  Future<void> _editDepartmentInMission(BuildContext context, String missionId, Department department) async {
+  Future<void> _editDepartmentInMission(
+      BuildContext context, String missionId, Department department) async {
     // Get mission name directly from Firestore
     final missionDoc = await FirebaseFirestore.instance
         .collection('missions')
@@ -769,7 +784,8 @@ class _AdminDashboardState extends State<AdminDashboard>
       return;
     }
 
-    final missionName = (missionDoc.data() as Map<String, dynamic>)['name'] as String;
+    final missionName =
+        (missionDoc.data() as Map<String, dynamic>)['name'] as String;
 
     await showModalBottomSheet(
       context: context,
@@ -824,8 +840,8 @@ class _AdminDashboardState extends State<AdminDashboard>
     );
   }
 
-  Future<void> _confirmDeleteDepartmentFromMission(
-      BuildContext context, String missionId, String departmentId, String departmentName) async {
+  Future<void> _confirmDeleteDepartmentFromMission(BuildContext context,
+      String missionId, String departmentId, String departmentName) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1589,10 +1605,12 @@ class _UserCardState extends State<_UserCard> {
             ),
             title: Row(
               children: [
-                Expanded(child: Text(widget.userData['displayName'] ?? 'No Name')),
+                Expanded(
+                    child: Text(widget.userData['displayName'] ?? 'No Name')),
                 if (widget.targetUser.isPremium)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.amber,
                       borderRadius: BorderRadius.circular(8),
@@ -1602,7 +1620,11 @@ class _UserCardState extends State<_UserCard> {
                       children: [
                         Icon(Icons.star, size: 12, color: Colors.white),
                         SizedBox(width: 2),
-                        Text('Premium', style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
+                        Text('Premium',
+                            style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
@@ -1616,7 +1638,8 @@ class _UserCardState extends State<_UserCard> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: widget.roleColor.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(4),
@@ -1633,7 +1656,8 @@ class _UserCardState extends State<_UserCard> {
                     if (widget.targetUser.mission != null) ...[
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.blue.shade50,
                           borderRadius: BorderRadius.circular(4),
@@ -1641,7 +1665,8 @@ class _UserCardState extends State<_UserCard> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.business, size: 10, color: Colors.blue.shade700),
+                            Icon(Icons.business,
+                                size: 10, color: Colors.blue.shade700),
                             const SizedBox(width: 4),
                             Text(
                               widget.targetUser.mission!,
@@ -1688,7 +1713,9 @@ class _UserCardState extends State<_UserCard> {
                   const Divider(height: 1),
                   const SizedBox(height: 8),
                   // Change Role Button
-                  if (RoleService.instance.getAssignableRoles(widget.currentUser).isNotEmpty)
+                  if (RoleService.instance
+                      .getAssignableRoles(widget.currentUser)
+                      .isNotEmpty)
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
@@ -1707,7 +1734,9 @@ class _UserCardState extends State<_UserCard> {
                         },
                       ),
                     ),
-                  if (RoleService.instance.getAssignableRoles(widget.currentUser).isNotEmpty)
+                  if (RoleService.instance
+                      .getAssignableRoles(widget.currentUser)
+                      .isNotEmpty)
                     const SizedBox(height: 8),
                   // Assign Mission Button (only for Admin and SuperAdmin)
                   if (widget.currentUser.canManageMissions())
@@ -1737,11 +1766,15 @@ class _UserCardState extends State<_UserCard> {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         icon: Icon(
-                          widget.targetUser.isPremium ? Icons.star_border : Icons.star,
+                          widget.targetUser.isPremium
+                              ? Icons.star_border
+                              : Icons.star,
                           size: 20,
                         ),
                         label: Text(
-                          widget.targetUser.isPremium ? 'Remove Premium' : 'Make Premium',
+                          widget.targetUser.isPremium
+                              ? 'Remove Premium'
+                              : 'Make Premium',
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.amber.shade50,

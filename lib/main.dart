@@ -26,6 +26,7 @@ import 'package:pastor_report/screens/departments_list_screen.dart';
 import 'package:pastor_report/screens/todos_screen.dart';
 import 'package:pastor_report/screens/appointments_screen.dart';
 import 'package:pastor_report/screens/events_screen.dart';
+import 'package:pastor_report/screens/calendar_screen.dart';
 import 'package:pastor_report/services/todo_storage_service.dart';
 import 'package:pastor_report/services/appointment_storage_service.dart';
 import 'package:pastor_report/services/event_service.dart';
@@ -113,6 +114,7 @@ class PastorReportApp extends StatelessWidget {
               '/add-activity': (context) => const AddEditActivityScreen(),
               '/departments': (context) => const DepartmentsListScreen(),
               '/todos': (context) => const TodosScreen(),
+              '/calendar': (context) => const CalendarScreen(),
               '/appointments': (context) => const AppointmentsScreen(),
               '/events': (context) => const EventsScreen(),
             },
@@ -120,7 +122,8 @@ class PastorReportApp extends StatelessWidget {
               if (settings.name == '/edit-activity') {
                 final activity = settings.arguments as Activity?;
                 return MaterialPageRoute(
-                  builder: (context) => AddEditActivityScreen(activity: activity),
+                  builder: (context) =>
+                      AddEditActivityScreen(activity: activity),
                 );
               }
               if (settings.name == AppConstants.routeInAppWebView) {

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:pastor_report/services/department_service.dart';
 import 'package:pastor_report/models/department_model.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/providers/auth_provider.dart';
 
 class DepartmentManagementScreen extends StatelessWidget {
   const DepartmentManagementScreen({super.key});
@@ -9,6 +11,8 @@ class DepartmentManagementScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final deptService = DepartmentService();
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userMission = authProvider.user?.mission;
 
     return Scaffold(
       appBar: AppBar(
@@ -19,13 +23,13 @@ class DepartmentManagementScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
-              _showDepartmentDialog(context, null);
+              _showDepartmentDialog(context, null, userMission);
             },
           ),
         ],
       ),
       body: StreamBuilder<List<Department>>(
-        stream: deptService.getDepartmentsStream(),
+        stream: deptService.getDepartmentsStream(mission: userMission),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -68,7 +72,7 @@ class DepartmentManagementScreen extends StatelessWidget {
                       IconButton(
                         icon: const Icon(Icons.edit),
                         onPressed: () {
-                          _showDepartmentDialog(context, dept);
+                          _showDepartmentDialog(context, dept, userMission);
                         },
                       ),
                       IconButton(
@@ -97,7 +101,7 @@ class DepartmentManagementScreen extends StatelessWidget {
 
                           if (confirm == true) {
                             try {
-                              await deptService.deleteDepartment(dept.id);
+                              await deptService.deleteDepartment(dept.id, missionName: userMission);
                               if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Department deleted')),
@@ -122,7 +126,7 @@ class DepartmentManagementScreen extends StatelessWidget {
     );
   }
 
-  static void _showDepartmentDialog(BuildContext context, Department? department) {
+  static void _showDepartmentDialog(BuildContext context, Department? department, String? userMission) {
     final nameController = TextEditingController(text: department?.name ?? '');
     final urlController = TextEditingController(text: department?.formUrl ?? '');
     IconData selectedIcon = department?.icon ?? Icons.dashboard;
@@ -210,6 +214,9 @@ class DepartmentManagementScreen extends StatelessWidget {
                       name: nameController.text,
                       icon: selectedIcon,
                       formUrl: urlController.text,
+                      mission: userMission,
+                      color: department?.color, // Preserve existing color
+                      isActive: department?.isActive ?? true, // Preserve active status
                     );
 
                     if (department == null) {

@@ -261,39 +261,40 @@ class MissionProvider with ChangeNotifier {
   }
 
   // Update a department within a mission
-  Future<void> updateDepartmentInMission(String missionId, Department department) async {
+  Future<void> updateDepartmentInMission(
+      String missionId, Department department) async {
     _setLoading(true);
     try {
       await _missionService.updateDepartmentInMission(missionId, department);
-      
+
       // Refresh the selected mission if it's the one being updated
       if (_selectedMission?.id == missionId) {
         await selectMission(id: missionId);
       }
-      
+
       // Refresh departments
       await loadDepartments(missionName: _selectedMission?.name);
-      
     } catch (e) {
       _setError('Failed to update department: $e');
     }
     _setLoading(false);
   }
-  
+
   // Delete a department from a mission
-  Future<void> deleteDepartmentFromMission(String missionId, String departmentId) async {
+  Future<void> deleteDepartmentFromMission(
+      String missionId, String departmentId) async {
     _setLoading(true);
     try {
-      await _missionService.deleteDepartmentFromMission(missionId, departmentId);
-      
+      await _missionService.deleteDepartmentFromMission(
+          missionId, departmentId);
+
       // Refresh the selected mission if it's the one being updated
       if (_selectedMission?.id == missionId) {
         await selectMission(id: missionId);
       }
-      
+
       // Refresh departments
       await loadDepartments(missionName: _selectedMission?.name);
-      
     } catch (e) {
       _setError('Failed to delete department: $e');
     }

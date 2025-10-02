@@ -195,6 +195,7 @@ class MissionService {
         'icon': Department.getIconString(department.icon),
         'formUrl': department.formUrl,
         'isActive': department.isActive,
+        if (department.color != null) 'color': department.color!.value,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -218,6 +219,7 @@ class MissionService {
         'icon': Department.getIconString(department.icon),
         'formUrl': department.formUrl,
         'isActive': department.isActive,
+        if (department.color != null) 'color': department.color!.value,
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
