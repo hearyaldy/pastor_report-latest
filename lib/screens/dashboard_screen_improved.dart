@@ -6,10 +6,12 @@ import 'package:pastor_report/models/department_model.dart';
 import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/models/todo_model.dart';
 import 'package:pastor_report/models/appointment_model.dart';
+import 'package:pastor_report/models/event_model.dart';
 import 'package:pastor_report/models/activity_model.dart';
 import 'package:pastor_report/services/optimized_data_service.dart';
 import 'package:pastor_report/services/todo_storage_service.dart';
 import 'package:pastor_report/services/appointment_storage_service.dart';
+import 'package:pastor_report/services/event_service.dart';
 import 'package:pastor_report/services/activity_storage_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:uuid/uuid.dart';
@@ -294,9 +296,9 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildStatCard(
-                    'Appointments',
+                    'Events',
                     stats['appointments'] ?? 0,
-                    Icons.calendar_today,
+                    Icons.event,
                     Colors.orange,
                   ),
                 ),
@@ -953,20 +955,37 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   }
 
   Widget _buildAppointmentsCard() {
-    return FutureBuilder<List<Appointment>>(
-      future: AppointmentStorageService.instance.getAppointments(),
+    return FutureBuilder<List<dynamic>>(
+      future: Future.wait([
+        AppointmentStorageService.instance.getAppointments(),
+        EventService.instance.getAllEvents(),
+      ]),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final upcoming = snapshot.data!
+        final appointments = snapshot.data![0] as List<Appointment>;
+        final events = snapshot.data![1] as List<Event>;
+
+        // Combine appointments and events
+        final upcomingAppointments = appointments
             .where((a) => a.dateTime.isAfter(DateTime.now()))
-            .take(2)
+            .map((a) => {'type': 'appointment', 'data': a, 'dateTime': a.dateTime})
             .toList();
 
+        final upcomingEvents = events
+            .where((e) => e.startDate.isAfter(DateTime.now()))
+            .map((e) => {'type': 'event', 'data': e, 'dateTime': e.startDate})
+            .toList();
+
+        final upcoming = [...upcomingAppointments, ...upcomingEvents]
+          ..sort((a, b) => (a['dateTime'] as DateTime).compareTo(b['dateTime'] as DateTime));
+
+        final displayItems = upcoming.take(3).toList();
+
         return GestureDetector(
-          onTap: () => Navigator.pushNamed(context, '/appointments'),
+          onTap: () => Navigator.pushNamed(context, '/calendar'),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1001,7 +1020,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        '${upcoming.length}',
+                        '${displayItems.length}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -1012,7 +1031,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Appointments',
+                  'Events & Appointments',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -1021,37 +1040,55 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 ),
                 const SizedBox(height: 8),
                 Expanded(
-                  child: upcoming.isEmpty
+                  child: displayItems.isEmpty
                       ? const Center(
                           child: Text(
-                            'No upcoming appointments',
+                            'No upcoming events',
                             style: TextStyle(color: Colors.white70, fontSize: 12),
                           ),
                         )
                       : ListView.builder(
-                          itemCount: upcoming.length,
+                          itemCount: displayItems.length,
                           itemBuilder: (context, index) {
-                            final appointment = upcoming[index];
+                            final item = displayItems[index];
+                            final isEvent = item['type'] == 'event';
+                            final title = isEvent
+                                ? (item['data'] as Event).title
+                                : (item['data'] as Appointment).title;
+                            final dateTime = item['dateTime'] as DateTime;
+
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 8),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              child: Row(
                                 children: [
-                                  Text(
-                                    appointment.title,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  Icon(
+                                    isEvent ? Icons.event : Icons.calendar_today,
+                                    size: 12,
+                                    color: Colors.white70,
                                   ),
-                                  Text(
-                                    DateFormat('MMM dd, hh:mm a').format(appointment.dateTime),
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 11,
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          title,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          DateFormat('MMM dd, hh:mm a').format(dateTime),
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -1420,11 +1457,15 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
 
     final todos = await TodoStorageService.instance.getTodos();
     final appointments = await AppointmentStorageService.instance.getAppointments();
+    final events = await EventService.instance.getAllEvents();
     final activities = await ActivityStorageService.instance.getActivities();
+
+    final upcomingAppointments = appointments.where((a) => a.dateTime.isAfter(DateTime.now())).length;
+    final upcomingEvents = events.where((e) => e.startDate.isAfter(DateTime.now())).length;
 
     return {
       'todos': todos.where((t) => !t.isCompleted).length,
-      'appointments': appointments.where((a) => a.dateTime.isAfter(DateTime.now())).length,
+      'appointments': upcomingAppointments + upcomingEvents,
       'activities': activities.length,
     };
   }
