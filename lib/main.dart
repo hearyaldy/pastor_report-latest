@@ -22,6 +22,14 @@ import 'package:pastor_report/screens/onboarding_screen.dart';
 import 'package:pastor_report/screens/mission_management_screen.dart';
 import 'package:pastor_report/screens/activities_list_screen.dart';
 import 'package:pastor_report/screens/add_edit_activity_screen.dart';
+import 'package:pastor_report/screens/departments_list_screen.dart';
+import 'package:pastor_report/screens/todos_screen.dart';
+import 'package:pastor_report/screens/appointments_screen.dart';
+import 'package:pastor_report/screens/events_screen.dart';
+import 'package:pastor_report/services/todo_storage_service.dart';
+import 'package:pastor_report/services/appointment_storage_service.dart';
+import 'package:pastor_report/services/event_service.dart';
+import 'package:pastor_report/services/role_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'firebase_options.dart';
 
@@ -44,6 +52,14 @@ void main() async {
 
   // Initialize settings service
   await SettingsService.instance.initialize();
+
+  // Initialize todo, appointment, and event services
+  await TodoStorageService.instance.initialize();
+  await AppointmentStorageService.instance.initialize();
+  await EventService.instance.initialize();
+
+  // Initialize SuperAdmin (heary@hopetv.asia)
+  await RoleService.instance.initializeSuperAdmin();
 
   runApp(const PastorReportApp());
 }
@@ -95,6 +111,10 @@ class PastorReportApp extends StatelessWidget {
                   const MissionManagementScreen(),
               '/activities': (context) => const ActivitiesListScreen(),
               '/add-activity': (context) => const AddEditActivityScreen(),
+              '/departments': (context) => const DepartmentsListScreen(),
+              '/todos': (context) => const TodosScreen(),
+              '/appointments': (context) => const AppointmentsScreen(),
+              '/events': (context) => const EventsScreen(),
             },
             onGenerateRoute: (settings) {
               if (settings.name == '/edit-activity') {

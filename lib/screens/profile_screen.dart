@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
+import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/services/user_management_service.dart';
 import 'package:pastor_report/utils/theme.dart';
 import 'package:pastor_report/utils/constants.dart';
@@ -357,22 +358,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 8),
                       // Role Badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 6),
-                        decoration: BoxDecoration(
-                          color:
-                              user.isAdmin ? AppTheme.error : AppTheme.success,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          user.isAdmin ? 'ADMIN' : 'USER',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: _getRoleColor(user),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(_getRoleIcon(user), size: 14, color: Colors.white),
+                                const SizedBox(width: 6),
+                                Text(
+                                  user.roleString.toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                          if (user.isPremium) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.amber,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.star, size: 14, color: Colors.white),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'PREMIUM',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 32),
                     ],
@@ -695,5 +733,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onTap: onTap,
       ),
     );
+  }
+
+  Color _getRoleColor(UserModel user) {
+    switch (user.userRole) {
+      case UserRole.superAdmin:
+        return Colors.purple;
+      case UserRole.admin:
+        return AppTheme.error;
+      case UserRole.missionAdmin:
+        return Colors.blue;
+      case UserRole.editor:
+        return Colors.orange;
+      case UserRole.user:
+        return AppTheme.success;
+    }
+  }
+
+  IconData _getRoleIcon(UserModel user) {
+    switch (user.userRole) {
+      case UserRole.superAdmin:
+        return Icons.verified_user;
+      case UserRole.admin:
+        return Icons.admin_panel_settings;
+      case UserRole.missionAdmin:
+        return Icons.business;
+      case UserRole.editor:
+        return Icons.edit;
+      case UserRole.user:
+        return Icons.person;
+    }
   }
 }

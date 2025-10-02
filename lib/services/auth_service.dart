@@ -38,7 +38,7 @@ class AuthService {
     required String email,
     required String password,
     required String displayName,
-    bool isAdmin = false,
+    UserRole userRole = UserRole.user,
     String? mission,
     String? district,
     String? region,
@@ -57,11 +57,10 @@ class AuthService {
           uid: user.uid,
           email: email,
           displayName: displayName,
-          isAdmin: isAdmin,
+          userRole: userRole,
           mission: mission,
           district: district,
           region: region,
-          role: role,
         );
 
         await _firestore.collection('users').doc(user.uid).set(userModel.toMap());

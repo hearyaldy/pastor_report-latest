@@ -2,7 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pastor_report/models/department_model.dart';
+import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/services/user_management_service.dart';
+import 'package:pastor_report/services/role_service.dart';
+import 'package:pastor_report/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:pastor_report/utils/constants.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -57,34 +61,52 @@ class _AdminDashboardState extends State<AdminDashboard>
           _buildDepartmentsTab(),
         ],
       ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton.small(
-            heroTag: 'mission_management',
-            backgroundColor: Colors.blue,
-            tooltip: 'Mission Management',
-            onPressed: () {
-              Navigator.pushNamed(context, AppConstants.routeMissionManagement);
-            },
-            child: const Icon(Icons.business),
-          ),
-          const SizedBox(height: 10),
-          FloatingActionButton(
-            heroTag: 'add_department',
-            backgroundColor: AppColors.primaryLight,
-            tooltip: 'Add Department',
-            onPressed: () {
-              _addDepartment(context);
-            },
-            child: const Icon(Icons.add),
-          ),
-        ],
+      floatingActionButton: Builder(
+        builder: (context) {
+          final currentUser = context.watch<AuthProvider>().user;
+          if (currentUser == null) return const SizedBox.shrink();
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Mission Management (only for Admin and SuperAdmin)
+              if (currentUser.canManageMissions())
+                FloatingActionButton.small(
+                  heroTag: 'mission_management',
+                  backgroundColor: Colors.blue,
+                  tooltip: 'Mission Management',
+                  onPressed: () {
+                    Navigator.pushNamed(context, AppConstants.routeMissionManagement);
+                  },
+                  child: const Icon(Icons.business),
+                ),
+              if (currentUser.canManageMissions())
+                const SizedBox(height: 10),
+              // Add Department (for MissionAdmin and above)
+              if (currentUser.canManageDepartments())
+                FloatingActionButton(
+                  heroTag: 'add_department',
+                  backgroundColor: AppColors.primaryLight,
+                  tooltip: 'Add Department',
+                  onPressed: () {
+                    _addDepartment(context);
+                  },
+                  child: const Icon(Icons.add),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
 
   Widget _buildUsersTab() {
+    final currentUser = context.watch<AuthProvider>().user;
+
+    if (currentUser == null) {
+      return const Center(child: Text('Not authenticated'));
+    }
+
     return Column(
       children: [
         // Search Bar
@@ -120,7 +142,7 @@ class _AdminDashboardState extends State<AdminDashboard>
         // Users List
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('users').snapshots(),
+            stream: RoleService.instance.getUsersStream(currentUser),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));
@@ -132,14 +154,23 @@ class _AdminDashboardState extends State<AdminDashboard>
 
               final users = snapshot.data!.docs;
 
-              // Filter users based on search
+              // Filter users based on search and permissions
               final filteredUsers = users.where((doc) {
                 final userData = doc.data() as Map<String, dynamic>;
                 final name =
                     userData['displayName']?.toString().toLowerCase() ?? '';
                 final email = userData['email']?.toString().toLowerCase() ?? '';
-                return name.contains(_searchQuery) ||
+                final matchesSearch = name.contains(_searchQuery) ||
                     email.contains(_searchQuery);
+
+                if (!matchesSearch) return false;
+
+                // Check if current user can manage this user
+                final targetUser = UserModel.fromMap(userData, doc.id);
+                return RoleService.instance.canManageUser(
+                  currentUser: currentUser,
+                  targetUser: targetUser,
+                );
               }).toList();
 
               if (filteredUsers.isEmpty) {
@@ -155,39 +186,46 @@ class _AdminDashboardState extends State<AdminDashboard>
                   final doc = filteredUsers[index];
                   final userId = doc.id;
                   final userData = doc.data() as Map<String, dynamic>;
+                  final targetUser = UserModel.fromMap(userData, userId);
 
                   // Determine user role and assign colors
-                  final isAdmin = userData['isAdmin'] ?? false;
-                  final isEditor = userData['isEditor'] ?? false;
-
                   Color roleColor;
                   IconData roleIcon;
-                  String roleText;
+                  String roleText = targetUser.roleString;
 
-                  if (isAdmin) {
-                    roleColor = Colors.red;
-                    roleIcon = Icons.admin_panel_settings;
-                    roleText = 'Admin';
-                  } else if (isEditor) {
-                    roleColor = Colors.orange;
-                    roleIcon = Icons.edit;
-                    roleText = 'Editor';
-                  } else {
-                    roleColor = AppColors.primaryLight;
-                    roleIcon = Icons.person;
-                    roleText = 'User';
+                  switch (targetUser.userRole) {
+                    case UserRole.superAdmin:
+                      roleColor = Colors.purple;
+                      roleIcon = Icons.verified_user;
+                      break;
+                    case UserRole.admin:
+                      roleColor = Colors.red;
+                      roleIcon = Icons.admin_panel_settings;
+                      break;
+                    case UserRole.missionAdmin:
+                      roleColor = Colors.blue;
+                      roleIcon = Icons.business;
+                      break;
+                    case UserRole.editor:
+                      roleColor = Colors.orange;
+                      roleIcon = Icons.edit;
+                      break;
+                    case UserRole.user:
+                      roleColor = AppColors.primaryLight;
+                      roleIcon = Icons.person;
+                      break;
                   }
 
                   return _UserCard(
                     userId: userId,
                     userData: userData,
+                    targetUser: targetUser,
+                    currentUser: currentUser,
                     roleColor: roleColor,
                     roleIcon: roleIcon,
                     roleText: roleText,
-                    isAdmin: isAdmin,
-                    isEditor: isEditor,
                     onActionSelected: (value) =>
-                        _handleUserAction(value, userId, userData),
+                        _handleUserAction(value, userId, userData, targetUser, currentUser),
                   );
                 },
               );
@@ -199,38 +237,23 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   Future<void> _handleUserAction(
-      String action, String userId, Map<String, dynamic> userData) async {
-    final bool isAdmin = userData['isAdmin'] ?? false;
-    final bool isEditor = userData['isEditor'] ?? false;
-
+      String action, String userId, Map<String, dynamic> userData, UserModel targetUser, UserModel currentUser) async {
     try {
-      if (action == 'makeAdmin') {
-        await UserManagementService().updateUserRole(
-          uid: userId,
-          isAdmin: !isAdmin,
+      if (action == 'changeRole') {
+        _showRoleSelectionDialog(userId, userData, targetUser, currentUser);
+      } else if (action == 'changeMission') {
+        _showMissionSelectionDialog(userId, userData, currentUser);
+      } else if (action == 'togglePremium') {
+        await RoleService.instance.updatePremiumStatus(
+          targetUserId: userId,
+          isPremium: !targetUser.isPremium,
+          currentUser: currentUser,
         );
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '${userData['displayName']} is ${!isAdmin ? 'now' : 'no longer'} an admin',
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else if (action == 'makeEditor') {
-        // Update editor role
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .update({
-          'isEditor': !isEditor,
-        });
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${userData['displayName']} is ${!isEditor ? 'now' : 'no longer'} an editor',
+              '${userData['displayName']} is ${!targetUser.isPremium ? 'now' : 'no longer'} a premium user',
             ),
             backgroundColor: Colors.green,
           ),
@@ -246,6 +269,158 @@ class _AdminDashboardState extends State<AdminDashboard>
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  Future<void> _showRoleSelectionDialog(
+      String userId, Map<String, dynamic> userData, UserModel targetUser, UserModel currentUser) async {
+    final availableRoles = RoleService.instance.getAssignableRoles(currentUser);
+
+    if (availableRoles.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You do not have permission to assign roles'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final selectedRole = await showDialog<UserRole>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Change Role for ${userData['displayName']}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: availableRoles.map((role) {
+            return RadioListTile<UserRole>(
+              title: Text(role.displayName),
+              subtitle: Text(_getRoleDescription(role)),
+              value: role,
+              groupValue: targetUser.userRole,
+              onChanged: (value) => Navigator.pop(context, value),
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (selectedRole != null && selectedRole != targetUser.userRole) {
+      try {
+        await RoleService.instance.updateUserRole(
+          targetUserId: userId,
+          newRole: selectedRole,
+          currentUser: currentUser,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${userData['displayName']} is now ${selectedRole.displayName}',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update role: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  String _getRoleDescription(UserRole role) {
+    switch (role) {
+      case UserRole.superAdmin:
+        return 'Full system access';
+      case UserRole.admin:
+        return 'Manage users and missions';
+      case UserRole.missionAdmin:
+        return 'Manage own mission';
+      case UserRole.editor:
+        return 'Edit department URLs';
+      case UserRole.user:
+        return 'Basic access';
+    }
+  }
+
+  Future<void> _showMissionSelectionDialog(
+      String userId, Map<String, dynamic> userData, UserModel currentUser) async {
+    // Get all missions
+    final missionsSnapshot = await FirebaseFirestore.instance
+        .collection('missions')
+        .orderBy('name')
+        .get();
+
+    final missions = missionsSnapshot.docs
+        .map((doc) => (doc.data() as Map<String, dynamic>)['name'] as String)
+        .toList();
+
+    final selectedMission = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Assign Mission for ${userData['displayName']}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('None'),
+              onTap: () => Navigator.pop(context, ''),
+            ),
+            ...missions.map((mission) {
+              return ListTile(
+                title: Text(mission),
+                onTap: () => Navigator.pop(context, mission),
+              );
+            }),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (selectedMission != null) {
+      try {
+        await RoleService.instance.updateUserMission(
+          targetUserId: userId,
+          mission: selectedMission.isEmpty ? null : selectedMission,
+          currentUser: currentUser,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              selectedMission.isEmpty
+                  ? '${userData['displayName']} removed from mission'
+                  : '${userData['displayName']} assigned to $selectedMission',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update mission: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -1376,21 +1551,21 @@ class _DepartmentBottomSheetState extends State<_DepartmentBottomSheet> {
 class _UserCard extends StatefulWidget {
   final String userId;
   final Map<String, dynamic> userData;
+  final UserModel targetUser;
+  final UserModel currentUser;
   final Color roleColor;
   final IconData roleIcon;
   final String roleText;
-  final bool isAdmin;
-  final bool isEditor;
   final Function(String) onActionSelected;
 
   const _UserCard({
     required this.userId,
     required this.userData,
+    required this.targetUser,
+    required this.currentUser,
     required this.roleColor,
     required this.roleIcon,
     required this.roleText,
-    required this.isAdmin,
-    required this.isEditor,
     required this.onActionSelected,
   });
 
@@ -1412,27 +1587,75 @@ class _UserCardState extends State<_UserCard> {
               backgroundColor: widget.roleColor,
               child: Icon(widget.roleIcon, color: Colors.white),
             ),
-            title: Text(widget.userData['displayName'] ?? 'No Name'),
+            title: Row(
+              children: [
+                Expanded(child: Text(widget.userData['displayName'] ?? 'No Name')),
+                if (widget.targetUser.isPremium)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.amber,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.star, size: 12, color: Colors.white),
+                        SizedBox(width: 2),
+                        Text('Premium', style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(widget.userData['email'] ?? 'No Email'),
                 const SizedBox(height: 4),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: widget.roleColor.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    widget.roleText,
-                    style: TextStyle(
-                      color: widget.roleColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: widget.roleColor.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        widget.roleText,
+                        style: TextStyle(
+                          color: widget.roleColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
+                    if (widget.targetUser.mission != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.business, size: 10, color: Colors.blue.shade700),
+                            const SizedBox(width: 4),
+                            Text(
+                              widget.targetUser.mission!,
+                              style: TextStyle(
+                                color: Colors.blue.shade700,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
@@ -1464,56 +1687,77 @@ class _UserCardState extends State<_UserCard> {
                 children: [
                   const Divider(height: 1),
                   const SizedBox(height: 8),
-                  // Make/Remove Admin Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      icon: Icon(
-                        widget.isAdmin
-                            ? Icons.remove_moderator
-                            : Icons.admin_panel_settings,
-                        size: 20,
+                  // Change Role Button
+                  if (RoleService.instance.getAssignableRoles(widget.currentUser).isNotEmpty)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.admin_panel_settings, size: 20),
+                        label: const Text('Change Role'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade50,
+                          foregroundColor: Colors.blue,
+                          elevation: 0,
+                        ),
+                        onPressed: () {
+                          widget.onActionSelected('changeRole');
+                          setState(() {
+                            _isExpanded = false;
+                          });
+                        },
                       ),
-                      label:
-                          Text(widget.isAdmin ? 'Remove Admin' : 'Make Admin'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade50,
-                        foregroundColor: Colors.red,
-                        elevation: 0,
-                      ),
-                      onPressed: () {
-                        widget.onActionSelected('makeAdmin');
-                        setState(() {
-                          _isExpanded = false;
-                        });
-                      },
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Make/Remove Editor Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      icon: Icon(
-                        widget.isEditor ? Icons.remove_circle : Icons.edit,
-                        size: 20,
+                  if (RoleService.instance.getAssignableRoles(widget.currentUser).isNotEmpty)
+                    const SizedBox(height: 8),
+                  // Assign Mission Button (only for Admin and SuperAdmin)
+                  if (widget.currentUser.canManageMissions())
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.business, size: 20),
+                        label: const Text('Assign Mission'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green.shade50,
+                          foregroundColor: Colors.green,
+                          elevation: 0,
+                        ),
+                        onPressed: () {
+                          widget.onActionSelected('changeMission');
+                          setState(() {
+                            _isExpanded = false;
+                          });
+                        },
                       ),
-                      label: Text(
-                          widget.isEditor ? 'Remove Editor' : 'Make Editor'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange.shade50,
-                        foregroundColor: Colors.orange,
-                        elevation: 0,
-                      ),
-                      onPressed: () {
-                        widget.onActionSelected('makeEditor');
-                        setState(() {
-                          _isExpanded = false;
-                        });
-                      },
                     ),
-                  ),
-                  const SizedBox(height: 8),
+                  if (widget.currentUser.canManageMissions())
+                    const SizedBox(height: 8),
+                  // Toggle Premium Button (only for Admin and SuperAdmin)
+                  if (widget.currentUser.canManageUsers())
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: Icon(
+                          widget.targetUser.isPremium ? Icons.star_border : Icons.star,
+                          size: 20,
+                        ),
+                        label: Text(
+                          widget.targetUser.isPremium ? 'Remove Premium' : 'Make Premium',
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.amber.shade50,
+                          foregroundColor: Colors.amber.shade700,
+                          elevation: 0,
+                        ),
+                        onPressed: () {
+                          widget.onActionSelected('togglePremium');
+                          setState(() {
+                            _isExpanded = false;
+                          });
+                        },
+                      ),
+                    ),
+                  if (widget.currentUser.canManageUsers())
+                    const SizedBox(height: 8),
                   // Delete User Button
                   SizedBox(
                     width: double.infinity,
