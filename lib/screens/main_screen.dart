@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
-import 'package:pastor_report/screens/dashboard_screen.dart';
+import 'package:pastor_report/screens/dashboard_screen_improved.dart';
 import 'package:pastor_report/screens/profile_screen.dart';
 import 'package:pastor_report/screens/admin_dashboard.dart';
 import 'package:pastor_report/utils/theme.dart';
@@ -25,7 +25,7 @@ class _MainScreenState extends State<MainScreen> {
     return [
       Stack(
         children: [
-          const DashboardScreen(),
+          const ImprovedDashboardScreen(),
           if (_showDebugInfo && authProvider.isAuthenticated)
             _buildDebugOverlay(authProvider),
         ],

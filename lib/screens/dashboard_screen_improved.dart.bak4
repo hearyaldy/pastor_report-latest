@@ -507,6 +507,662 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
 
   // Build Todo Form - DUPLICATE REMOVED, KEPT ONLY BELOW
 
+  Widget _buildUpcomingSection() {
+    return SliverToBoxAdapter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ACTUAL START OF UPCOMING SECTION
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Upcoming',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/calendar'),
+                  child: const Text('View All'),
+                ),
+              ],
+            ),
+          ),
+          _buildUpcomingCards(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpcomingCards() {
+    return Container(
+      height: 200,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(child: _buildTodosCard()),
+          const SizedBox(width: 12),
+          Expanded(child: _buildAppointmentsCard()),
+        ],
+      ),
+    );
+  }
+
+  // SKIPPING ALL OLD DUPLICATE CODE
+
+  Widget _buildDepartmentsSection(UserModel? user) {
+    return SliverToBoxAdapter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Departments',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                if (user != null)
+                  TextButton(
+                    onPressed: () => Navigator.pushNamed(context, '/departments'),
+                    child: const Text('View All'),
+                  ),
+              ],
+            ),
+          ),
+          _buildDepartmentsGrid(user),
+        ],
+      ),
+    );
+  }
+
+  // SKIPPING TO THE HELPER METHODS AT THE END
+
+  // REMOVING _buildTodoSection COMPLETELY
+
+  Widget _buildTodosCard() {
+    return FutureBuilder<List<Todo>>(
+      future: TodoStorageService.instance.getTodos(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final incompleteTodos = snapshot.data!.where((t) => !t.isCompleted).take(3).toList();
+
+        return GestureDetector(
+          onTap: () => Navigator.pushNamed(context, '/todos'),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.blue[400]!,
+                  Colors.blue[600]!,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.blue.withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Icon(Icons.check_circle_outline, color: Colors.white, size: 28),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${incompleteTodos.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Pending Todos',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: incompleteTodos.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No pending todos',
+                            style: TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: incompleteTodos.length,
+                          itemBuilder: (context, index) {
+                            final todo = incompleteTodos[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    todo.priority == 2 ? Icons.priority_high : Icons.circle,
+                                    size: 12,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      todo.content,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAppointmentsCard() {
+    return FutureBuilder<List<Appointment>>(
+      future: AppointmentStorageService.instance.getAppointments(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final upcoming = snapshot.data!
+            .where((a) => a.dateTime.isAfter(DateTime.now()))
+            .take(2)
+            .toList();
+
+        return GestureDetector(
+          onTap: () => Navigator.pushNamed(context, '/appointments'),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.orange[400]!,
+                  Colors.orange[600]!,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.orange.withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Icon(Icons.calendar_today, color: Colors.white, size: 28),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${upcoming.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Appointments',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: upcoming.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No upcoming appointments',
+                            style: TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: upcoming.length,
+                          itemBuilder: (context, index) {
+                            final appointment = upcoming[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    appointment.title,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    DateFormat('MMM dd, hh:mm a').format(appointment.dateTime),
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDepartmentsGrid(UserModel? user) {
+    final missionName = user?.mission ?? 'Southern Asia-Pacific Division';
+
+    return StreamBuilder<List<Department>>(
+      stream: _getDepartmentsStream(missionName),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: Text('No departments available')),
+          );
+        }
+
+        var departments = snapshot.data!;
+        if (_searchQuery.isNotEmpty) {
+          departments = departments
+              .where((dept) => dept.name.toLowerCase().contains(_searchQuery))
+              .toList();
+        }
+
+        final displayDepartments = departments.take(4).toList();
+        final hasMore = departments.length > 4;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: [
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 1.1,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: displayDepartments.length,
+                itemBuilder: (context, index) {
+                  return _buildDepartmentCard(displayDepartments[index], departments);
+                },
+              ),
+              if (hasMore) ...[
+                const SizedBox(height: 16),
+                TextButton.icon(
+                  onPressed: () => Navigator.pushNamed(context, '/departments'),
+                  icon: const Icon(Icons.grid_view),
+                  label: Text(
+                    'View All ${departments.length} Departments',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDepartmentCard(Department department, List<Department> allDepartments) {
+    return GestureDetector(
+      onTap: () => _handleDepartmentTap(department, allDepartments),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                department.icon,
+                size: 36,
+                color: AppColors.primaryLight,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                department.name,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentActivitiesSection() {
+    // SKIPPING THE ACTUAL CONTENT OF THIS, LEAVING IT AS IS
+
+    return SliverToBoxAdapter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Recent Activities',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/activities'),
+                  child: const Text('View All'),
+                ),
+              ],
+            ),
+          ),
+          _buildActivitiesList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActivitiesList() {
+    return FutureBuilder<List<Activity>>(
+      future: ActivityStorageService.instance.getActivities(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final activities = snapshot.data!.take(3).toList();
+
+        if (activities.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(32),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[300]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No activities yet',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: activities.map((activity) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.green[50],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.description, color: Colors.green[600], size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            activity.activities,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            DateFormat('MMM dd, yyyy').format(activity.date),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, color: Colors.grey[400]),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  // Helper methods
+  Future<void> _handleDepartmentTap(Department department, List<Department> allDepartments) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    if (!authProvider.isAuthenticated) {
+      final shouldLogin = await _showLoginPrompt();
+      if (shouldLogin == true && mounted) {
+        final result = await Navigator.pushNamed(context, '/login');
+        if (result == true && mounted) {
+          _navigateToDepartment(department, allDepartments);
+        }
+      }
+    } else {
+      _navigateToDepartment(department, allDepartments);
+    }
+  }
+
+  Future<bool?> _showLoginPrompt() async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: Row(
+          children: [
+            Icon(Icons.lock_outline, color: AppColors.primaryLight),
+            const SizedBox(width: 10),
+            const Text('Login Required'),
+          ],
+        ),
+        content: const Text(
+          'You need to sign in to access department forms.\n\nWould you like to login now?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryLight,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Login'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _navigateToDepartment(Department department, List<Department> allDepartments) {
+    Navigator.pushNamed(
+      context,
+      AppConstants.routeInAppWebView,
+      arguments: {
+        'url': department.formUrl,
+        'departmentName': department.name,
+      },
+    );
+  }
+
+  Future<Map<String, int>> _getQuickStats(UserModel? user) async {
+    if (user == null) return {};
+
+    final todos = await TodoStorageService.instance.getTodos();
+    final appointments = await AppointmentStorageService.instance.getAppointments();
+    final activities = await ActivityStorageService.instance.getActivities();
+
+    return {
+      'todos': todos.where((t) => !t.isCompleted).length,
+      'appointments': appointments.where((a) => a.dateTime.isAfter(DateTime.now())).length,
+      'activities': activities.length,
+    };
+  }
+
+  Color _getRoleColor(UserModel user) {
+    switch (user.userRole) {
+      case UserRole.superAdmin:
+        return Colors.purple;
+      case UserRole.admin:
+        return Colors.red;
+      case UserRole.missionAdmin:
+        return Colors.blue;
+      case UserRole.editor:
+        return Colors.orange;
+      case UserRole.user:
+        return Colors.green;
+    }
+  }
+
+  IconData _getRoleIcon(UserModel user) {
+    switch (user.userRole) {
+      case UserRole.superAdmin:
+        return Icons.verified_user;
+      case UserRole.admin:
+        return Icons.admin_panel_settings;
+      case UserRole.missionAdmin:
+        return Icons.business;
+      case UserRole.editor:
+        return Icons.edit;
+      case UserRole.user:
+        return Icons.person;
+    }
+  }
+
   List<Widget> _buildActivityForm() {
     return [
       // Section Header
@@ -1159,83 +1815,48 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   }
 
   Widget _buildDepartmentCard(Department department, List<Department> allDepartments) {
-    // Generate a unique color for each department based on its name
-    final colorIndex = department.name.hashCode % 6;
-    final cardColors = [
-      [Colors.indigo[400]!, Colors.indigo[600]!],
-      [Colors.teal[400]!, Colors.teal[600]!],
-      [Colors.purple[400]!, Colors.purple[600]!],
-      [Colors.pink[400]!, Colors.pink[600]!],
-      [Colors.cyan[400]!, Colors.cyan[600]!],
-      [Colors.deepOrange[400]!, Colors.deepOrange[600]!],
-    ];
-    final colors = cardColors[colorIndex];
-
     return GestureDetector(
       onTap: () => _handleDepartmentTap(department, allDepartments),
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: colors,
-          ),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: colors[0].withValues(alpha: 0.3),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Stack(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Top right indicator dot
-            Positioned(
-              top: 12,
-              right: 12,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  shape: BoxShape.circle,
-                ),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                department.icon,
+                size: 36,
+                color: AppColors.primaryLight,
               ),
             ),
-            // Main content
+            const SizedBox(height: 12),
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      department.icon,
-                      size: 36,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    department.name,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                      height: 1.3,
-                    ),
-                  ),
-                ],
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                department.name,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
               ),
             ),
           ],
