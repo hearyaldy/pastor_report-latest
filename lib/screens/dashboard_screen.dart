@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/models/department_model.dart';
+import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/services/optimized_data_service.dart';
 import 'package:pastor_report/screens/inapp_webview_screen.dart';
 import 'package:pastor_report/utils/constants.dart';
@@ -227,28 +228,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  if (user.role != null &&
-                                      user.role!.isNotEmpty) ...[
-                                    const SizedBox(height: 2),
-                                    Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.badge_outlined,
-                                          color: Colors.white70,
-                                          size: 14,
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      // Role Badge
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: _getRoleColor(user),
+                                          borderRadius: BorderRadius.circular(12),
                                         ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          user.role!,
-                                          style: const TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 12,
-                                            fontStyle: FontStyle.italic,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(_getRoleIcon(user),
+                                                size: 12, color: Colors.white),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              user.roleString.toUpperCase(),
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      // Premium Badge
+                                      if (user.isPremium) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.amber,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: const Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.star,
+                                                  size: 12, color: Colors.white),
+                                              SizedBox(width: 4),
+                                              Text(
+                                                'PREMIUM',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                   if (locationInfo.isNotEmpty) ...[
                                     const SizedBox(height: 4),
                                     Row(
@@ -734,6 +771,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
     );
+  }
+
+  Color _getRoleColor(UserModel user) {
+    switch (user.userRole) {
+      case UserRole.superAdmin:
+        return Colors.purple;
+      case UserRole.admin:
+        return Colors.red;
+      case UserRole.missionAdmin:
+        return Colors.blue;
+      case UserRole.editor:
+        return Colors.orange;
+      case UserRole.user:
+        return Colors.green;
+    }
+  }
+
+  IconData _getRoleIcon(UserModel user) {
+    switch (user.userRole) {
+      case UserRole.superAdmin:
+        return Icons.verified_user;
+      case UserRole.admin:
+        return Icons.admin_panel_settings;
+      case UserRole.missionAdmin:
+        return Icons.business;
+      case UserRole.editor:
+        return Icons.edit;
+      case UserRole.user:
+        return Icons.person;
+    }
   }
 
   @override
