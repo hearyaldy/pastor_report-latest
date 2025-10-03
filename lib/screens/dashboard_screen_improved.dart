@@ -9,12 +9,16 @@ import 'package:pastor_report/models/appointment_model.dart';
 import 'package:pastor_report/models/event_model.dart';
 import 'package:pastor_report/models/activity_model.dart';
 import 'package:pastor_report/models/borang_b_model.dart';
+import 'package:pastor_report/models/church_model.dart';
 import 'package:pastor_report/services/optimized_data_service.dart';
 import 'package:pastor_report/services/todo_storage_service.dart';
 import 'package:pastor_report/services/appointment_storage_service.dart';
 import 'package:pastor_report/services/event_service.dart';
 import 'package:pastor_report/services/activity_storage_service.dart';
 import 'package:pastor_report/services/borang_b_storage_service.dart';
+import 'package:pastor_report/services/church_storage_service.dart';
+import 'package:pastor_report/services/team_member_storage_service.dart';
+import 'package:pastor_report/services/staff_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/services.dart';
@@ -375,9 +379,11 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   // Quick Actions Section (Combined Activity + Todo)
   Widget _buildQuickActionsSection() {
     return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-        child: Card(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Card(
           elevation: 2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -488,7 +494,25 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 ),
             ],
           ),
-        ),
+            ),
+          ),
+          // Borang B Card
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: SizedBox(
+              height: 120,
+              child: _buildBorangBCard(),
+            ),
+          ),
+          // My Ministry Card
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: SizedBox(
+              height: 120,
+              child: _buildMyMinistryCard(),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -879,24 +903,15 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   Widget _buildUpcomingCards() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          SizedBox(
-            height: 200,
-            child: Row(
-              children: [
-                Expanded(child: _buildTodosCard()),
-                const SizedBox(width: 12),
-                Expanded(child: _buildAppointmentsCard()),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 120,
-            child: _buildBorangBCard(),
-          ),
-        ],
+      child: SizedBox(
+        height: 200,
+        child: Row(
+          children: [
+            Expanded(child: _buildTodosCard()),
+            const SizedBox(width: 12),
+            Expanded(child: _buildAppointmentsCard()),
+          ],
+        ),
       ),
     );
   }
@@ -1189,7 +1204,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         final hasReport = snapshot.hasData && snapshot.data != null;
 
         return GestureDetector(
-          onTap: () => Navigator.pushNamed(context, '/borang-b'),
+          onTap: () => Navigator.pushNamed(context, '/borang-b-list'),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1255,6 +1270,95 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
               ],
             ),
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMyMinistryCard() {
+    final authProvider = context.read<AuthProvider>();
+    final userId = authProvider.user?.uid ?? '';
+    final userMission = authProvider.user?.mission;
+
+    return StreamBuilder<List<dynamic>>(
+      stream: userMission != null && userMission.isNotEmpty
+          ? StaffService.instance.streamStaffByMission(userMission)
+          : Stream.value([]),
+      builder: (context, staffSnapshot) {
+        final staffCount = staffSnapshot.data?.length ?? 0;
+
+        return FutureBuilder<List<Church>>(
+          future: ChurchStorageService.instance.getUserChurches(userId),
+          builder: (context, churchSnapshot) {
+            final churchCount = churchSnapshot.data?.length ?? 0;
+
+        return GestureDetector(
+          onTap: () => Navigator.pushNamed(context, '/my-ministry'),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.deepPurple[400]!,
+                  Colors.deepPurple[600]!,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.deepPurple.withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.church, color: Colors.white, size: 32),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'My Ministry',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$churchCount ${churchCount == 1 ? 'Church' : 'Churches'} • $staffCount ${staffCount == 1 ? 'Staff' : 'Staff'}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+            );
+          },
         );
       },
     );

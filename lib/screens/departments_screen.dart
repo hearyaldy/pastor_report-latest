@@ -56,7 +56,11 @@ class _DepartmentsScreenState extends State<DepartmentsScreen> {
       await authProvider.signOut();
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, AppConstants.routeHome);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppConstants.routeWelcome,
+          (route) => false,
+        );
       }
     }
   }

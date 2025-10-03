@@ -57,10 +57,13 @@ class _SplashScreenState extends State<SplashScreen>
         Navigator.pushReplacementNamed(context, AppConstants.routeOnboarding);
         return;
       }
-    }
 
-    // Otherwise go to home
-    Navigator.pushReplacementNamed(context, AppConstants.routeHome);
+      // User is authenticated and has mission, go to home
+      Navigator.pushReplacementNamed(context, AppConstants.routeHome);
+    } else {
+      // User is not authenticated, show welcome screen
+      Navigator.pushReplacementNamed(context, AppConstants.routeWelcome);
+    }
   }
 
   @override

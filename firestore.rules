@@ -9,8 +9,17 @@ service cloud.firestore {
 
     // Helper function to check if user is admin
     function isAdmin() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superAdmin'
+      );
+    }
+
+    // Helper function to check if user is mission admin
+    function isMissionAdmin() {
       return isAuthenticated() &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'missionAdmin';
     }
 
     // Helper function to check if user is accessing their own document
@@ -95,6 +104,16 @@ service cloud.firestore {
 
       // Only admins can modify settings
       allow create, update, delete: if isAdmin();
+    }
+
+    // Staff collection (centralized staff directory)
+    match /staff/{staffId} {
+      // Allow read for anyone
+      allow read: if true;
+
+      // Allow write for all (temporary for initial setup)
+      // TODO: Restrict to authenticated admins only
+      allow create, update, delete: if true;
     }
   }
 }

@@ -22,6 +22,7 @@ class AppConstants {
   // Routes
   static const String routeSplash = '/splash';
   static const String routeHome = '/';
+  static const String routeWelcome = '/welcome';
   static const String routeLogin = '/login';
   static const String routeRegister = '/register';
   static const String routeSettings = '/settings';
@@ -31,6 +32,7 @@ class AppConstants {
   static const String routeOnboarding = '/onboarding';
   static const String routeAdminUtilities = '/admin_utilities';
   static const String routeMissionManagement = '/mission_management';
+  static const String routeAbout = '/about';
 
   // Storage Keys
   static const String keyRememberMe = 'remember_me';

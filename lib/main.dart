@@ -11,8 +11,8 @@ import 'package:pastor_report/services/activity_storage_service.dart';
 import 'package:pastor_report/services/settings_service.dart';
 import 'package:pastor_report/models/activity_model.dart';
 import 'package:pastor_report/screens/splash_screen.dart';
+import 'package:pastor_report/screens/welcome_screen.dart';
 import 'package:pastor_report/screens/main_screen.dart';
-import 'package:pastor_report/screens/modern_sign_in_screen.dart';
 import 'package:pastor_report/screens/registration_screen.dart';
 import 'package:pastor_report/screens/settings_screen.dart';
 import 'package:pastor_report/screens/admin_dashboard.dart';
@@ -28,11 +28,18 @@ import 'package:pastor_report/screens/appointments_screen.dart';
 import 'package:pastor_report/screens/events_screen.dart';
 import 'package:pastor_report/screens/calendar_screen.dart';
 import 'package:pastor_report/screens/borang_b_screen.dart';
+import 'package:pastor_report/screens/borang_b_preview_screen.dart';
+import 'package:pastor_report/screens/borang_b_list_screen.dart';
+import 'package:pastor_report/screens/my_ministry_screen.dart';
+import 'package:pastor_report/screens/staff_management_screen.dart';
+import 'package:pastor_report/screens/about_screen.dart';
 import 'package:pastor_report/services/todo_storage_service.dart';
 import 'package:pastor_report/services/appointment_storage_service.dart';
 import 'package:pastor_report/services/event_service.dart';
 import 'package:pastor_report/services/role_service.dart';
 import 'package:pastor_report/services/borang_b_storage_service.dart';
+import 'package:pastor_report/services/church_storage_service.dart';
+import 'package:pastor_report/services/team_member_storage_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'firebase_options.dart';
 
@@ -63,6 +70,10 @@ void main() async {
 
   // Initialize Borang B service
   await BorangBStorageService.instance.initialize();
+
+  // Initialize Church and Team Member services
+  await ChurchStorageService.instance.initialize();
+  await TeamMemberStorageService.instance.initialize();
 
   // Initialize SuperAdmin (heary@hopetv.asia)
   await RoleService.instance.initializeSuperAdmin();
@@ -103,8 +114,9 @@ class PastorReportApp extends StatelessWidget {
             initialRoute: AppConstants.routeSplash,
             routes: {
               AppConstants.routeSplash: (context) => const SplashScreen(),
+              AppConstants.routeWelcome: (context) => const WelcomeScreen(),
               AppConstants.routeHome: (context) => const MainScreen(),
-              AppConstants.routeLogin: (context) => const ModernSignInScreen(),
+              AppConstants.routeLogin: (context) => const WelcomeScreen(),
               AppConstants.routeRegister: (context) =>
                   const RegistrationScreen(),
               AppConstants.routeSettings: (context) => const SettingsScreen(),
@@ -123,6 +135,11 @@ class PastorReportApp extends StatelessWidget {
               '/appointments': (context) => const AppointmentsScreen(),
               '/events': (context) => const EventsScreen(),
               '/borang-b': (context) => const BorangBScreen(),
+              '/borang-b-preview': (context) => const BorangBPreviewScreen(),
+              '/borang-b-list': (context) => const BorangBListScreen(),
+              '/my-ministry': (context) => const MyMinistryScreen(),
+              '/staff-management': (context) => const StaffManagementScreen(),
+              AppConstants.routeAbout: (context) => const AboutScreen(),
             },
             onGenerateRoute: (settings) {
               if (settings.name == '/edit-activity') {

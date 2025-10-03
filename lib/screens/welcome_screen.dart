@@ -2,21 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/theme.dart';
+import 'package:pastor_report/utils/constants.dart';
 
-class ModernSignInScreen extends StatefulWidget {
-  const ModernSignInScreen({super.key});
+class WelcomeScreen extends StatefulWidget {
+  const WelcomeScreen({super.key});
 
   @override
-  State<ModernSignInScreen> createState() => _ModernSignInScreenState();
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
-class _ModernSignInScreenState extends State<ModernSignInScreen> {
+class _WelcomeScreenState extends State<WelcomeScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _rememberMe = false;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedEmail();
+  }
+
+  Future<void> _loadSavedEmail() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final savedEmail = await authProvider.getSavedEmail();
+    if (savedEmail != null) {
+      _emailController.text = savedEmail;
+    }
+  }
 
   @override
   void dispose() {
@@ -41,7 +56,12 @@ class _ModernSignInScreenState extends State<ModernSignInScreen> {
     if (!mounted) return;
 
     if (success) {
-      Navigator.pop(context, true);
+      // Check if this screen was pushed (can pop) or is the root (need to replace)
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context, true);
+      } else {
+        Navigator.pushReplacementNamed(context, AppConstants.routeHome);
+      }
     } else {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -87,7 +107,8 @@ class _ModernSignInScreenState extends State<ModernSignInScreen> {
 
     if (confirmed == true && mounted) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final success = await authProvider.resetPassword(_emailController.text.trim());
+      final success =
+          await authProvider.resetPassword(_emailController.text.trim());
 
       if (!mounted) return;
 
@@ -108,14 +129,6 @@ class _ModernSignInScreenState extends State<ModernSignInScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
-          onPressed: () => Navigator.pop(context, false),
-        ),
-      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -126,38 +139,45 @@ class _ModernSignInScreenState extends State<ModernSignInScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Logo/Icon
-                  Container(
-                    height: 100,
-                    width: 100,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primary.withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.church,
-                      size: 50,
-                      color: Colors.white,
+                  // App Logo/Icon
+                  Center(
+                    child: Container(
+                      height: 100,
+                      width: 100,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primary.withAlpha(76),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.church,
+                        size: 50,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 32),
 
-                  // Welcome Text
+                  // App Name
                   Text(
-                    'Welcome Back',
-                    style: Theme.of(context).textTheme.displaySmall,
+                    AppConstants.appName,
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
+                        ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
+
+                  // Tagline
                   Text(
-                    'Sign in to continue',
+                    'Digital Ministry Platform',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: AppTheme.textSecondary,
                         ),
@@ -179,6 +199,9 @@ class _ModernSignInScreenState extends State<ModernSignInScreen> {
                       if (value == null || value.trim().isEmpty) {
                         return 'Please enter your email';
                       }
+                      if (!value.contains('@')) {
+                        return 'Please enter a valid email';
+                      }
                       return null;
                     },
                   ),
@@ -193,7 +216,9 @@ class _ModernSignInScreenState extends State<ModernSignInScreen> {
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                         ),
                         onPressed: () {
                           setState(() => _obscurePassword = !_obscurePassword);
@@ -206,6 +231,9 @@ class _ModernSignInScreenState extends State<ModernSignInScreen> {
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your password';
+                      }
+                      if (value.length < 6) {
+                        return 'Password must be at least 6 characters';
                       }
                       return null;
                     },
@@ -246,10 +274,14 @@ class _ModernSignInScreenState extends State<ModernSignInScreen> {
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
-                          : const Text('Sign In'),
+                          : const Text(
+                              'Sign In',
+                              style: TextStyle(fontSize: 18),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -275,9 +307,15 @@ class _ModernSignInScreenState extends State<ModernSignInScreen> {
                     height: 56,
                     child: OutlinedButton.icon(
                       onPressed: () async {
-                        final result = await Navigator.pushNamed(context, '/register');
-                        if (result == true && mounted) {
-                          Navigator.pop(context, true);
+                        final result = await Navigator.pushNamed(
+                          context,
+                          AppConstants.routeRegister,
+                        );
+                        if (result == true && mounted && context.mounted) {
+                          Navigator.pushReplacementNamed(
+                            context,
+                            AppConstants.routeHome,
+                          );
                         }
                       },
                       icon: const Icon(Icons.person_add),
@@ -285,11 +323,18 @@ class _ModernSignInScreenState extends State<ModernSignInScreen> {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppTheme.primary,
                         side: const BorderSide(color: AppTheme.primary),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 40),
+
+                  // Footer
+                  Text(
+                    'Copyright © 2025 HaweeInc',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),

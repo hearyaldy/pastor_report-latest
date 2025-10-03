@@ -5,6 +5,7 @@ import 'package:pastor_report/screens/dashboard_screen_improved.dart';
 import 'package:pastor_report/screens/profile_screen.dart';
 import 'package:pastor_report/screens/admin_dashboard.dart';
 import 'package:pastor_report/utils/theme.dart';
+import 'package:pastor_report/utils/constants.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -118,7 +119,7 @@ class _MainScreenState extends State<MainScreen> {
     );
 
     if (shouldLogin == true && mounted) {
-      final result = await Navigator.pushNamed(context, '/login');
+      final result = await Navigator.pushNamed(context, AppConstants.routeWelcome);
       if (result == true && mounted) {
         setState(() {
           _currentIndex = 1; // Switch to profile after successful login

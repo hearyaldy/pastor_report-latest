@@ -185,6 +185,19 @@ class _BorangBScreenState extends State<BorangBScreen> {
     }
   }
 
+  void _viewReport() {
+    if (_currentData == null) return;
+
+    Navigator.pushNamed(
+      context,
+      '/borang-b-preview',
+      arguments: {
+        'data': _currentData,
+        'month': _selectedMonth,
+      },
+    );
+  }
+
   Future<void> _exportReport() async {
     if (_currentData == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -261,6 +274,11 @@ class _BorangBScreenState extends State<BorangBScreen> {
         backgroundColor: AppColors.primaryLight,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.preview),
+            onPressed: _currentData == null ? null : _viewReport,
+            tooltip: 'View Report',
+          ),
           IconButton(
             icon: const Icon(Icons.save),
             onPressed: _saveData,

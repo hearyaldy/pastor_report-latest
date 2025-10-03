@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:excel/excel.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:pastor_report/models/borang_b_model.dart';
@@ -200,6 +202,230 @@ class BorangBService {
       debugPrint('❌ Error downloading template: $e');
       rethrow;
     }
+  }
+
+  /// Generate Borang B report as PDF
+  Future<File> generateBorangBPdf({
+    required BorangBData borangBData,
+    required UserModel user,
+    required DateTime month,
+  }) async {
+    try {
+      debugPrint('📋 Generating Borang B PDF for ${DateFormat('MMMM yyyy').format(month)}');
+
+      final pdf = pw.Document();
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(32),
+          build: (pw.Context context) {
+            return [
+              // Header
+              pw.Header(
+                level: 0,
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'BORANG B - MONTHLY PASTORAL REPORT',
+                      style: pw.TextStyle(
+                        fontSize: 20,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(height: 20),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text('Pastor: ${user.displayName}'),
+                            pw.Text('Mission: ${user.mission ?? 'N/A'}'),
+                          ],
+                        ),
+                        pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text('District: ${user.district ?? 'N/A'}'),
+                            pw.Text('Month: ${DateFormat('MMMM yyyy').format(month)}'),
+                          ],
+                        ),
+                      ],
+                    ),
+                    pw.Divider(),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 20),
+
+              // Church Membership Statistics
+              _buildPdfSection('Church Membership Statistics', [
+                ['Members at Beginning', borangBData.membersBeginning.toString()],
+                ['Members Received', borangBData.membersReceived.toString()],
+                ['Transferred In', borangBData.membersTransferredIn.toString()],
+                ['Transferred Out', borangBData.membersTransferredOut.toString()],
+                ['Dropped/Removed', borangBData.membersDropped.toString()],
+                ['Deceased', borangBData.membersDeceased.toString()],
+                ['Members at End', borangBData.membersEnd.toString()],
+              ]),
+              pw.SizedBox(height: 15),
+
+              // Baptisms & Professions
+              _buildPdfSection('Baptisms & Professions', [
+                ['Baptisms', borangBData.baptisms.toString()],
+                ['Professions of Faith', borangBData.professionOfFaith.toString()],
+              ]),
+              pw.SizedBox(height: 15),
+
+              // Church Services
+              _buildPdfSection('Church Services', [
+                ['Sabbath Services', borangBData.sabbathServices.toString()],
+                ['Prayer Meetings', borangBData.prayerMeetings.toString()],
+                ['Bible Studies', borangBData.bibleStudies.toString()],
+                ['Evangelistic Meetings', borangBData.evangelisticMeetings.toString()],
+              ]),
+              pw.SizedBox(height: 15),
+
+              // Visitations
+              _buildPdfSection('Visitations', [
+                ['Home Visitations', borangBData.homeVisitations.toString()],
+                ['Hospital Visitations', borangBData.hospitalVisitations.toString()],
+                ['Prison Visitations', borangBData.prisonVisitations.toString()],
+              ]),
+              pw.SizedBox(height: 15),
+
+              // Special Events
+              _buildPdfSection('Special Events', [
+                ['Weddings', borangBData.weddings.toString()],
+                ['Funerals', borangBData.funerals.toString()],
+                ['Baby Dedications', borangBData.dedications.toString()],
+              ]),
+              pw.SizedBox(height: 15),
+
+              // Literature Distribution
+              _buildPdfSection('Literature Distribution', [
+                ['Books Distributed', borangBData.booksDistributed.toString()],
+                ['Magazines Distributed', borangBData.magazinesDistributed.toString()],
+                ['Tracts Distributed', borangBData.tractsDistributed.toString()],
+              ]),
+              pw.SizedBox(height: 15),
+
+              // Tithes & Offerings
+              _buildPdfSection('Tithes & Offerings', [
+                ['Tithe', 'RM ${borangBData.tithe.toStringAsFixed(2)}'],
+                ['Offerings', 'RM ${borangBData.offerings.toStringAsFixed(2)}'],
+                ['Total', 'RM ${(borangBData.tithe + borangBData.offerings).toStringAsFixed(2)}'],
+              ]),
+              pw.SizedBox(height: 15),
+
+              // Additional Information
+              if (borangBData.otherActivities.isNotEmpty ||
+                  borangBData.challenges.isNotEmpty ||
+                  borangBData.remarks.isNotEmpty)
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'Additional Information',
+                      style: pw.TextStyle(
+                        fontSize: 16,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(height: 10),
+                    if (borangBData.otherActivities.isNotEmpty) ...[
+                      pw.Text(
+                        'Other Activities:',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                      pw.Text(borangBData.otherActivities),
+                      pw.SizedBox(height: 8),
+                    ],
+                    if (borangBData.challenges.isNotEmpty) ...[
+                      pw.Text(
+                        'Challenges Faced:',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                      pw.Text(borangBData.challenges),
+                      pw.SizedBox(height: 8),
+                    ],
+                    if (borangBData.remarks.isNotEmpty) ...[
+                      pw.Text(
+                        'Remarks:',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                      pw.Text(borangBData.remarks),
+                    ],
+                  ],
+                ),
+            ];
+          },
+          footer: (pw.Context context) {
+            return pw.Container(
+              alignment: pw.Alignment.centerRight,
+              margin: const pw.EdgeInsets.only(top: 10),
+              child: pw.Text(
+                'Generated: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())} - Page ${context.pageNumber} of ${context.pagesCount}',
+                style: const pw.TextStyle(fontSize: 10),
+              ),
+            );
+          },
+        ),
+      );
+
+      // Save PDF
+      final directory = await getTemporaryDirectory();
+      final fileName =
+          'Borang_B_${user.displayName}_${DateFormat('yyyy_MM').format(month)}.pdf';
+      final file = File('${directory.path}/$fileName');
+
+      await file.writeAsBytes(await pdf.save());
+      debugPrint('✅ Borang B PDF saved to: ${file.path}');
+
+      return file;
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error generating Borang B PDF: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  pw.Widget _buildPdfSection(String title, List<List<String>> rows) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          title,
+          style: pw.TextStyle(
+            fontSize: 14,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
+        pw.SizedBox(height: 8),
+        pw.Table(
+          border: pw.TableBorder.all(color: PdfColors.grey400),
+          children: rows.map((row) {
+            return pw.TableRow(
+              children: [
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text(row[0]),
+                ),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Text(
+                    row[1],
+                    textAlign: pw.TextAlign.right,
+                  ),
+                ),
+              ],
+            );
+          }).toList(),
+        ),
+      ],
+    );
   }
 
   /// Get a preview of what data will be in the report

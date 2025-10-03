@@ -212,16 +212,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 16),
 
-            // App Information Card
+            // About Card
             Card(
               elevation: 2,
+              margin: const EdgeInsets.only(bottom: 16.0),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'App Information',
+                      'About',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -230,16 +231,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const Divider(),
                     ListTile(
                       leading:
-                          const Icon(Icons.info, color: AppColors.primaryLight),
-                      title: const Text('Version'),
-                      subtitle: Text(AppConstants.appVersion),
+                          Icon(Icons.info_outline, color: AppColors.primaryLight),
+                      title: const Text('App Information'),
+                      subtitle: const Text('Learn about PastorPro'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.pushNamed(context, AppConstants.routeAbout);
+                      },
                       contentPadding: EdgeInsets.zero,
                     ),
                     ListTile(
                       leading:
-                          const Icon(Icons.apps, color: AppColors.primaryLight),
-                      title: const Text('App Name'),
-                      subtitle: Text(AppConstants.appName),
+                          Icon(Icons.new_releases, color: AppColors.primaryLight),
+                      title: const Text('App Version'),
+                      subtitle: const Text(AppConstants.appVersion),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ],
