@@ -133,6 +133,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
               const SizedBox(height: 16),
               TextField(
                 controller: nameController,
+                autofocus: false,
                 decoration: const InputDecoration(
                   labelText: 'Mission Name',
                   hintText: 'Enter mission name',
@@ -142,6 +143,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
               const SizedBox(height: 16),
               TextField(
                 controller: codeController,
+                autofocus: false,
                 decoration: const InputDecoration(
                   labelText: 'Mission Code',
                   hintText: 'Enter 3-letter code',
@@ -153,6 +155,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
               const SizedBox(height: 16),
               TextField(
                 controller: descriptionController,
+                autofocus: false,
                 decoration: const InputDecoration(
                   labelText: 'Description',
                   hintText: 'Enter mission description',
@@ -186,7 +189,8 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content: Text('Please fill in all required fields')),
+                              content:
+                                  Text('Please fill in all required fields')),
                         );
                       }
                     },
@@ -245,6 +249,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
               const SizedBox(height: 16),
               TextField(
                 controller: nameController,
+                autofocus: false,
                 decoration: const InputDecoration(
                   labelText: 'Mission Name',
                   hintText: 'Enter mission name',
@@ -254,6 +259,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
               const SizedBox(height: 16),
               TextField(
                 controller: codeController,
+                autofocus: false,
                 decoration: const InputDecoration(
                   labelText: 'Mission Code',
                   hintText: 'Enter 3-letter code',
@@ -265,6 +271,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
               const SizedBox(height: 16),
               TextField(
                 controller: descriptionController,
+                autofocus: false,
                 decoration: const InputDecoration(
                   labelText: 'Description',
                   hintText: 'Enter mission description',
@@ -300,7 +307,8 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content: Text('Please fill in all required fields')),
+                              content:
+                                  Text('Please fill in all required fields')),
                         );
                       }
                     },
@@ -344,7 +352,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
   void _showAddDepartmentDialog() {
     final nameController = TextEditingController();
     final formUrlController = TextEditingController();
-    IconData selectedIcon = Icons.folder;
+    IconData selectedIcon = Department.availableIcons.first['icon'];
     final missionProvider =
         Provider.of<MissionProvider>(context, listen: false);
     final selectedMission = missionProvider.selectedMission;
@@ -402,7 +410,8 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.info_outline,
+                        Icon(
+                          Icons.info_outline,
                           size: 20,
                           color: Colors.blue.shade700,
                         ),
@@ -422,6 +431,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                   const SizedBox(height: 16),
                   TextField(
                     controller: nameController,
+                    autofocus: false,
                     decoration: const InputDecoration(
                       labelText: 'Department Name',
                       hintText: 'Enter department name',
@@ -435,29 +445,14 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                       labelText: 'Icon',
                       border: OutlineInputBorder(),
                     ),
-                    items: [
-                      Icons.person,
-                      Icons.account_balance,
-                      Icons.group,
-                      Icons.message,
-                      Icons.local_hospital,
-                      Icons.school,
-                      Icons.family_restroom,
-                      Icons.woman,
-                      Icons.child_care,
-                      Icons.book,
-                      Icons.person_pin,
-                      Icons.access_time,
-                      Icons.volunteer_activism,
-                      Icons.folder,
-                    ].map((IconData icon) {
+                    items: Department.availableIcons.map((iconData) {
                       return DropdownMenuItem<IconData>(
-                        value: icon,
+                        value: iconData['icon'],
                         child: Row(
                           children: [
-                            Icon(icon),
+                            Icon(iconData['icon']),
                             const SizedBox(width: 8),
-                            Text(Department.getIconString(icon)),
+                            Text(iconData['name']),
                           ],
                         ),
                       );
@@ -473,6 +468,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                   const SizedBox(height: 16),
                   TextField(
                     controller: formUrlController,
+                    autofocus: false,
                     decoration: const InputDecoration(
                       labelText: 'Form URL',
                       hintText: 'Enter Google Form URL',
@@ -505,7 +501,8 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                  content: Text('Please fill in all required fields')),
+                                  content: Text(
+                                      'Please fill in all required fields')),
                             );
                           }
                         },
@@ -574,7 +571,8 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.info_outline,
+                        Icon(
+                          Icons.info_outline,
                           size: 20,
                           color: Colors.blue.shade700,
                         ),
@@ -594,6 +592,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                   const SizedBox(height: 16),
                   TextField(
                     controller: nameController,
+                    autofocus: false,
                     decoration: const InputDecoration(
                       labelText: 'Department Name',
                       hintText: 'Enter department name',
@@ -607,29 +606,14 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                       labelText: 'Icon',
                       border: OutlineInputBorder(),
                     ),
-                    items: [
-                      Icons.person,
-                      Icons.account_balance,
-                      Icons.group,
-                      Icons.message,
-                      Icons.local_hospital,
-                      Icons.school,
-                      Icons.family_restroom,
-                      Icons.woman,
-                      Icons.child_care,
-                      Icons.book,
-                      Icons.person_pin,
-                      Icons.access_time,
-                      Icons.volunteer_activism,
-                      Icons.folder,
-                    ].map((IconData icon) {
+                    items: Department.availableIcons.map((iconData) {
                       return DropdownMenuItem<IconData>(
-                        value: icon,
+                        value: iconData['icon'],
                         child: Row(
                           children: [
-                            Icon(icon),
+                            Icon(iconData['icon']),
                             const SizedBox(width: 8),
-                            Text(Department.getIconString(icon)),
+                            Text(iconData['name']),
                           ],
                         ),
                       );
@@ -645,6 +629,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                   const SizedBox(height: 16),
                   TextField(
                     controller: formUrlController,
+                    autofocus: false,
                     decoration: const InputDecoration(
                       labelText: 'Form URL',
                       hintText: 'Enter Google Form URL',
@@ -671,6 +656,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                               formUrl: formUrlController.text,
                               mission: department.mission,
                               isActive: department.isActive,
+                              color: department.color, // Preserve the color
                             );
 
                             Provider.of<MissionProvider>(context, listen: false)
@@ -679,7 +665,8 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                  content: Text('Please fill in all required fields')),
+                                  content: Text(
+                                      'Please fill in all required fields')),
                             );
                           }
                         },

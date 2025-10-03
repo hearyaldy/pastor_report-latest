@@ -27,10 +27,12 @@ import 'package:pastor_report/screens/todos_screen.dart';
 import 'package:pastor_report/screens/appointments_screen.dart';
 import 'package:pastor_report/screens/events_screen.dart';
 import 'package:pastor_report/screens/calendar_screen.dart';
+import 'package:pastor_report/screens/borang_b_screen.dart';
 import 'package:pastor_report/services/todo_storage_service.dart';
 import 'package:pastor_report/services/appointment_storage_service.dart';
 import 'package:pastor_report/services/event_service.dart';
 import 'package:pastor_report/services/role_service.dart';
+import 'package:pastor_report/services/borang_b_storage_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'firebase_options.dart';
 
@@ -58,6 +60,9 @@ void main() async {
   await TodoStorageService.instance.initialize();
   await AppointmentStorageService.instance.initialize();
   await EventService.instance.initialize();
+
+  // Initialize Borang B service
+  await BorangBStorageService.instance.initialize();
 
   // Initialize SuperAdmin (heary@hopetv.asia)
   await RoleService.instance.initializeSuperAdmin();
@@ -117,6 +122,7 @@ class PastorReportApp extends StatelessWidget {
               '/calendar': (context) => const CalendarScreen(),
               '/appointments': (context) => const AppointmentsScreen(),
               '/events': (context) => const EventsScreen(),
+              '/borang-b': (context) => const BorangBScreen(),
             },
             onGenerateRoute: (settings) {
               if (settings.name == '/edit-activity') {

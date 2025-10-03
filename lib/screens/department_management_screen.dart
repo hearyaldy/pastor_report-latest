@@ -8,6 +8,33 @@ import 'package:pastor_report/providers/auth_provider.dart';
 class DepartmentManagementScreen extends StatelessWidget {
   const DepartmentManagementScreen({super.key});
 
+  // Available colors for department selection
+  static final List<Color> _availableColors = [
+    // Light pastel colors (original)
+    const Color(0xFFE8F5E9), // Light Green
+    const Color(0xFFE3F2FD), // Light Blue
+    const Color(0xFFFFF3E0), // Light Orange
+    const Color(0xFFF3E5F5), // Light Purple
+    const Color(0xFFFCE4EC), // Light Pink
+    const Color(0xFFE0F2F1), // Light Teal
+    const Color(0xFFFFF9C4), // Light Yellow
+    const Color(0xFFFFEBEE), // Light Red
+    const Color(0xFFEDE7F6), // Light Deep Purple
+    const Color(0xFFE1F5FE), // Light Cyan
+
+    // More vibrant options
+    const Color(0xFFC8E6C9), // Medium Green
+    const Color(0xFFBBDEFB), // Medium Blue
+    const Color(0xFFFFE0B2), // Medium Orange
+    const Color(0xFFE1BEE7), // Medium Purple
+    const Color(0xFFF8BBD0), // Medium Pink
+
+    // Neutral options
+    Colors.white, // White
+    const Color(0xFFF5F5F5), // Light Grey
+    const Color(0xFFECEFF1), // Blue Grey Light
+  ];
+
   @override
   Widget build(BuildContext context) {
     final deptService = DepartmentService();
@@ -63,9 +90,11 @@ class DepartmentManagementScreen extends StatelessWidget {
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: ListTile(
-                  leading: Icon(dept.icon, color: AppColors.primaryLight, size: 32),
+                  leading:
+                      Icon(dept.icon, color: AppColors.primaryLight, size: 32),
                   title: Text(dept.name),
-                  subtitle: Text(dept.formUrl, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(dept.formUrl,
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -85,7 +114,8 @@ class DepartmentManagementScreen extends StatelessWidget {
                               content: Text('Delete ${dept.name}?'),
                               actions: [
                                 TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
                                   child: const Text('Cancel'),
                                 ),
                                 ElevatedButton(
@@ -101,10 +131,12 @@ class DepartmentManagementScreen extends StatelessWidget {
 
                           if (confirm == true) {
                             try {
-                              await deptService.deleteDepartment(dept.id, missionName: userMission);
+                              await deptService.deleteDepartment(dept.id,
+                                  missionName: userMission);
                               if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Department deleted')),
+                                const SnackBar(
+                                    content: Text('Department deleted')),
                               );
                             } catch (e) {
                               if (!context.mounted) return;
@@ -126,23 +158,30 @@ class DepartmentManagementScreen extends StatelessWidget {
     );
   }
 
-  static void _showDepartmentDialog(BuildContext context, Department? department, String? userMission) {
+  static void _showDepartmentDialog(
+      BuildContext context, Department? department, String? userMission) {
     final nameController = TextEditingController(text: department?.name ?? '');
-    final urlController = TextEditingController(text: department?.formUrl ?? '');
+    final urlController =
+        TextEditingController(text: department?.formUrl ?? '');
     IconData selectedIcon = department?.icon ?? Icons.dashboard;
+
+    // Initialize color with department color or default
+    Color selectedColor = department?.color ?? AppColors.cardBackground;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            title: Text(department == null ? 'Add Department' : 'Edit Department'),
+            title:
+                Text(department == null ? 'Add Department' : 'Edit Department'),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
                     controller: nameController,
+                    autofocus: false,
                     decoration: const InputDecoration(
                       labelText: 'Name',
                       border: OutlineInputBorder(),
@@ -151,9 +190,58 @@ class DepartmentManagementScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   TextField(
                     controller: urlController,
+                    autofocus: false,
                     decoration: const InputDecoration(
                       labelText: 'Form URL',
                       border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Color selection
+                  const Text('Select Color:'),
+                  const SizedBox(height: 8),
+                  Container(
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: selectedColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 120,
+                    child: GridView.builder(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 5,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                      ),
+                      itemCount: _availableColors.length,
+                      itemBuilder: (context, index) {
+                        final color = _availableColors[index];
+                        final isSelected = selectedColor.value == color.value;
+
+                        return InkWell(
+                          onTap: () {
+                            setState(() {
+                              selectedColor = color;
+                            });
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: color,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isSelected
+                                    ? Colors.black
+                                    : Colors.transparent,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -162,7 +250,8 @@ class DepartmentManagementScreen extends StatelessWidget {
                   SizedBox(
                     height: 150,
                     child: GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 4,
                         crossAxisSpacing: 8,
                         mainAxisSpacing: 8,
@@ -200,7 +289,8 @@ class DepartmentManagementScreen extends StatelessWidget {
               ),
               ElevatedButton(
                 onPressed: () async {
-                  if (nameController.text.isEmpty || urlController.text.isEmpty) {
+                  if (nameController.text.isEmpty ||
+                      urlController.text.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Please fill all fields')),
                     );
@@ -219,8 +309,9 @@ class DepartmentManagementScreen extends StatelessWidget {
                       icon: selectedIcon,
                       formUrl: urlController.text,
                       mission: userMission,
-                      color: department?.color, // Preserve existing color
-                      isActive: department?.isActive ?? true, // Preserve active status
+                      color: selectedColor, // Use the selected color
+                      isActive: department?.isActive ??
+                          true, // Preserve active status
                     );
 
                     if (department == null) {
@@ -235,7 +326,9 @@ class DepartmentManagementScreen extends StatelessWidget {
                     if (!context.mounted) return;
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Department ${department == null ? 'added' : 'updated'}')),
+                      SnackBar(
+                          content: Text(
+                              'Department ${department == null ? 'added' : 'updated'}')),
                     );
                   } catch (e) {
                     print('Error adding/updating department: $e');

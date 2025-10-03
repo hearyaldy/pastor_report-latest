@@ -30,26 +30,37 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // Navigate to appropriate screen after animation completes
-    Future.delayed(const Duration(milliseconds: 2000), () async {
+    // Navigate after ensuring auth is initialized
+    _navigateAfterInit();
+  }
+
+  Future<void> _navigateAfterInit() async {
+    // Wait for animation to complete
+    await Future.delayed(const Duration(milliseconds: 2000));
+
+    if (!mounted) return;
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    // Wait for auth to finish loading if it's still initializing
+    while (authProvider.isLoading) {
+      await Future.delayed(const Duration(milliseconds: 100));
       if (!mounted) return;
+    }
 
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    // Check if user is authenticated and needs onboarding
+    if (authProvider.isAuthenticated && authProvider.user != null) {
+      final user = authProvider.user!;
 
-      // Check if user is authenticated and needs onboarding
-      if (authProvider.isAuthenticated && authProvider.user != null) {
-        final user = authProvider.user!;
-
-        // If user has no mission, show onboarding
-        if (user.mission == null || user.mission!.isEmpty) {
-          Navigator.pushReplacementNamed(context, AppConstants.routeOnboarding);
-          return;
-        }
+      // If user has no mission, show onboarding
+      if (user.mission == null || user.mission!.isEmpty) {
+        Navigator.pushReplacementNamed(context, AppConstants.routeOnboarding);
+        return;
       }
+    }
 
-      // Otherwise go to home
-      Navigator.pushReplacementNamed(context, AppConstants.routeHome);
-    });
+    // Otherwise go to home
+    Navigator.pushReplacementNamed(context, AppConstants.routeHome);
   }
 
   @override

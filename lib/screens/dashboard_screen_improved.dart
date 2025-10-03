@@ -8,11 +8,13 @@ import 'package:pastor_report/models/todo_model.dart';
 import 'package:pastor_report/models/appointment_model.dart';
 import 'package:pastor_report/models/event_model.dart';
 import 'package:pastor_report/models/activity_model.dart';
+import 'package:pastor_report/models/borang_b_model.dart';
 import 'package:pastor_report/services/optimized_data_service.dart';
 import 'package:pastor_report/services/todo_storage_service.dart';
 import 'package:pastor_report/services/appointment_storage_service.dart';
 import 'package:pastor_report/services/event_service.dart';
 import 'package:pastor_report/services/activity_storage_service.dart';
+import 'package:pastor_report/services/borang_b_storage_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/services.dart';
@@ -62,6 +64,11 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
     final user = authProvider.user;
     final isAuthenticated = authProvider.isAuthenticated;
 
+    // Show welcome screen for non-authenticated users
+    if (!isAuthenticated) {
+      return _buildWelcomeScreen();
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: CustomScrollView(
@@ -70,19 +77,19 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           _buildModernAppBar(user),
 
           // Quick Stats Overview
-          if (isAuthenticated) _buildQuickStats(user),
+          _buildQuickStats(user),
 
           // Quick Actions (Combined Activity + Todo)
-          if (isAuthenticated) _buildQuickActionsSection(),
+          _buildQuickActionsSection(),
 
           // Upcoming Items Section (Todos + Appointments)
-          if (isAuthenticated) _buildUpcomingSection(),
+          _buildUpcomingSection(),
 
           // Departments Section
           _buildDepartmentsSection(user),
 
           // Recent Activities
-          if (isAuthenticated) _buildRecentActivitiesSection(),
+          _buildRecentActivitiesSection(),
 
           // Bottom Padding
           const SliverToBoxAdapter(child: SizedBox(height: 80)),
@@ -220,6 +227,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
       ),
       child: TextField(
         controller: _searchController,
+        autofocus: false,
         onChanged: (value) =>
             setState(() => _searchQuery = value.toLowerCase()),
         decoration: InputDecoration(
@@ -639,6 +647,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         ),
         child: TextField(
           controller: _activityController,
+          autofocus: false,
           decoration: InputDecoration(
             hintText: _selectedActivityType == 'Other'
                 ? 'Enter your activity'
@@ -670,6 +679,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
             flex: 2,
             child: TextField(
               controller: _mileageController,
+              autofocus: false,
               decoration: InputDecoration(
                 labelText: 'Mileage (km)',
                 border:
@@ -688,6 +698,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
             flex: 3,
             child: TextField(
               controller: _locationController,
+              autofocus: false,
               decoration: InputDecoration(
                 labelText: 'Location (Optional)',
                 border:
@@ -704,6 +715,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
       // Notes
       TextField(
         controller: _noteController,
+        autofocus: false,
         decoration: InputDecoration(
           labelText: 'Notes (Optional)',
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -768,6 +780,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
       // Todo input
       TextField(
         controller: _todoController,
+        autofocus: false,
         decoration: InputDecoration(
           hintText: 'Enter your todo item',
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -864,14 +877,25 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   }
 
   Widget _buildUpcomingCards() {
-    return Container(
-      height: 200,
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(child: _buildTodosCard()),
-          const SizedBox(width: 12),
-          Expanded(child: _buildAppointmentsCard()),
+          SizedBox(
+            height: 200,
+            child: Row(
+              children: [
+                Expanded(child: _buildTodosCard()),
+                const SizedBox(width: 12),
+                Expanded(child: _buildAppointmentsCard()),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 120,
+            child: _buildBorangBCard(),
+          ),
         ],
       ),
     );
@@ -1146,6 +1170,87 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                             );
                           },
                         ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBorangBCard() {
+    return FutureBuilder<BorangBData?>(
+      future: BorangBStorageService.instance.getReportByMonth(
+        DateTime.now().year,
+        DateTime.now().month,
+      ),
+      builder: (context, snapshot) {
+        final hasReport = snapshot.hasData && snapshot.data != null;
+
+        return GestureDetector(
+          onTap: () => Navigator.pushNamed(context, '/borang-b'),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.teal[400]!,
+                  Colors.teal[600]!,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.teal.withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.assignment, color: Colors.white, size: 32),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Borang B - Monthly Report',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        hasReport
+                            ? 'Tap to view/edit report'
+                            : 'Tap to create this month\'s report',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  hasReport ? Icons.check_circle : Icons.add_circle_outline,
+                  color: Colors.white,
+                  size: 28,
                 ),
               ],
             ),
@@ -2180,5 +2285,203 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
     }
 
     return Icon(iconData, color: iconColor, size: 20);
+  }
+
+  // Welcome screen for non-authenticated users
+  Widget _buildWelcomeScreen() {
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.primaryDark,
+              AppColors.primaryLight,
+              AppColors.accent,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // App Icon
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.church,
+                      size: 60,
+                      color: AppColors.primaryLight,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // App Name
+                  const Text(
+                    AppConstants.appName,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Tagline
+                  const Text(
+                    'Digital Ministry Platform',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 18,
+                      letterSpacing: 0.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 48),
+
+                  // Features
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildFeatureItem(Icons.assignment, 'Track Activities & Reports'),
+                        const SizedBox(height: 16),
+                        _buildFeatureItem(Icons.calendar_today, 'Manage Events & Appointments'),
+                        const SizedBox(height: 16),
+                        _buildFeatureItem(Icons.description, 'Submit Monthly Borang B'),
+                        const SizedBox(height: 16),
+                        _buildFeatureItem(Icons.people, 'Department Management'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+
+                  // Login Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, AppConstants.routeLogin);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.primaryDark,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 8,
+                        shadowColor: Colors.black.withValues(alpha: 0.3),
+                      ),
+                      child: const Text(
+                        'Login',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Register Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, AppConstants.routeRegister);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white, width: 2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        'Create Account',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Browse Departments
+                  TextButton(
+                    onPressed: () {
+                      // Stay on current screen to browse departments
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Login to access all features'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Browse as Guest',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureItem(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white, size: 24),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

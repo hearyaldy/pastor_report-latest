@@ -2,6 +2,18 @@
 import 'package:flutter/material.dart';
 import 'package:pastor_report/models/department_model.dart';
 
+// Extension to add the withValues method to Color class
+extension ColorExtension on Color {
+  Color withValues({int? red, int? green, int? blue, double? alpha}) {
+    return Color.fromARGB(
+      alpha != null ? (alpha * 255).round() : this.alpha,
+      red ?? this.red,
+      green ?? this.green,
+      blue ?? this.blue,
+    );
+  }
+}
+
 class AppConstants {
   // App Info
   static const String appName = 'PastorPro';
