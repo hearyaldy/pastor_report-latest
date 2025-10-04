@@ -296,6 +296,16 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
         // Add Church Button
         Container(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.primaryLight.withValues(alpha: 0.1),
+                Colors.blue.shade50,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
           child: ElevatedButton.icon(
             onPressed: _addChurch,
             icon: const Icon(Icons.add),
@@ -304,6 +314,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
               backgroundColor: AppColors.primaryLight,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
+              elevation: 3,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -584,6 +595,16 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
             if (isMissionAdmin)
               Container(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primaryLight.withValues(alpha: 0.1),
+                      Colors.blue.shade50,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
                 child: ElevatedButton.icon(
                   onPressed: () => _addStaff(user!),
                   icon: const Icon(Icons.add),
@@ -592,6 +613,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                     backgroundColor: AppColors.primaryLight,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 3,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
