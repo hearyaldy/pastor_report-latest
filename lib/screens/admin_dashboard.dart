@@ -69,6 +69,19 @@ class _AdminDashboardState extends State<AdminDashboard>
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Admin Utilities (only for Admin and SuperAdmin)
+              if (currentUser.canManageMissions())
+                FloatingActionButton.small(
+                  heroTag: 'admin_utilities',
+                  backgroundColor: Colors.orange,
+                  tooltip: 'Admin Utilities',
+                  onPressed: () {
+                    Navigator.pushNamed(
+                        context, AppConstants.routeAdminUtilities);
+                  },
+                  child: const Icon(Icons.build),
+                ),
+              if (currentUser.canManageMissions()) const SizedBox(height: 10),
               // Mission Management (only for Admin and SuperAdmin)
               if (currentUser.canManageMissions())
                 FloatingActionButton.small(
