@@ -640,6 +640,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
 
+                // Admin Management Section (only for admins)
+                if (user.canManageMissions()) ...[
+                  const SizedBox(height: 16),
+                  _buildSectionHeader(context, 'Admin Management'),
+                  _buildListTile(
+                    context,
+                    icon: Icons.build,
+                    title: 'Admin Utilities',
+                    onTap: () {
+                      Navigator.pushNamed(context, AppConstants.routeAdminUtilities);
+                    },
+                  ),
+                  _buildListTile(
+                    context,
+                    icon: Icons.dashboard,
+                    title: 'Admin Dashboard',
+                    onTap: () {
+                      Navigator.pushNamed(context, AppConstants.routeAdmin);
+                    },
+                  ),
+                ],
+
                 // Security Section
                 const SizedBox(height: 16),
                 _buildSectionHeader(context, 'Security'),
