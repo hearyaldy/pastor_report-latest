@@ -22,6 +22,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
   late TabController _tabController;
   List<Church> _churches = [];
   bool _isLoading = false;
+  final TextEditingController _staffSearchController = TextEditingController();
+  final TextEditingController _churchSearchController = TextEditingController();
   String _staffSearchQuery = '';
   String _churchSearchQuery = '';
 
@@ -38,6 +40,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _staffSearchController.dispose();
+    _churchSearchController.dispose();
     super.dispose();
   }
 
@@ -327,13 +331,17 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           color: Colors.grey.shade100,
           child: TextField(
+            controller: _churchSearchController,
             decoration: InputDecoration(
               hintText: 'Search churches by name, elder, status...',
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _churchSearchQuery.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.clear),
-                      onPressed: () => setState(() => _churchSearchQuery = ''),
+                      onPressed: () {
+                        _churchSearchController.clear();
+                        setState(() => _churchSearchQuery = '');
+                      },
                     )
                   : null,
               border: OutlineInputBorder(
@@ -626,13 +634,17 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
               padding: EdgeInsets.fromLTRB(16, isMissionAdmin ? 0 : 16, 16, 16),
               color: Colors.grey.shade100,
               child: TextField(
+                controller: _staffSearchController,
                 decoration: InputDecoration(
                   hintText: 'Search staff by name, role, mission...',
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _staffSearchQuery.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear),
-                          onPressed: () => setState(() => _staffSearchQuery = ''),
+                          onPressed: () {
+                            _staffSearchController.clear();
+                            setState(() => _staffSearchQuery = '');
+                          },
                         )
                       : null,
                   border: OutlineInputBorder(
