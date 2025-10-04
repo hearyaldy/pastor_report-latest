@@ -382,76 +382,88 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primaryLight.withValues(alpha: 0.1),
+                    Colors.blue.shade50,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Column(
-                children: [
-                  InkWell(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(16),
-                      bottom: Radius.circular(16),
-                    ),
-                    onTap: () {
-                      setState(() {
-                        _showQuickActions = !_showQuickActions;
-                      });
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color:
-                                  AppColors.primaryLight.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    InkWell(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(16),
+                        bottom: Radius.circular(16),
+                      ),
+                      onTap: () {
+                        setState(() {
+                          _showQuickActions = !_showQuickActions;
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color:
+                                    AppColors.primaryLight.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.dashboard_customize,
+                                size: 32,
+                                color: AppColors.primaryLight,
+                              ),
                             ),
-                            child: Icon(
-                              Icons.dashboard_customize,
-                              size: 32,
-                              color: AppColors.primaryLight,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Quick Actions',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Quick Actions',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _showQuickActions
-                                      ? 'Tap to collapse'
-                                      : 'Tap to add activities or todos',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey.shade600,
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _showQuickActions
+                                        ? 'Tap to collapse'
+                                        : 'Tap to add activities or todos',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey.shade600,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                          Icon(
-                            _showQuickActions
-                                ? Icons.expand_less
-                                : Icons.expand_more,
-                            size: 24,
-                            color: Colors.grey.shade400,
-                          ),
-                        ],
+                            Icon(
+                              _showQuickActions
+                                  ? Icons.expand_less
+                                  : Icons.expand_more,
+                              size: 24,
+                              color: Colors.grey.shade400,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
                   if (_showQuickActions)
                     Container(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -492,7 +504,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                         ],
                       ),
                     ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
