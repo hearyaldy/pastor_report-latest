@@ -6,8 +6,13 @@ import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/models/church_model.dart';
 import 'package:pastor_report/models/staff_model.dart';
 import 'package:pastor_report/models/user_model.dart';
+import 'package:pastor_report/models/district_model.dart';
+import 'package:pastor_report/models/region_model.dart';
 import 'package:pastor_report/services/church_storage_service.dart';
+import 'package:pastor_report/services/church_service.dart';
 import 'package:pastor_report/services/staff_service.dart';
+import 'package:pastor_report/services/district_service.dart';
+import 'package:pastor_report/services/region_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 
 class MyMinistryScreen extends StatefulWidget {
@@ -1234,6 +1239,10 @@ class _ChurchFormState extends State<_ChurchForm> {
   late TextEditingController _addressController;
   late TextEditingController _memberCountController;
   ChurchStatus _selectedStatus = ChurchStatus.church;
+  String? _selectedDistrictId;
+  String? _selectedRegionId;
+  List<Region> _regions = [];
+  List<District> _districts = [];
 
   @override
   void initState() {
@@ -1251,6 +1260,44 @@ class _ChurchFormState extends State<_ChurchForm> {
     _memberCountController = TextEditingController(
         text: widget.church?.memberCount?.toString() ?? '');
     _selectedStatus = widget.church?.status ?? ChurchStatus.church;
+    _selectedDistrictId = widget.church?.districtId;
+    _selectedRegionId = widget.church?.regionId;
+    _loadOrganizationalData();
+  }
+
+  Future<void> _loadOrganizationalData() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final missionId = authProvider.user?.mission;
+
+    if (missionId != null && missionId.isNotEmpty) {
+      try {
+        final regions = await RegionService.instance.getRegionsByMission(missionId);
+        setState(() {
+          _regions = regions;
+        });
+
+        if (_selectedRegionId != null) {
+          final districts = await DistrictService.instance.getDistrictsByRegion(_selectedRegionId!);
+          setState(() {
+            _districts = districts;
+          });
+        }
+      } catch (e) {
+        // Handle error silently
+      }
+    }
+  }
+
+  Future<void> _loadDistrictsForRegion(String regionId) async {
+    try {
+      final districts = await DistrictService.instance.getDistrictsByRegion(regionId);
+      setState(() {
+        _districts = districts;
+        _selectedDistrictId = null; // Reset district when region changes
+      });
+    } catch (e) {
+      // Handle error
+    }
   }
 
   @override
@@ -1326,6 +1373,63 @@ class _ChurchFormState extends State<_ChurchForm> {
                   },
                 ),
                 const SizedBox(height: 16),
+                // Region Dropdown
+                if (_regions.isNotEmpty)
+                  DropdownButtonFormField<String>(
+                    value: _selectedRegionId,
+                    decoration: const InputDecoration(
+                      labelText: 'Region (Optional)',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.map),
+                    ),
+                    items: [
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('None'),
+                      ),
+                      ..._regions.map((region) => DropdownMenuItem(
+                            value: region.id,
+                            child: Text(region.name),
+                          )),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedRegionId = value;
+                        if (value != null) {
+                          _loadDistrictsForRegion(value);
+                        } else {
+                          _districts = [];
+                          _selectedDistrictId = null;
+                        }
+                      });
+                    },
+                  ),
+                if (_regions.isNotEmpty) const SizedBox(height: 16),
+                // District Dropdown
+                if (_selectedRegionId != null && _districts.isNotEmpty)
+                  DropdownButtonFormField<String>(
+                    value: _selectedDistrictId,
+                    decoration: const InputDecoration(
+                      labelText: 'District (Optional)',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.location_city),
+                    ),
+                    items: [
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('None'),
+                      ),
+                      ..._districts.map((district) => DropdownMenuItem(
+                            value: district.id,
+                            child: Text(district.name),
+                          )),
+                    ],
+                    onChanged: (value) {
+                      setState(() => _selectedDistrictId = value);
+                    },
+                  ),
+                if (_selectedRegionId != null && _districts.isNotEmpty)
+                  const SizedBox(height: 16),
                 TextFormField(
                   controller: _elderNameController,
                   decoration: const InputDecoration(
@@ -1402,6 +1506,9 @@ class _ChurchFormState extends State<_ChurchForm> {
                               ? null
                               : int.tryParse(_memberCountController.text.trim()),
                           createdAt: widget.church?.createdAt ?? DateTime.now(),
+                          districtId: _selectedDistrictId,
+                          regionId: _selectedRegionId,
+                          missionId: authProvider.user?.mission,
                         );
                         widget.onSave(church);
                         Navigator.pop(context);
