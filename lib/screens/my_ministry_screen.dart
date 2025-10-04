@@ -298,38 +298,30 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
     return Column(
       children: [
         // Add Church Button
-        Container(
+        Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.primaryLight.withValues(alpha: 0.1),
-                Colors.blue.shade50,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: ElevatedButton.icon(
-            onPressed: _addChurch,
-            icon: const Icon(Icons.add),
-            label: const Text('Add Church'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryLight,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _addChurch,
+              icon: const Icon(Icons.add),
+              label: const Text('Add Church'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryLight,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
         ),
 
         // Search Bar
-        Container(
+        Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          color: Colors.grey.shade100,
           child: TextField(
             controller: _churchSearchController,
             decoration: InputDecoration(
@@ -351,7 +343,11 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
               filled: true,
               fillColor: Colors.white,
             ),
-            onChanged: (value) => setState(() => _churchSearchQuery = value),
+            onChanged: (value) {
+              if (value != _churchSearchQuery) {
+                setState(() => _churchSearchQuery = value);
+              }
+            },
           ),
         ),
 
@@ -601,38 +597,30 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
           children: [
             // Add Staff Button (only for mission admins)
             if (isMissionAdmin)
-              Container(
+              Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.primaryLight.withValues(alpha: 0.1),
-                      Colors.blue.shade50,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: ElevatedButton.icon(
-                  onPressed: () => _addStaff(user!),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Staff'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryLight,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    elevation: 3,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _addStaff(user!),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Staff'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryLight,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ),
               ),
 
             // Search Bar
-            Container(
+            Padding(
               padding: EdgeInsets.fromLTRB(16, isMissionAdmin ? 0 : 16, 16, 16),
-              color: Colors.grey.shade100,
               child: TextField(
                 controller: _staffSearchController,
                 decoration: InputDecoration(
@@ -654,7 +642,11 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                   filled: true,
                   fillColor: Colors.white,
                 ),
-                onChanged: (value) => setState(() => _staffSearchQuery = value),
+                onChanged: (value) {
+                  if (value != _staffSearchQuery) {
+                    setState(() => _staffSearchQuery = value);
+                  }
+                },
               ),
             ),
 
