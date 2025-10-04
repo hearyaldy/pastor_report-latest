@@ -382,24 +382,16 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primaryLight.withValues(alpha: 0.1),
-                    Colors.blue.shade50,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+            child: Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-              ),
-              child: Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: AppColors.primaryLight.withValues(alpha: 0.3),
+                  width: 2,
                 ),
-                child: Column(
+              ),
+              child: Column(
                   children: [
                     InkWell(
                       borderRadius: const BorderRadius.vertical(
@@ -508,7 +500,6 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 ),
               ),
             ),
-          ),
           // Borang B Card
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
