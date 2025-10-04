@@ -625,33 +625,71 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Row(
                               children: [
                                 Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: () {
-                                      // Use our new bottom sheet
-                                      _showQuickAddActivityBottomSheet();
-                                    },
-                                    icon: const Icon(Icons.add),
-                                    label: const Text('Quick Add'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.blue.shade700,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 12),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.blue.shade700.withValues(alpha: 0.1),
+                                          Colors.blue.shade100,
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: ElevatedButton.icon(
+                                      onPressed: () {
+                                        // Use our new bottom sheet
+                                        _showQuickAddActivityBottomSheet();
+                                      },
+                                      icon: const Icon(Icons.add),
+                                      label: const Text('Quick Add'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue.shade700,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 16),
+                                        elevation: 2,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: () {
-                                      Navigator.pushNamed(
-                                          context, '/activities');
-                                    },
-                                    icon: const Icon(Icons.list),
-                                    label: const Text('View All'),
-                                    style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 12),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          AppColors.primaryLight.withValues(alpha: 0.1),
+                                          Colors.blue.shade50,
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: OutlinedButton.icon(
+                                      onPressed: () {
+                                        Navigator.pushNamed(
+                                            context, '/activities');
+                                      },
+                                      icon: const Icon(Icons.list),
+                                      label: const Text('View All'),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: AppColors.primaryLight,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 16),
+                                        side: BorderSide(
+                                          color: AppColors.primaryLight,
+                                          width: 1.5,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
