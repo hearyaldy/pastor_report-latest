@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/providers/mission_provider.dart';
+import 'package:pastor_report/providers/auth_provider.dart';
+import 'package:pastor_report/services/data_import_service.dart';
 
 class AdminUtilitiesScreen extends StatelessWidget {
   const AdminUtilitiesScreen({super.key});
@@ -109,6 +111,218 @@ class AdminUtilitiesScreen extends StatelessWidget {
                 onTap: () {
                   Navigator.pushNamed(
                       context, AppConstants.routeMissionManagement);
+                },
+              ),
+              _ActionCard(
+                title: 'Import Regions & Districts',
+                description:
+                    'Import 10 regions and 59 districts into the current mission. This will add organizational structure.',
+                icon: Icons.upload_file,
+                color: Colors.orange,
+                onTap: () async {
+                  final authProvider = context.read<AuthProvider>();
+                  final missionId = authProvider.user?.mission;
+
+                  if (missionId == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('No mission selected'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Show preview dialog
+                  final stats = DataImportService.instance.getImportStats();
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Import Regions & Districts'),
+                      content: SizedBox(
+                        width: double.maxFinite,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'This will import:\n'
+                              '• ${stats['totalRegions']} Regions\n'
+                              '• ${stats['totalDistricts']} Districts\n\n'
+                              'Districts per region:',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            const SizedBox(height: 8),
+                            Flexible(
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: (stats['districtsByRegion']
+                                          as Map<int, List<String>>)
+                                      .entries
+                                      .map((entry) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 4),
+                                      child: Text(
+                                        '  Region ${entry.key}: ${entry.value.length} districts',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[700],
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('CANCEL'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                          ),
+                          child: const Text('IMPORT'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true && context.mounted) {
+                    try {
+                      // Show loading indicator
+                      _showLoadingDialog(context,
+                          'Importing regions and districts...\nThis may take a moment.');
+
+                      // Import data
+                      final result = await DataImportService.instance
+                          .importRegionsAndDistricts(missionId);
+
+                      // Hide loading and show success
+                      if (context.mounted) {
+                        Navigator.pop(context); // Remove loading dialog
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Import completed!\n'
+                              'Regions created: ${result['regionsCreated']}/${result['totalRegions']}\n'
+                              'Districts created: ${result['districtsCreated']}/${result['totalDistricts']}\n'
+                              'Districts skipped (already exist): ${result['districtsSkipped']}',
+                            ),
+                            backgroundColor: Colors.green,
+                            duration: const Duration(seconds: 5),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      // Hide loading and show error
+                      if (context.mounted) {
+                        Navigator.pop(context); // Remove loading dialog
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error during import: $e'),
+                            backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 5),
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+              ),
+              _ActionCard(
+                title: 'Update Staff Districts',
+                description:
+                    'Update 63 staff members with their district and region assignments based on the latest data.',
+                icon: Icons.people_outline,
+                color: Colors.purple,
+                onTap: () async {
+                  final authProvider = context.read<AuthProvider>();
+                  final missionId = authProvider.user?.mission;
+
+                  if (missionId == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('No mission selected'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Show confirmation dialog
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Update Staff Districts'),
+                      content: const Text(
+                        'This will update 63 staff members with their district and region assignments.\n\n'
+                        'Staff will be matched by name and updated with the correct district and region.\n\n'
+                        'Do you want to continue?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('CANCEL'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.purple,
+                          ),
+                          child: const Text('UPDATE'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true && context.mounted) {
+                    try {
+                      // Show loading indicator
+                      _showLoadingDialog(context,
+                          'Updating staff districts...\nThis may take a moment.');
+
+                      // Update staff
+                      final result = await DataImportService.instance
+                          .updateStaffDistricts(missionId);
+
+                      // Hide loading and show success
+                      if (context.mounted) {
+                        Navigator.pop(context); // Remove loading dialog
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Update completed!\n'
+                              'Staff updated: ${result['staffUpdated']}\n'
+                              'Staff not found: ${result['staffNotFound']}\n'
+                              'Staff skipped (no changes): ${result['staffSkipped']}\n'
+                              'Total staff in data: ${result['totalStaff']}',
+                            ),
+                            backgroundColor: Colors.green,
+                            duration: const Duration(seconds: 6),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      // Hide loading and show error
+                      if (context.mounted) {
+                        Navigator.pop(context); // Remove loading dialog
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error during update: $e'),
+                            backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 5),
+                          ),
+                        );
+                      }
+                    }
+                  }
                 },
               ),
               _ActionCard(

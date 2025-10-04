@@ -9,7 +9,6 @@ import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/models/district_model.dart';
 import 'package:pastor_report/models/region_model.dart';
 import 'package:pastor_report/services/church_storage_service.dart';
-import 'package:pastor_report/services/church_service.dart';
 import 'package:pastor_report/services/staff_service.dart';
 import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/services/region_service.dart';
@@ -193,10 +192,6 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-    final user = authProvider.user;
-    final isMissionAdmin = user?.userRole == UserRole.missionAdmin ||
-        user?.userRole == UserRole.admin ||
-        user?.userRole == UserRole.superAdmin;
 
     return Scaffold(
       appBar: AppBar(
