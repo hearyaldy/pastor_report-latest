@@ -11,6 +11,12 @@ class Church {
   final DateTime createdAt;
   final DateTime? updatedAt;
 
+  // Organizational hierarchy fields
+  final String? districtId;
+  final String? regionId;
+  final String? missionId;
+  final String? treasurerId; // Church treasurer's user ID
+
   Church({
     required this.id,
     required this.userId,
@@ -23,6 +29,10 @@ class Church {
     this.memberCount,
     required this.createdAt,
     this.updatedAt,
+    this.districtId,
+    this.regionId,
+    this.missionId,
+    this.treasurerId,
   });
 
   // Convert to JSON for storage
@@ -39,6 +49,10 @@ class Church {
       'memberCount': memberCount,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
+      'districtId': districtId,
+      'regionId': regionId,
+      'missionId': missionId,
+      'treasurerId': treasurerId,
     };
   }
 
@@ -61,6 +75,10 @@ class Church {
       updatedAt: json['updatedAt'] != null
           ? DateTime.parse(json['updatedAt'] as String)
           : null,
+      districtId: json['districtId'] as String?,
+      regionId: json['regionId'] as String?,
+      missionId: json['missionId'] as String?,
+      treasurerId: json['treasurerId'] as String?,
     );
   }
 
@@ -77,6 +95,10 @@ class Church {
     int? memberCount,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? districtId,
+    String? regionId,
+    String? missionId,
+    String? treasurerId,
   }) {
     return Church(
       id: id ?? this.id,
@@ -90,6 +112,10 @@ class Church {
       memberCount: memberCount ?? this.memberCount,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      districtId: districtId ?? this.districtId,
+      regionId: regionId ?? this.regionId,
+      missionId: missionId ?? this.missionId,
+      treasurerId: treasurerId ?? this.treasurerId,
     );
   }
 }
