@@ -26,6 +26,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
   final TextEditingController _churchSearchController = TextEditingController();
   String _staffSearchQuery = '';
   String _churchSearchQuery = '';
+  String _churchSortBy = 'name'; // name, elder, status, members
+  String _staffSortBy = 'name'; // name, role, mission
 
   @override
   void initState() {
@@ -286,6 +288,22 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
           .toList();
     }
 
+    // Apply sorting
+    filteredChurches.sort((a, b) {
+      switch (_churchSortBy) {
+        case 'name':
+          return a.churchName.toLowerCase().compareTo(b.churchName.toLowerCase());
+        case 'elder':
+          return a.elderName.toLowerCase().compareTo(b.elderName.toLowerCase());
+        case 'status':
+          return a.status.displayName.compareTo(b.status.displayName);
+        case 'members':
+          return (b.memberCount ?? 0).compareTo(a.memberCount ?? 0);
+        default:
+          return 0;
+      }
+    });
+
     // Calculate statistics
     final totalChurches = _churches.length;
     final churches = _churches.where((c) => c.status == ChurchStatus.church).length;
@@ -319,35 +337,96 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
           ),
         ),
 
-        // Search Bar
+        // Search Bar with Sort
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: TextField(
-            controller: _churchSearchController,
-            decoration: InputDecoration(
-              hintText: 'Search churches by name, elder, status...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _churchSearchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _churchSearchController.clear();
-                        setState(() => _churchSearchQuery = '');
-                      },
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _churchSearchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search churches...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _churchSearchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _churchSearchController.clear();
+                              setState(() => _churchSearchQuery = '');
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  onChanged: (value) {
+                    if (value != _churchSearchQuery) {
+                      setState(() => _churchSearchQuery = value);
+                    }
+                  },
+                ),
               ),
-              filled: true,
-              fillColor: Colors.white,
-            ),
-            onChanged: (value) {
-              if (value != _churchSearchQuery) {
-                setState(() => _churchSearchQuery = value);
-              }
-            },
+              const SizedBox(width: 8),
+              PopupMenuButton<String>(
+                icon: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.sort),
+                ),
+                tooltip: 'Sort by',
+                onSelected: (value) => setState(() => _churchSortBy = value),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'name',
+                    child: Row(
+                      children: [
+                        Icon(Icons.church, size: 20, color: _churchSortBy == 'name' ? AppColors.primaryLight : Colors.grey),
+                        const SizedBox(width: 8),
+                        Text('Church Name', style: TextStyle(fontWeight: _churchSortBy == 'name' ? FontWeight.bold : FontWeight.normal)),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'elder',
+                    child: Row(
+                      children: [
+                        Icon(Icons.person, size: 20, color: _churchSortBy == 'elder' ? AppColors.primaryLight : Colors.grey),
+                        const SizedBox(width: 8),
+                        Text('Elder Name', style: TextStyle(fontWeight: _churchSortBy == 'elder' ? FontWeight.bold : FontWeight.normal)),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'status',
+                    child: Row(
+                      children: [
+                        Icon(Icons.category, size: 20, color: _churchSortBy == 'status' ? AppColors.primaryLight : Colors.grey),
+                        const SizedBox(width: 8),
+                        Text('Status', style: TextStyle(fontWeight: _churchSortBy == 'status' ? FontWeight.bold : FontWeight.normal)),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'members',
+                    child: Row(
+                      children: [
+                        Icon(Icons.people, size: 20, color: _churchSortBy == 'members' ? AppColors.primaryLight : Colors.grey),
+                        const SizedBox(width: 8),
+                        Text('Members', style: TextStyle(fontWeight: _churchSortBy == 'members' ? FontWeight.bold : FontWeight.normal)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
 
@@ -588,6 +667,20 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
               .toList();
         }
 
+        // Apply sorting
+        filteredStaff.sort((a, b) {
+          switch (_staffSortBy) {
+            case 'name':
+              return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+            case 'role':
+              return a.role.toLowerCase().compareTo(b.role.toLowerCase());
+            case 'mission':
+              return a.mission.toLowerCase().compareTo(b.mission.toLowerCase());
+            default:
+              return 0;
+          }
+        });
+
         // Calculate statistics
         final totalStaff = staffList.length;
         final missions = staffList.map((s) => s.mission).toSet();
@@ -618,35 +711,86 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                 ),
               ),
 
-            // Search Bar
+            // Search Bar with Sort
             Padding(
               padding: EdgeInsets.fromLTRB(16, isMissionAdmin ? 0 : 16, 16, 16),
-              child: TextField(
-                controller: _staffSearchController,
-                decoration: InputDecoration(
-                  hintText: 'Search staff by name, role, mission...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _staffSearchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _staffSearchController.clear();
-                            setState(() => _staffSearchQuery = '');
-                          },
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _staffSearchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search staff...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _staffSearchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  _staffSearchController.clear();
+                                  setState(() => _staffSearchQuery = '');
+                                },
+                              )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      onChanged: (value) {
+                        if (value != _staffSearchQuery) {
+                          setState(() => _staffSearchQuery = value);
+                        }
+                      },
+                    ),
                   ),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                onChanged: (value) {
-                  if (value != _staffSearchQuery) {
-                    setState(() => _staffSearchQuery = value);
-                  }
-                },
+                  const SizedBox(width: 8),
+                  PopupMenuButton<String>(
+                    icon: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.sort),
+                    ),
+                    tooltip: 'Sort by',
+                    onSelected: (value) => setState(() => _staffSortBy = value),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'name',
+                        child: Row(
+                          children: [
+                            Icon(Icons.person, size: 20, color: _staffSortBy == 'name' ? AppColors.primaryLight : Colors.grey),
+                            const SizedBox(width: 8),
+                            Text('Name', style: TextStyle(fontWeight: _staffSortBy == 'name' ? FontWeight.bold : FontWeight.normal)),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'role',
+                        child: Row(
+                          children: [
+                            Icon(Icons.work, size: 20, color: _staffSortBy == 'role' ? AppColors.primaryLight : Colors.grey),
+                            const SizedBox(width: 8),
+                            Text('Role', style: TextStyle(fontWeight: _staffSortBy == 'role' ? FontWeight.bold : FontWeight.normal)),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'mission',
+                        child: Row(
+                          children: [
+                            Icon(Icons.church, size: 20, color: _staffSortBy == 'mission' ? AppColors.primaryLight : Colors.grey),
+                            const SizedBox(width: 8),
+                            Text('Mission', style: TextStyle(fontWeight: _staffSortBy == 'mission' ? FontWeight.bold : FontWeight.normal)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
 
