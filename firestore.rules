@@ -115,5 +115,39 @@ service cloud.firestore {
       // TODO: Restrict to authenticated admins only
       allow create, update, delete: if true;
     }
+
+    // Regions collection (organizational structure)
+    match /regions/{regionId} {
+      // Anyone authenticated can read regions
+      allow read: if isAuthenticated();
+
+      // Only admins can create, update, or delete regions
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Districts collection (organizational structure)
+    match /districts/{districtId} {
+      // Anyone authenticated can read districts
+      allow read: if isAuthenticated();
+
+      // Only admins can create, update, or delete districts
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Churches collection
+    match /churches/{churchId} {
+      // Anyone authenticated can read churches
+      allow read: if isAuthenticated();
+
+      // Authenticated users can create churches
+      allow create: if isAuthenticated();
+
+      // Users can update their own churches, admins can update any
+      allow update: if isAuthenticated() &&
+                       (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Only admins can delete churches
+      allow delete: if isAdmin();
+    }
   }
 }
