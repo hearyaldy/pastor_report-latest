@@ -370,7 +370,7 @@ class _AdminDashboardState extends State<AdminDashboard>
         .get();
 
     final missions = missionsSnapshot.docs
-        .map((doc) => (doc.data() as Map<String, dynamic>)['name'] as String)
+        .map((doc) => (doc.data())['name'] as String)
         .toList();
 
     final selectedMission = await showDialog<String>(

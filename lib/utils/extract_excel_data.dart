@@ -46,14 +46,16 @@ Future<void> extractStaffData() async {
       return;
     }
 
-    print('\n📊 Sheet has ${sheet.maxRows} rows and ${sheet.maxColumns} columns');
+    print(
+        '\n📊 Sheet has ${sheet.maxRows} rows and ${sheet.maxColumns} columns');
 
     // Find header row (look for "NAME" or "BIL")
     int headerRow = 0;
     for (var row = 0; row < 10; row++) {
       for (var col = 0; col < sheet.maxColumns; col++) {
-        final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row));
-        final value = cell?.value?.toString().toUpperCase() ?? '';
+        final cell = sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row));
+        final value = cell.value?.toString().toUpperCase() ?? '';
         if (value.contains('NAME') || value.contains('NAMA')) {
           headerRow = row;
           break;
@@ -65,8 +67,9 @@ Future<void> extractStaffData() async {
     print('\n📌 Headers found at row $headerRow:');
     final headers = <String>[];
     for (var i = 0; i < (sheet.maxColumns); i++) {
-      final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: headerRow));
-      final value = cell?.value?.toString() ?? '';
+      final cell = sheet.cell(
+          CellIndex.indexByColumnRow(columnIndex: i, rowIndex: headerRow));
+      final value = cell.value?.toString() ?? '';
       headers.add(value);
       print('  Column $i: $value');
     }
@@ -74,12 +77,18 @@ Future<void> extractStaffData() async {
     // Print sample data (first 5 rows after header)
     final dataStartRow = headerRow + 1;
     print('\n📄 Sample data (first 5 rows after header):');
-    for (var row = dataStartRow; row < (dataStartRow + 5 < sheet.maxRows ? dataStartRow + 5 : sheet.maxRows); row++) {
+    for (var row = dataStartRow;
+        row <
+            (dataStartRow + 5 < sheet.maxRows
+                ? dataStartRow + 5
+                : sheet.maxRows);
+        row++) {
       print('\n  Row $row:');
       for (var col = 0; col < (sheet.maxColumns); col++) {
-        final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row));
+        final cell = sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row));
         final header = headers.length > col ? headers[col] : 'Column $col';
-        final value = cell?.value?.toString() ?? '';
+        final value = cell.value?.toString() ?? '';
         if (value.isNotEmpty) {
           print('    $header: $value');
         }
@@ -94,7 +103,8 @@ Future<void> extractStaffData() async {
     final nameIdx = _findColumnIndex(headers, ['name', 'nama']);
     final roleIdx = _findColumnIndex(headers, ['role', 'position', 'jawatan']);
     final emailIdx = _findColumnIndex(headers, ['email', 'e-mail']);
-    final phoneIdx = _findColumnIndex(headers, ['phone', 'telefon', 'tel', 'no']);
+    final phoneIdx =
+        _findColumnIndex(headers, ['phone', 'telefon', 'tel', 'no']);
     final districtIdx = _findColumnIndex(headers, ['district', 'daerah']);
     final regionIdx = _findColumnIndex(headers, ['region', 'kawasan']);
 
@@ -120,7 +130,6 @@ Future<void> extractStaffData() async {
     }
 
     print('\n✅ Extraction complete!');
-
   } catch (e) {
     print('❌ Error: $e');
   }
@@ -140,6 +149,7 @@ int _findColumnIndex(List<String> headers, List<String> searchTerms) {
 
 String _getCellValue(Sheet sheet, int row, int col) {
   if (col == -1) return '';
-  final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row));
-  return cell?.value?.toString().trim() ?? '';
+  final cell =
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row));
+  return cell.value?.toString().trim() ?? '';
 }

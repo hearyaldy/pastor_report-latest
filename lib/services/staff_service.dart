@@ -19,11 +19,8 @@ class StaffService {
 
   /// Stream all staff globally
   Stream<List<Staff>> streamAllStaff() {
-    return _staffCollection
-        .orderBy('name')
-        .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Staff.fromFirestore(doc)).toList());
+    return _staffCollection.orderBy('name').snapshots().map((snapshot) =>
+        snapshot.docs.map((doc) => Staff.fromFirestore(doc)).toList());
   }
 
   /// Stream staff by mission
@@ -143,7 +140,8 @@ class StaffService {
       }
 
       // Parse header
-      final headers = lines[0].split(',').map((h) => h.trim().toLowerCase()).toList();
+      final headers =
+          lines[0].split(',').map((h) => h.trim().toLowerCase()).toList();
       final requiredFields = ['name', 'role', 'mission'];
 
       // Validate headers
@@ -223,7 +221,8 @@ class StaffService {
         'imported': imported,
         'failed': failed,
         'errors': errors,
-        'message': 'Imported $imported staff members${failed > 0 ? ', $failed failed' : ''}',
+        'message':
+            'Imported $imported staff members${failed > 0 ? ', $failed failed' : ''}',
       };
     } catch (e) {
       debugPrint('❌ Error importing CSV: $e');
@@ -240,7 +239,8 @@ class StaffService {
     final buffer = StringBuffer();
 
     // Header
-    buffer.writeln('name,role,email,phone,mission,department,district,region,notes');
+    buffer.writeln(
+        'name,role,email,phone,mission,department,district,region,notes');
 
     // Data rows
     for (final staff in staffList) {
@@ -252,7 +252,7 @@ class StaffService {
       buffer.write('${_escapeCsv(staff.department ?? '')},');
       buffer.write('${_escapeCsv(staff.district ?? '')},');
       buffer.write('${_escapeCsv(staff.region ?? '')},');
-      buffer.write('${_escapeCsv(staff.notes ?? '')}');
+      buffer.write(_escapeCsv(staff.notes ?? ''));
       buffer.writeln();
     }
 

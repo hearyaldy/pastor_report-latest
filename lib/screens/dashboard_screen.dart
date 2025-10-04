@@ -128,8 +128,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onPressed: _showQuickAddActivityBottomSheet,
         backgroundColor: AppColors.primaryLight,
         foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
         tooltip: 'Quick Add Activity',
+        child: const Icon(Icons.add),
       ),
       body: CustomScrollView(
         slivers: [
@@ -1326,7 +1326,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         ),
                                       ),
                                       Text(
-                                        '${DateFormat('MMM d, yyyy • h:mm a').format(event.startDate)}',
+                                        DateFormat('MMM d, yyyy • h:mm a')
+                                            .format(event.startDate),
                                         style: TextStyle(
                                           color: Colors.grey.shade700,
                                           fontSize: 12,
@@ -2071,17 +2072,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       if (selectedActivityType == 'Other') {
                         formattedActivity = activityController.text.trim();
                       } else if (activityController.text
-                              .startsWith('${selectedActivityType} to ') ||
+                              .startsWith('$selectedActivityType to ') ||
                           activityController.text
-                              .startsWith('${selectedActivityType} on ') ||
+                              .startsWith('$selectedActivityType on ') ||
                           activityController.text
-                              .startsWith('${selectedActivityType} with ') ||
+                              .startsWith('$selectedActivityType with ') ||
                           activityController.text
-                              .startsWith('${selectedActivityType} of ') ||
+                              .startsWith('$selectedActivityType of ') ||
                           activityController.text
-                              .startsWith('${selectedActivityType} for ') ||
+                              .startsWith('$selectedActivityType for ') ||
                           activityController.text
-                              .startsWith('${selectedActivityType} session ')) {
+                              .startsWith('$selectedActivityType session ')) {
                         // If the text already includes the activity type in a natural way, keep it as is
                         formattedActivity = activityController.text.trim();
                       } else {

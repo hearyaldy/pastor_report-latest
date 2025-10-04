@@ -17,7 +17,6 @@ import 'package:pastor_report/services/event_service.dart';
 import 'package:pastor_report/services/activity_storage_service.dart';
 import 'package:pastor_report/services/borang_b_storage_service.dart';
 import 'package:pastor_report/services/church_storage_service.dart';
-import 'package:pastor_report/services/team_member_storage_service.dart';
 import 'package:pastor_report/services/staff_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:uuid/uuid.dart';
@@ -384,116 +383,117 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            children: [
-              InkWell(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                  bottom: Radius.circular(16),
-                ),
-                onTap: () {
-                  setState(() {
-                    _showQuickActions = !_showQuickActions;
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.dashboard_customize,
-                          size: 32,
-                          color: AppColors.primaryLight,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Quick Actions',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _showQuickActions
-                                  ? 'Tap to collapse'
-                                  : 'Tap to add activities or todos',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        _showQuickActions
-                            ? Icons.expand_less
-                            : Icons.expand_more,
-                        size: 24,
-                        color: Colors.grey.shade400,
-                      ),
-                    ],
-                  ),
-                ),
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-              if (_showQuickActions)
-                Container(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Divider(),
-                      const SizedBox(height: 12),
-
-                      // Tab Selector
-                      Row(
+              child: Column(
+                children: [
+                  InkWell(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                      bottom: Radius.circular(16),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        _showQuickActions = !_showQuickActions;
+                      });
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
                         children: [
-                          Expanded(
-                            child: _buildTabButton(
-                              'Activity',
-                              Icons.event_note,
-                              'activity',
-                              Colors.green,
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color:
+                                  AppColors.primaryLight.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.dashboard_customize,
+                              size: 32,
+                              color: AppColors.primaryLight,
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 16),
                           Expanded(
-                            child: _buildTabButton(
-                              'Todo',
-                              Icons.check_circle_outline,
-                              'todo',
-                              Colors.blue,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Quick Actions',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _showQuickActions
+                                      ? 'Tap to collapse'
+                                      : 'Tap to add activities or todos',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
                             ),
+                          ),
+                          Icon(
+                            _showQuickActions
+                                ? Icons.expand_less
+                                : Icons.expand_more,
+                            size: 24,
+                            color: Colors.grey.shade400,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-
-                      // Show Activity Form or Todo Form based on selected tab
-                      if (_quickActionTab == 'activity')
-                        ..._buildActivityForm(),
-                      if (_quickActionTab == 'todo') ..._buildTodoForm(),
-                    ],
+                    ),
                   ),
-                ),
-            ],
-          ),
+                  if (_showQuickActions)
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Divider(),
+                          const SizedBox(height: 12),
+
+                          // Tab Selector
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildTabButton(
+                                  'Activity',
+                                  Icons.event_note,
+                                  'activity',
+                                  Colors.green,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildTabButton(
+                                  'Todo',
+                                  Icons.check_circle_outline,
+                                  'todo',
+                                  Colors.blue,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Show Activity Form or Todo Form based on selected tab
+                          if (_quickActionTab == 'activity')
+                            ..._buildActivityForm(),
+                          if (_quickActionTab == 'todo') ..._buildTodoForm(),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
           // Borang B Card
@@ -1233,7 +1233,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                     color: Colors.white.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.assignment, color: Colors.white, size: 32),
+                  child: const Icon(Icons.assignment,
+                      color: Colors.white, size: 32),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -1292,71 +1293,72 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           builder: (context, churchSnapshot) {
             final churchCount = churchSnapshot.data?.length ?? 0;
 
-        return GestureDetector(
-          onTap: () => Navigator.pushNamed(context, '/my-ministry'),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.deepPurple[400]!,
-                  Colors.deepPurple[600]!,
-                ],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.deepPurple.withValues(alpha: 0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.church, color: Colors.white, size: 32),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'My Ministry',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '$churchCount ${churchCount == 1 ? 'Church' : 'Churches'} • $staffCount ${staffCount == 1 ? 'Staff' : 'Staff'}',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                      ),
+            return GestureDetector(
+              onTap: () => Navigator.pushNamed(context, '/my-ministry'),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.deepPurple[400]!,
+                      Colors.deepPurple[600]!,
                     ],
                   ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.deepPurple.withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  color: Colors.white,
-                  size: 20,
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.church,
+                          color: Colors.white, size: 32),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'My Ministry',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '$churchCount ${churchCount == 1 ? 'Church' : 'Churches'} • $staffCount ${staffCount == 1 ? 'Staff' : 'Staff'}',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
             );
           },
         );
@@ -2473,13 +2475,17 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                     ),
                     child: Column(
                       children: [
-                        _buildFeatureItem(Icons.assignment, 'Track Activities & Reports'),
+                        _buildFeatureItem(
+                            Icons.assignment, 'Track Activities & Reports'),
                         const SizedBox(height: 16),
-                        _buildFeatureItem(Icons.calendar_today, 'Manage Events & Appointments'),
+                        _buildFeatureItem(Icons.calendar_today,
+                            'Manage Events & Appointments'),
                         const SizedBox(height: 16),
-                        _buildFeatureItem(Icons.description, 'Submit Monthly Borang B'),
+                        _buildFeatureItem(
+                            Icons.description, 'Submit Monthly Borang B'),
                         const SizedBox(height: 16),
-                        _buildFeatureItem(Icons.people, 'Department Management'),
+                        _buildFeatureItem(
+                            Icons.people, 'Department Management'),
                       ],
                     ),
                   ),
@@ -2520,7 +2526,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                     height: 56,
                     child: OutlinedButton(
                       onPressed: () {
-                        Navigator.pushNamed(context, AppConstants.routeRegister);
+                        Navigator.pushNamed(
+                            context, AppConstants.routeRegister);
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
