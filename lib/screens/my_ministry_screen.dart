@@ -296,19 +296,16 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
         // Add Church Button
         Container(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: _addChurch,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Church'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryLight,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+          child: ElevatedButton.icon(
+            onPressed: _addChurch,
+            icon: const Icon(Icons.add),
+            label: const Text('Add Church'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryLight,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
           ),
@@ -587,19 +584,16 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
             if (isMissionAdmin)
               Container(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _addStaff(user!),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Staff'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryLight,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                child: ElevatedButton.icon(
+                  onPressed: () => _addStaff(user!),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Staff'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryLight,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),

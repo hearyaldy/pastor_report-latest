@@ -21,8 +21,15 @@ class StaffManagementScreen extends StatefulWidget {
 }
 
 class _StaffManagementScreenState extends State<StaffManagementScreen> {
+  final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedMission = 'All';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,9 +147,19 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
             child: Column(
               children: [
                 TextField(
+                  controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Search staff...',
                     prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _searchQuery = '');
+                            },
+                          )
+                        : null,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
