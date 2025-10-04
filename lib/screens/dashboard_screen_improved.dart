@@ -384,6 +384,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Card(
               elevation: 2,
+              margin: EdgeInsets.zero,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
