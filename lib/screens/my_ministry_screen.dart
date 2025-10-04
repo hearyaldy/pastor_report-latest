@@ -1011,7 +1011,31 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
     return Stream.value([]);
   }
 
-  void _showStaffDetails(Staff staff) {
+  void _showStaffDetails(Staff staff) async {
+    // Fetch district and region names if IDs are present
+    String? districtName;
+    String? regionName;
+
+    if (staff.district != null) {
+      try {
+        final district = await DistrictService.instance.getDistrictById(staff.district!);
+        districtName = district?.name ?? staff.district;
+      } catch (e) {
+        districtName = staff.district;
+      }
+    }
+
+    if (staff.region != null) {
+      try {
+        final region = await RegionService.instance.getRegionById(staff.region!);
+        regionName = region?.name ?? staff.region;
+      } catch (e) {
+        regionName = staff.region;
+      }
+    }
+
+    if (!mounted) return;
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -1048,10 +1072,10 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
               _detailRow(Icons.business, 'Mission', staff.mission),
               if (staff.department != null)
                 _detailRow(Icons.category, 'Department', staff.department!),
-              if (staff.district != null)
-                _detailRow(Icons.location_on, 'District', staff.district!),
-              if (staff.region != null)
-                _detailRow(Icons.map, 'Region', staff.region!),
+              if (districtName != null)
+                _detailRow(Icons.location_on, 'District', districtName),
+              if (regionName != null)
+                _detailRow(Icons.map, 'Region', regionName),
               _detailRow(Icons.email, 'Email', staff.email),
               _detailRow(Icons.phone, 'Phone', staff.phone),
               if (staff.notes != null && staff.notes!.isNotEmpty)
