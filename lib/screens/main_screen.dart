@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
+import 'package:pastor_report/screens/my_mission_screen.dart';
 import 'package:pastor_report/screens/dashboard_screen_improved.dart';
 import 'package:pastor_report/screens/profile_screen.dart';
 import 'package:pastor_report/screens/admin_dashboard.dart';
@@ -31,6 +32,13 @@ class _MainScreenState extends State<MainScreen> {
             _buildDebugOverlay(authProvider),
         ],
       ),
+      Stack(
+        children: [
+          const MyMissionScreen(),
+          if (_showDebugInfo && authProvider.isAuthenticated)
+            _buildDebugOverlay(authProvider),
+        ],
+      ),
       const ProfileScreen(),
       if (isAdmin) const AdminDashboard(),
     ];
@@ -44,7 +52,7 @@ class _MainScreenState extends State<MainScreen> {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.7),
+          color: Colors.black.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
@@ -77,7 +85,7 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onTabTapped(int index) {
     // Check if trying to access profile without login
-    if (index == 1) {
+    if (index == 2) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       if (!authProvider.isAuthenticated) {
         _showLoginPrompt();
@@ -122,7 +130,7 @@ class _MainScreenState extends State<MainScreen> {
       final result = await Navigator.pushNamed(context, AppConstants.routeWelcome);
       if (result == true && mounted) {
         setState(() {
-          _currentIndex = 1; // Switch to profile after successful login
+          _currentIndex = 2; // Switch to profile after successful login
         });
       }
     }
@@ -159,6 +167,11 @@ class _MainScreenState extends State<MainScreen> {
               icon: Icon(Icons.dashboard_outlined),
               activeIcon: Icon(Icons.dashboard),
               label: 'Dashboard',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.business_outlined),
+              activeIcon: Icon(Icons.business),
+              label: 'My Mission',
             ),
             const BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),

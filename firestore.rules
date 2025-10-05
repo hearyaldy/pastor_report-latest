@@ -149,5 +149,21 @@ service cloud.firestore {
       // Only admins can delete churches
       allow delete: if isAdmin();
     }
+
+    // Financial Reports collection
+    match /financial_reports/{reportId} {
+      // Anyone authenticated can read financial reports
+      allow read: if isAuthenticated();
+
+      // Authenticated users can create financial reports
+      allow create: if isAuthenticated();
+
+      // Users can update their own reports, admins can update any
+      allow update: if isAuthenticated() &&
+                       (resource.data.submittedBy == request.auth.uid || isAdmin());
+
+      // Only admins can delete financial reports
+      allow delete: if isAdmin();
+    }
   }
 }

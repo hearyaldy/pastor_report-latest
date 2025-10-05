@@ -8,6 +8,9 @@ import 'package:pastor_report/services/role_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/screens/admin/church_management_screen.dart';
+import 'package:pastor_report/screens/admin/district_management_screen.dart';
+import 'package:pastor_report/screens/admin/financial_reports_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -26,7 +29,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 5, vsync: this, initialIndex: 0);
   }
 
   @override
@@ -48,9 +51,13 @@ class _AdminDashboardState extends State<AdminDashboard>
           labelColor: Colors.yellow,
           unselectedLabelColor: Colors.white70,
           indicatorColor: Colors.yellow,
+          isScrollable: true,
           tabs: const [
             Tab(icon: Icon(Icons.people), text: 'Users'),
             Tab(icon: Icon(Icons.dashboard), text: 'Departments'),
+            Tab(icon: Icon(Icons.church), text: 'Churches'),
+            Tab(icon: Icon(Icons.location_city), text: 'Districts'),
+            Tab(icon: Icon(Icons.assessment), text: 'Reports'),
           ],
         ),
       ),
@@ -59,6 +66,9 @@ class _AdminDashboardState extends State<AdminDashboard>
         children: [
           _buildUsersTab(),
           _buildDepartmentsTab(),
+          const ChurchManagementScreen(),
+          const DistrictManagementScreen(),
+          const FinancialReportsScreen(),
         ],
       ),
       floatingActionButton: Builder(

@@ -17,10 +17,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -65,4 +62,15 @@ class DefaultFirebaseOptions {
     storageBucket: 'pastor-report-e4c52.firebasestorage.app',
     iosBundleId: 'com.example.pastorReport',
   );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyB1Z7SAsV8g5UcnZMLJmtj4UZfMzA7juRk',
+    appId: '1:695678872591:web:0cd71e5809edd908f4c77a',
+    messagingSenderId: '695678872591',
+    projectId: 'pastor-report-e4c52',
+    authDomain: 'pastor-report-e4c52.firebaseapp.com',
+    storageBucket: 'pastor-report-e4c52.firebasestorage.app',
+    measurementId: 'G-F9KBEM9XGJ',
+  );
+
 }

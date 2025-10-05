@@ -1,0 +1,75 @@
+{
+  "regions": [
+    {
+      "id": "region_north",
+      "name": "North Sabah",
+      "code": "NSB",
+      "missionId": "mission_sabah",
+      "createdBy": "system"
+    },
+    {
+      "id": "region_west",
+      "name": "West Coast",
+      "code": "WST",
+      "missionId": "mission_sabah",
+      "createdBy": "system"
+    },
+    {
+      "id": "region_east",
+      "name": "East Coast",
+      "code": "EST",
+      "missionId": "mission_sabah",
+      "createdBy": "system"
+    }
+  ],
+  "districts": [
+    {
+      "id": "dist_kk1",
+      "name": "Kota Kinabalu 1",
+      "code": "KK1",
+      "regionId": "region_north",
+      "missionId": "mission_sabah",
+      "createdBy": "system"
+    },
+    {
+      "id": "dist_kk2",
+      "name": "Kota Kinabalu 2",
+      "code": "KK2",
+      "regionId": "region_north",
+      "missionId": "mission_sabah",
+      "createdBy": "system"
+    },
+    {
+      "id": "dist_papar",
+      "name": "Papar District",
+      "code": "PPR",
+      "regionId": "region_west",
+      "missionId": "mission_sabah",
+      "createdBy": "system"
+    },
+    {
+      "id": "dist_beaufort",
+      "name": "Beaufort District",
+      "code": "BFT",
+      "regionId": "region_west",
+      "missionId": "mission_sabah",
+      "createdBy": "system"
+    },
+    {
+      "id": "dist_sandakan",
+      "name": "Sandakan District",
+      "code": "SDK",
+      "regionId": "region_east",
+      "missionId": "mission_sabah",
+      "createdBy": "system"
+    },
+    {
+      "id": "dist_tawau",
+      "name": "Tawau District",
+      "code": "TWU",
+      "regionId": "region_east",
+      "missionId": "mission_sabah",
+      "createdBy": "system"
+    }
+  ]
+}

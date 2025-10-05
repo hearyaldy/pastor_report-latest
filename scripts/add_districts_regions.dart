@@ -1,7 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:uuid/uuid.dart';
-
 // Region mapping - number to region name
 const Map<int, String> regionNames = {
   1: 'Region 1',
@@ -85,7 +81,8 @@ void main() async {
   // TODO: Replace with your actual Firebase config
   // You need to initialize Firebase before running this
   print('ERROR: This script needs to be run from your Flutter app');
-  print('Please use the Firebase console or create a proper Flutter script with Firebase initialization');
+  print(
+      'Please use the Firebase console or create a proper Flutter script with Firebase initialization');
   print('\nData to add:');
   print('Regions: ${regionNames.length}');
   print('Districts: ${districtData.length}');

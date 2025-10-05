@@ -58,6 +58,19 @@ class Church {
 
   // Create from JSON
   factory Church.fromJson(Map<String, dynamic> json) {
+    // Helper function to parse DateTime from either String or Timestamp
+    DateTime? parseDateTime(dynamic value) {
+      if (value == null) return null;
+      if (value is String) return DateTime.parse(value);
+      if (value is DateTime) return value;
+      // Handle Firestore Timestamp
+      try {
+        return (value as dynamic).toDate() as DateTime;
+      } catch (e) {
+        return null;
+      }
+    }
+
     return Church(
       id: json['id'] as String,
       userId: json['userId'] as String,
@@ -71,10 +84,8 @@ class Church {
       elderPhone: json['elderPhone'] as String,
       address: json['address'] as String?,
       memberCount: json['memberCount'] as int?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'] as String)
-          : null,
+      createdAt: parseDateTime(json['createdAt']) ?? DateTime.now(),
+      updatedAt: parseDateTime(json['updatedAt']),
       districtId: json['districtId'] as String?,
       regionId: json['regionId'] as String?,
       missionId: json['missionId'] as String?,

@@ -1,6 +1,5 @@
 import 'package:pastor_report/models/district_model.dart';
 import 'package:pastor_report/models/region_model.dart';
-import 'package:pastor_report/models/staff_model.dart';
 import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/services/region_service.dart';
 import 'package:pastor_report/services/staff_service.dart';
@@ -151,7 +150,8 @@ class DataImportService {
       final regionId = regionIdMap[regionNum]!;
 
       // Generate district code from name (first 2 letters + number)
-      String districtCode = _generateDistrictCode(districtName, districtsCreated);
+      String districtCode =
+          _generateDistrictCode(districtName, districtsCreated);
 
       // Check if district already exists
       final exists = await _districtService.isDistrictCodeExists(
@@ -222,11 +222,19 @@ class DataImportService {
 
   // Staff data with district and region assignments
   static const List<Map<String, dynamic>> staffData = [
-    {'name': 'A Hairrie Severinus', 'district': 'PMC TAMPARULI / SMAT CHAPLAIN', 'region': 4},
+    {
+      'name': 'A Hairrie Severinus',
+      'district': 'PMC TAMPARULI / SMAT CHAPLAIN',
+      'region': 4
+    },
     {'name': 'A Harnnie Severinus', 'district': 'BANGKAHAK', 'region': 1},
     {'name': 'Adee Lindon Masilon', 'district': 'TELIPOK', 'region': 5},
     {'name': 'Adriel Charles Jr', 'district': 'MANTANAU', 'region': 1},
-    {'name': 'Alexander Maxon Horis', 'district': 'PMC TAMPARULI / SMAT CHAPLAIN', 'region': 4},
+    {
+      'name': 'Alexander Maxon Horis',
+      'district': 'PMC TAMPARULI / SMAT CHAPLAIN',
+      'region': 4
+    },
     {'name': 'Alexner Mansabin', 'district': 'TAVIU', 'region': 8},
     {'name': 'Alfred Joshia Chin', 'district': 'KINABATANGAN', 'region': 9},
     {'name': 'Ariman Paulus', 'district': 'ROSOK', 'region': 1},
@@ -252,17 +260,33 @@ class DataImportService {
     {'name': 'Jeremiah Sam', 'district': 'MANTOB', 'region': 4},
     {'name': 'Jetlen Jose', 'district': 'PODOS', 'region': 1},
     {'name': 'Jivell Jiviky', 'district': 'TUNGOU', 'region': 4},
-    {'name': 'Junniel Mac Daniel Gara', 'district': 'KOTA KINABALU CITY', 'region': 5},
-    {'name': 'Justin Wong Chong Yung', 'district': 'KOTA KINABALU, LUYANG', 'region': 5},
+    {
+      'name': 'Junniel Mac Daniel Gara',
+      'district': 'KOTA KINABALU CITY',
+      'region': 5
+    },
+    {
+      'name': 'Justin Wong Chong Yung',
+      'district': 'KOTA KINABALU, LUYANG',
+      'region': 5
+    },
     {'name': 'Libit Gutut', 'district': 'NANGOH', 'region': 9},
     {'name': 'Lovell Juil', 'district': 'LABUAN', 'region': 6},
     {'name': 'Madin Sandig', 'district': 'KIULU', 'region': 4},
-    {'name': 'Maindra @ Marvin Marakus', 'district': 'LAHAD DATU', 'region': 10},
+    {
+      'name': 'Maindra @ Marvin Marakus',
+      'district': 'LAHAD DATU',
+      'region': 10
+    },
     {'name': 'Malvin Gakim', 'district': 'TAWAU', 'region': 10},
     {'name': 'Marion Martin', 'district': 'TAMBUNAN', 'region': 7},
     {'name': 'Mark Arnold Simpul', 'district': 'MALANGANG BARU', 'region': 4},
     {'name': 'Mark Gandaib', 'district': 'PENAMPANG', 'region': 5},
-    {'name': 'Melrindro Rojiin Lukas', 'district': 'KOTA KINABALU, LIKAS', 'region': 5},
+    {
+      'name': 'Melrindro Rojiin Lukas',
+      'district': 'KOTA KINABALU, LIKAS',
+      'region': 5
+    },
     {'name': 'Melvin Dickson Meliton', 'district': 'GAUR', 'region': 1},
     {'name': 'Micheal Chin Hon Kee', 'district': 'SANDAKAN', 'region': 9},
     {'name': 'Natanael Sawanai', 'district': 'SEPULUT - NABAWAN', 'region': 7},
@@ -276,15 +300,35 @@ class DataImportService {
     {'name': 'Ronald Majinau', 'district': 'INANAM', 'region': 5},
     {'name': 'Selamat Buloh', 'district': 'KAPA', 'region': 3},
     {'name': 'Severinus Umpok', 'district': 'KINASARABAN', 'region': 2},
-    {'name': 'Soliun Sandayan', 'district': 'KOTA KINABALU, LIKAS', 'region': 5},
+    {
+      'name': 'Soliun Sandayan',
+      'district': 'KOTA KINABALU, LIKAS',
+      'region': 5
+    },
     {'name': 'Syeborn Bukah', 'district': 'KENINGAU', 'region': 7},
-    {'name': 'Timothy Chin Wei Jun', 'district': 'KOTA KINABALU, LUYANG', 'region': 5},
+    {
+      'name': 'Timothy Chin Wei Jun',
+      'district': 'KOTA KINABALU, LUYANG',
+      'region': 5
+    },
     {'name': 'Vicky Vale Harold', 'district': 'SERUDUNG, TAWAU', 'region': 10},
     {'name': 'Willborn Gondolos', 'district': 'KELAWAT', 'region': 2},
-    {'name': 'Willmer Barlon Duak', 'district': 'SALIKU - SUMATALUN', 'region': 7},
+    {
+      'name': 'Willmer Barlon Duak',
+      'district': 'SALIKU - SUMATALUN',
+      'region': 7
+    },
     {'name': 'Willter G Asin', 'district': 'BEAUFORT', 'region': 6},
-    {'name': 'YM Alnanih Sangkoh', 'district': 'MANSIAT - SINULIHAN, SOOK', 'region': 7},
-    {'name': 'YM Mack Aprioedry Kisi', 'district': 'SALINATAN - PENSIANGAN', 'region': 7},
+    {
+      'name': 'YM Alnanih Sangkoh',
+      'district': 'MANSIAT - SINULIHAN, SOOK',
+      'region': 7
+    },
+    {
+      'name': 'YM Mack Aprioedry Kisi',
+      'district': 'SALINATAN - PENSIANGAN',
+      'region': 7
+    },
   ];
 
   /// Update staff records with district and region assignments
@@ -331,9 +375,10 @@ class DataImportService {
       final regionNum = staffInfo['region'] as int;
 
       // Find matching staff by name
-      final matchingStaff = allStaff.where((s) =>
-        s.name.toLowerCase().trim() == staffName.toLowerCase().trim()
-      ).toList();
+      final matchingStaff = allStaff
+          .where((s) =>
+              s.name.toLowerCase().trim() == staffName.toLowerCase().trim())
+          .toList();
 
       if (matchingStaff.isEmpty) {
         staffNotFound++;
