@@ -86,6 +86,16 @@ class _CalendarScreenState extends State<CalendarScreen>
     _selectedDay = _focusedDay;
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
+      // Defensive check for valid index
+      if (_tabController.index < 0 || _tabController.index >= 3) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _tabController.index != 0) {
+            _tabController.animateTo(0);
+          }
+        });
+        return;
+      }
+
       if (_tabController.indexIsChanging) {
         setState(() {
           switch (_tabController.index) {
@@ -164,7 +174,8 @@ class _CalendarScreenState extends State<CalendarScreen>
   List<CalendarItem> _filterItemsByView(List<CalendarItem> items) {
     if (_selectedView == 'all') return items;
     // Match singular type with plural view (appointments -> appointment, events -> event)
-    final typeToMatch = _selectedView == 'appointments' ? 'appointment' : 'event';
+    final typeToMatch =
+        _selectedView == 'appointments' ? 'appointment' : 'event';
     return items.where((item) => item.type == typeToMatch).toList();
   }
 

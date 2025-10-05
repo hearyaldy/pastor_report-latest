@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/models/user_model.dart';
+import 'package:pastor_report/models/mission_model.dart';
+import 'package:pastor_report/models/region_model.dart';
+import 'package:pastor_report/models/district_model.dart';
 import 'package:pastor_report/services/user_management_service.dart';
+import 'package:pastor_report/services/mission_service.dart';
+import 'package:pastor_report/services/region_service.dart';
+import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/utils/theme.dart';
 import 'package:pastor_report/utils/constants.dart';
 
@@ -16,19 +22,139 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final UserManagementService _userService = UserManagementService();
   final _displayNameController = TextEditingController();
-  final _districtController = TextEditingController();
-  final _regionController = TextEditingController();
   bool _isEditing = false;
   bool _isLoading = false;
   String? _selectedMission;
   String? _selectedRole;
+  String? _selectedRegion;
+  String? _selectedDistrict;
+
+  // Lists for dropdowns
+  List<Mission> _missions = [];
+  List<Region> _regions = [];
+  List<District> _filteredDistricts = [];
+
+  // Maps to store mission, region and district names by ID
+  Map<String, String> _missionNames = {};
+  Map<String, String> _regionNames = {};
+  Map<String, String> _districtNames = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMissionsAndNames();
+  }
 
   @override
   void dispose() {
     _displayNameController.dispose();
-    _districtController.dispose();
-    _regionController.dispose();
     super.dispose();
+  }
+
+  // Load regions based on selected mission
+  Future<void> _loadRegions(String mission) async {
+    setState(() => _isLoading = true);
+    try {
+      final regions = await RegionService.instance.getRegionsByMission(mission);
+      setState(() {
+        _regions = regions;
+        // Clear selected region and district when mission changes
+        _selectedRegion = null;
+        _selectedDistrict = null;
+        _filteredDistricts = [];
+      });
+    } catch (e) {
+      print('Error loading regions: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  // Load districts based on selected region
+  Future<void> _loadDistricts(String regionId) async {
+    setState(() => _isLoading = true);
+    try {
+      final districts =
+          await DistrictService.instance.getDistrictsByRegion(regionId);
+      setState(() {
+        _filteredDistricts = districts;
+        // Clear selected district when region changes
+        _selectedDistrict = null;
+      });
+    } catch (e) {
+      print('Error loading districts: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  // Load missions, regions and district names
+  Future<void> _loadMissionsAndNames() async {
+    try {
+      // Load all missions
+      final allMissions = await MissionService.instance.getAllMissions();
+      setState(() {
+        _missions = allMissions;
+        _missionNames = {for (var m in allMissions) m.id: m.name};
+      });
+
+      // Load all regions
+      final allRegions = await RegionService.instance.getAllRegions();
+      setState(() {
+        _regionNames = {for (var r in allRegions) r.id: r.name};
+      });
+
+      // Load all districts
+      final allDistricts = await DistrictService.instance.getAllDistricts();
+      setState(() {
+        _districtNames = {for (var d in allDistricts) d.id: d.name};
+      });
+    } catch (e) {
+      print('Error loading data: $e');
+    }
+  }
+
+  // Get region name from ID
+  String _getRegionName(String? regionId) {
+    if (regionId == null || regionId.isEmpty) return 'Not assigned';
+    return _regionNames[regionId] ?? regionId;
+  }
+
+  // Get district name from ID
+  String _getDistrictName(String? districtId) {
+    if (districtId == null || districtId.isEmpty) return 'Not assigned';
+    return _districtNames[districtId] ?? districtId;
+  }
+
+  // Get available roles based on user's current role
+  List<UserRole> _getAvailableRoles(UserRole currentRole) {
+    // Super Admin can assign any role
+    if (currentRole == UserRole.superAdmin) {
+      return UserRole.values.toList();
+    }
+
+    // Admin can assign roles up to mission admin
+    if (currentRole == UserRole.admin) {
+      return [
+        UserRole.user,
+        UserRole.churchTreasurer,
+        UserRole.editor,
+        UserRole.missionAdmin,
+        UserRole.admin,
+      ];
+    }
+
+    // Mission Admin can assign basic roles
+    if (currentRole == UserRole.missionAdmin) {
+      return [
+        UserRole.user,
+        UserRole.churchTreasurer,
+        UserRole.editor,
+      ];
+    }
+
+    // Other roles can't change roles, only see their own
+    return [currentRole];
   }
 
   Future<void> _saveProfile() async {
@@ -41,8 +167,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         uid: authProvider.user!.uid,
         displayName: _displayNameController.text.trim(),
         mission: _selectedMission,
-        district: _districtController.text.trim(),
-        region: _regionController.text.trim(),
+        district: _selectedDistrict,
+        region: _selectedRegion,
         role: _selectedRole,
       );
 
@@ -375,7 +501,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(_getRoleIcon(user), size: 14, color: Colors.white),
+                                Icon(_getRoleIcon(user),
+                                    size: 14, color: Colors.white),
                                 const SizedBox(width: 6),
                                 Text(
                                   user.roleString.toUpperCase(),
@@ -400,7 +527,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               child: const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.star, size: 14, color: Colors.white),
+                                  Icon(Icons.star,
+                                      size: 14, color: Colors.white),
                                   SizedBox(width: 4),
                                   Text(
                                     'PREMIUM',
@@ -450,17 +578,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               IconButton(
                                 icon: const Icon(Icons.edit,
                                     color: AppTheme.primary),
-                                onPressed: () {
+                                onPressed: () async {
+                                  // Verify that the user's role is available in UserRole enum
+                                  final userRoleName =
+                                      user.userRole.displayName;
+                                  final availableRoles =
+                                      _getAvailableRoles(user.userRole);
+
+                                  // Check if user role exists in available roles
+                                  final roleExists = availableRoles.any(
+                                      (role) =>
+                                          role.displayName == userRoleName);
+
                                   setState(() {
                                     _isEditing = true;
                                     _displayNameController.text =
                                         user.displayName;
                                     _selectedMission = user.mission;
-                                    _districtController.text =
-                                        user.district ?? '';
-                                    _regionController.text = user.region ?? '';
-                                    _selectedRole = user.role;
+
+                                    // Set role only if it exists in available roles
+                                    if (roleExists) {
+                                      _selectedRole = userRoleName;
+                                    } else {
+                                      // Default to first available role if current role not found
+                                      _selectedRole =
+                                          availableRoles.first.displayName;
+                                    }
                                   });
+
+                                  // Load regions for the selected mission
+                                  if (_selectedMission != null) {
+                                    await _loadRegions(_selectedMission!);
+
+                                    // If user has a region, select it
+                                    if (user.region != null &&
+                                        user.region!.isNotEmpty) {
+                                      // Find region by ID
+                                      for (var region in _regions) {
+                                        if (region.id == user.region) {
+                                          setState(() {
+                                            _selectedRegion = region.id;
+                                          });
+                                          // Load districts for this region
+                                          await _loadDistricts(region.id);
+                                          break;
+                                        }
+                                      }
+
+                                      // If user has a district, select it
+                                      if (user.district != null &&
+                                          user.district!.isNotEmpty) {
+                                        setState(() {
+                                          _selectedDistrict = user.district;
+                                        });
+                                      }
+                                    }
+                                  }
                                 },
                               ),
                           ],
@@ -485,56 +658,100 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   border: OutlineInputBorder(),
                                   prefixIcon: Icon(Icons.church_outlined),
                                 ),
-                                items:
-                                    AppConstants.missions.map((String mission) {
+                                items: _missions.map((Mission mission) {
                                   return DropdownMenuItem<String>(
-                                    value: mission,
-                                    child: Text(mission),
+                                    value: mission.id,
+                                    child: Text(mission.name),
                                   );
                                 }).toList(),
                                 onChanged: (String? newValue) {
                                   setState(() {
                                     _selectedMission = newValue;
                                   });
+                                  if (newValue != null) {
+                                    _loadRegions(newValue);
+                                  }
                                 },
                               ),
                               const SizedBox(height: 16),
-                              TextField(
-                                controller: _districtController,
+                              DropdownButtonFormField<String>(
+                                value: _selectedRegion,
+                                decoration: const InputDecoration(
+                                  labelText: 'Region',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.map_outlined),
+                                ),
+                                items: _regions.map((Region region) {
+                                  return DropdownMenuItem<String>(
+                                    value: region.id,
+                                    child: Text(region.name),
+                                  );
+                                }).toList(),
+                                onChanged: _regions.isEmpty
+                                    ? null
+                                    : (String? newValue) {
+                                        setState(() {
+                                          _selectedRegion = newValue;
+                                        });
+                                        if (newValue != null) {
+                                          _loadDistricts(newValue);
+                                        }
+                                      },
+                              ),
+                              const SizedBox(height: 16),
+                              DropdownButtonFormField<String>(
+                                value: _selectedDistrict,
                                 decoration: const InputDecoration(
                                   labelText: 'District',
                                   border: OutlineInputBorder(),
                                   prefixIcon:
                                       Icon(Icons.location_city_outlined),
                                 ),
-                              ),
-                              const SizedBox(height: 16),
-                              TextField(
-                                controller: _regionController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Region',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.map_outlined),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              DropdownButtonFormField<String>(
-                                value: _selectedRole,
-                                decoration: const InputDecoration(
-                                  labelText: 'Role',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.badge_outlined),
-                                ),
-                                items: AppConstants.roles.map((String role) {
+                                items:
+                                    _filteredDistricts.map((District district) {
                                   return DropdownMenuItem<String>(
-                                    value: role,
-                                    child: Text(role),
+                                    value: district.id,
+                                    child: Text(district.name),
                                   );
                                 }).toList(),
-                                onChanged: (String? newValue) {
-                                  setState(() {
-                                    _selectedRole = newValue;
-                                  });
+                                onChanged: _filteredDistricts.isEmpty
+                                    ? null
+                                    : (String? newValue) {
+                                        setState(() {
+                                          _selectedDistrict = newValue;
+                                        });
+                                      },
+                              ),
+                              const SizedBox(height: 16),
+                              FutureBuilder<List<UserRole>>(
+                                future: Future.value(
+                                    _getAvailableRoles(user.userRole)),
+                                builder: (context, snapshot) {
+                                  if (!snapshot.hasData) {
+                                    return const CircularProgressIndicator();
+                                  }
+
+                                  final availableRoles = snapshot.data!;
+
+                                  return DropdownButtonFormField<String>(
+                                    value: _selectedRole,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Role',
+                                      border: OutlineInputBorder(),
+                                      prefixIcon: Icon(Icons.badge_outlined),
+                                    ),
+                                    items: availableRoles.map((UserRole role) {
+                                      return DropdownMenuItem<String>(
+                                        value: role.displayName,
+                                        child: Text(role.displayName),
+                                      );
+                                    }).toList(),
+                                    onChanged: (String? newValue) {
+                                      setState(() {
+                                        _selectedRole = newValue;
+                                      });
+                                    },
+                                  );
                                 },
                               ),
                               const SizedBox(height: 16),
@@ -610,7 +827,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       leading: const Icon(Icons.location_city_outlined,
                           color: AppTheme.primary),
                       title: const Text('District'),
-                      subtitle: Text(user.district!),
+                      subtitle: Text(_getDistrictName(user.district)),
                     ),
                   ),
 
@@ -623,7 +840,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       leading: const Icon(Icons.map_outlined,
                           color: AppTheme.primary),
                       title: const Text('Region'),
-                      subtitle: Text(user.region!),
+                      subtitle: Text(_getRegionName(user.region)),
                     ),
                   ),
 
@@ -649,7 +866,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.build,
                     title: 'Admin Utilities',
                     onTap: () {
-                      Navigator.pushNamed(context, AppConstants.routeAdminUtilities);
+                      Navigator.pushNamed(
+                          context, AppConstants.routeAdminUtilities);
                     },
                   ),
                   _buildListTile(
@@ -771,6 +989,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Colors.blue;
       case UserRole.editor:
         return Colors.orange;
+      case UserRole.churchTreasurer:
+        return Colors.amber.shade800;
       case UserRole.user:
         return AppTheme.success;
     }
@@ -786,6 +1006,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Icons.business;
       case UserRole.editor:
         return Icons.edit;
+      case UserRole.churchTreasurer:
+        return Icons.account_balance_wallet;
       case UserRole.user:
         return Icons.person;
     }

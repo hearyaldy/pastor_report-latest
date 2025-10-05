@@ -63,7 +63,7 @@ service cloud.firestore {
     
     // Missions collection (new mission-based structure)
     match /missions/{missionId} {
-      // Anyone can read mission details
+      // Allow anyone to read mission details (needed for registration page)
       allow read: if true;
       
       // Only admins can create, update, or delete missions
@@ -118,8 +118,8 @@ service cloud.firestore {
 
     // Regions collection (organizational structure)
     match /regions/{regionId} {
-      // Anyone authenticated can read regions
-      allow read: if isAuthenticated();
+      // Allow anyone to read regions (needed for registration page)
+      allow read: if true;
 
       // Only admins can create, update, or delete regions
       allow create, update, delete: if isAdmin();
@@ -127,8 +127,8 @@ service cloud.firestore {
 
     // Districts collection (organizational structure)
     match /districts/{districtId} {
-      // Anyone authenticated can read districts
-      allow read: if isAuthenticated();
+      // Allow anyone to read districts (needed for registration page)
+      allow read: if true;
 
       // Only admins can create, update, or delete districts
       allow create, update, delete: if isAdmin();

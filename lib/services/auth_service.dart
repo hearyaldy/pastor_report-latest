@@ -14,7 +14,8 @@ class AuthService {
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   // Sign in with email and password
-  Future<UserModel?> signInWithEmailPassword(String email, String password) async {
+  Future<UserModel?> signInWithEmailPassword(
+      String email, String password) async {
     try {
       UserCredential result = await _auth.signInWithEmailAndPassword(
         email: email,
@@ -43,6 +44,7 @@ class AuthService {
     String? district,
     String? region,
     String? role,
+    String? churchId,
   }) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
@@ -52,6 +54,11 @@ class AuthService {
 
       User? user = result.user;
       if (user != null) {
+        // Determine user role based on selected role
+        if (role == 'Church Treasurer') {
+          userRole = UserRole.churchTreasurer;
+        }
+
         // Create user document in Firestore
         UserModel userModel = UserModel(
           uid: user.uid,
@@ -61,9 +68,14 @@ class AuthService {
           mission: mission,
           district: district,
           region: region,
+          roleTitle: role,
+          churchId: churchId,
         );
 
-        await _firestore.collection('users').doc(user.uid).set(userModel.toMap());
+        await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .set(userModel.toMap());
 
         // Update display name in Firebase Auth
         await user.updateDisplayName(displayName);
@@ -81,7 +93,8 @@ class AuthService {
   // Get user data from Firestore
   Future<UserModel?> getUserData(String uid) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
+      DocumentSnapshot doc =
+          await _firestore.collection('users').doc(uid).get();
 
       if (doc.exists) {
         return UserModel.fromMap(doc.data() as Map<String, dynamic>, uid);

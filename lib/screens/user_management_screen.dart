@@ -12,356 +12,329 @@ class UserManagementScreen extends StatefulWidget {
 
 class _UserManagementScreenState extends State<UserManagementScreen> {
   final userService = UserManagementService();
+  String _searchQuery = '';
+  String? _selectedMissionFilter;
+  UserModel? _currentUser;
 
-  String? _selectedMission;
-  String? _selectedRole;
-  String? _selectedPosition;
-  String _groupBy = 'none'; // none, mission, role, position
-  bool _showFilters = false;
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    try {
+      _currentUser = await userService.getCurrentUser();
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('Error loading current user: $e');
+    }
+  }
 
   List<UserModel> _applyFilters(List<UserModel> users) {
     var filtered = users;
 
-    if (_selectedMission != null && _selectedMission!.isNotEmpty) {
-      filtered = filtered.where((u) => u.mission == _selectedMission).toList();
+    // Apply search filter
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((user) {
+        return user.displayName
+                .toLowerCase()
+                .contains(_searchQuery.toLowerCase()) ||
+            user.email.toLowerCase().contains(_searchQuery.toLowerCase());
+      }).toList();
     }
 
-    if (_selectedRole != null && _selectedRole!.isNotEmpty) {
-      filtered = filtered.where((u) => u.roleString == _selectedRole).toList();
-    }
-
-    if (_selectedPosition != null && _selectedPosition!.isNotEmpty) {
-      filtered = filtered.where((u) => u.role == _selectedPosition).toList();
+    // Apply mission filter
+    if (_selectedMissionFilter != null && _selectedMissionFilter!.isNotEmpty) {
+      filtered = filtered.where((user) {
+        return user.mission == _selectedMissionFilter;
+      }).toList();
     }
 
     return filtered;
   }
 
-  Map<String, List<UserModel>> _groupUsers(List<UserModel> users) {
-    if (_groupBy == 'none') {
-      return {'All Users': users};
-    }
-
-    final Map<String, List<UserModel>> grouped = {};
-
-    for (final user in users) {
-      String key;
-
-      switch (_groupBy) {
-        case 'mission':
-          key = user.mission ?? 'No Mission';
-          break;
-        case 'role':
-          key = user.roleString;
-          break;
-        case 'position':
-          key = user.role ?? 'No Position';
-          break;
-        default:
-          key = 'All Users';
-      }
-
-      grouped.putIfAbsent(key, () => []);
-      grouped[key]!.add(user);
-    }
-
-    return grouped;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('User Management'),
-        backgroundColor: AppColors.primaryLight,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: Icon(_showFilters ? Icons.filter_list_off : Icons.filter_list),
-            tooltip: _showFilters ? 'Hide Filters' : 'Show Filters',
-            onPressed: () {
-              setState(() {
-                _showFilters = !_showFilters;
-              });
-            },
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Filter Section
-          if (_showFilters)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                border: Border(
-                  bottom: BorderSide(color: Colors.grey.shade300),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          setState(() {});
+        },
+        child: CustomScrollView(
+          slivers: [
+            _buildModernAppBar(),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildSearchBar(),
+                    const SizedBox(height: 16),
+                    _buildFilterRow(),
+                  ],
                 ),
               ),
-              child: StreamBuilder<List<UserModel>>(
-                stream: userService.getUsersStream(),
-                builder: (context, snapshot) {
-                  final allUsers = snapshot.data ?? [];
-                  final missions = allUsers
-                      .map((u) => u.mission)
-                      .where((m) => m != null && m.isNotEmpty)
-                      .toSet()
-                      .toList()
-                    ..sort();
-                  final roles = allUsers.map((u) => u.roleString).toSet().toList()
-                    ..sort();
-                  final positions = allUsers
-                      .map((u) => u.role)
-                      .where((r) => r != null && r.isNotEmpty)
-                      .toSet()
-                      .toList()
-                    ..sort();
+            ),
+            _buildUserList(),
+          ],
+        ),
+      ),
+    );
+  }
 
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Filters',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
+  Widget _buildModernAppBar() {
+    return SliverAppBar(
+      expandedHeight: 160,
+      floating: false,
+      pinned: true,
+      backgroundColor: AppColors.primaryLight,
+      flexibleSpace: FlexibleSpaceBar(
+        title: const Text(
+          'User Management',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.primaryLight,
+                AppColors.primaryDark,
+              ],
+            ),
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -30,
+                top: -30,
+                child: Icon(
+                  Icons.people_alt_rounded,
+                  size: 150,
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                      // Mission Filter
-                      DropdownButtonFormField<String>(
-                        value: _selectedMission,
-                        decoration: const InputDecoration(
-                          labelText: 'Mission',
-                          prefixIcon: Icon(Icons.business),
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                        items: [
-                          const DropdownMenuItem(
-                            value: null,
-                            child: Text('All Missions'),
-                          ),
-                          ...missions.map((m) => DropdownMenuItem(
-                                value: m,
-                                child: Text(m!),
-                              )),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedMission = value;
-                          });
-                        },
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // Role Filter (Admin Type)
-                      DropdownButtonFormField<String>(
-                        value: _selectedRole,
-                        decoration: const InputDecoration(
-                          labelText: 'Role (Admin Type)',
-                          prefixIcon: Icon(Icons.admin_panel_settings),
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                        items: [
-                          const DropdownMenuItem(
-                            value: null,
-                            child: Text('All Roles'),
-                          ),
-                          ...roles.map((r) => DropdownMenuItem(
-                                value: r,
-                                child: Text(r),
-                              )),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedRole = value;
-                          });
-                        },
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // Position Filter
-                      DropdownButtonFormField<String>(
-                        value: _selectedPosition,
-                        decoration: const InputDecoration(
-                          labelText: 'Position',
-                          prefixIcon: Icon(Icons.work),
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                        items: [
-                          const DropdownMenuItem(
-                            value: null,
-                            child: Text('All Positions'),
-                          ),
-                          ...positions.map((p) => DropdownMenuItem(
-                                value: p,
-                                child: Text(p!),
-                              )),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedPosition = value;
-                          });
-                        },
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // Group By
-                      DropdownButtonFormField<String>(
-                        value: _groupBy,
-                        decoration: const InputDecoration(
-                          labelText: 'Group By',
-                          prefixIcon: Icon(Icons.group_work),
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'none',
-                            child: Text('No Grouping'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'mission',
-                            child: Text('Group by Mission'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'role',
-                            child: Text('Group by Role'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'position',
-                            child: Text('Group by Position'),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            _groupBy = value ?? 'none';
-                          });
-                        },
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // Clear Filters Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              _selectedMission = null;
-                              _selectedRole = null;
-                              _selectedPosition = null;
-                              _groupBy = 'none';
-                            });
-                          },
-                          icon: const Icon(Icons.clear),
-                          label: const Text('Clear All Filters'),
-                        ),
-                      ),
-                    ],
-                  );
+  Widget _buildSearchBar() {
+    return TextField(
+      decoration: InputDecoration(
+        hintText: 'Search users by name or email...',
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: _searchQuery.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  setState(() {
+                    _searchQuery = '';
+                  });
                 },
+              )
+            : null,
+        filled: true,
+        fillColor: Colors.grey.shade100,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      onChanged: (value) {
+        setState(() {
+          _searchQuery = value;
+        });
+      },
+    );
+  }
+
+  Widget _buildFilterRow() {
+    return StreamBuilder<List<UserModel>>(
+      stream: userService.getUsersStream(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+
+        final allUsers = snapshot.data!;
+        final missions = allUsers
+            .map((u) => u.mission)
+            .where((m) => m != null && m.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+
+        return DropdownButtonFormField<String>(
+          value: _selectedMissionFilter,
+          decoration: InputDecoration(
+            labelText: 'Filter by Mission',
+            prefixIcon: const Icon(Icons.business, size: 20),
+            filled: true,
+            fillColor: Colors.grey.shade100,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            isDense: true,
+          ),
+          isExpanded: true,
+          items: [
+            const DropdownMenuItem(value: null, child: Text('All Missions')),
+            ...missions.map((m) => DropdownMenuItem(
+                  value: m,
+                  child: Text(m!, overflow: TextOverflow.ellipsis),
+                )),
+          ],
+          onChanged: (value) {
+            setState(() {
+              _selectedMissionFilter = value;
+            });
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildUserList() {
+    return StreamBuilder<List<UserModel>>(
+      stream: userService.getUsersStream(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return SliverFillRemaining(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text('Error: ${snapshot.error}'),
+                ],
               ),
             ),
+          );
+        }
 
-          // User List
-          Expanded(
-            child: StreamBuilder<List<UserModel>>(
-              stream: userService.getUsersStream(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SliverFillRemaining(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No users found',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
 
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
+        final allUsers = snapshot.data!;
+        final filteredUsers = _applyFilters(allUsers);
 
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No users found'));
-                }
+        if (filteredUsers.isEmpty) {
+          return const SliverFillRemaining(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.search_off, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No users match your search',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
 
-                final allUsers = snapshot.data!;
-                final filteredUsers = _applyFilters(allUsers);
-                final groupedUsers = _groupUsers(filteredUsers);
+        // Group users by role
+        Map<UserRole, List<UserModel>> usersByRole = {};
+        for (var user in filteredUsers) {
+          if (!usersByRole.containsKey(user.userRole)) {
+            usersByRole[user.userRole] = [];
+          }
+          usersByRole[user.userRole]!.add(user);
+        }
 
-                if (filteredUsers.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.search_off, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          'No users match the selected filters',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  );
-                }
+        // Sort roles by level in descending order (highest level first)
+        final sortedRoles = usersByRole.keys.toList()
+          ..sort((a, b) => b.level.compareTo(a.level));
 
-                return ListView.builder(
-                  itemCount: groupedUsers.length,
-                  itemBuilder: (context, groupIndex) {
-                    final groupKey = groupedUsers.keys.elementAt(groupIndex);
-                    final groupUsers = groupedUsers[groupKey]!;
+        // Create a list of widgets for each role group
+        List<Widget> roleGroups = [];
+        for (var role in sortedRoles) {
+          roleGroups.add(_buildRoleSectionHeader(role));
+          roleGroups.addAll(
+              usersByRole[role]!.map((user) => _buildUserCard(user)).toList());
+          roleGroups
+              .add(const SizedBox(height: 24)); // Add space between role groups
+        }
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Group Header
-                        if (_groupBy != 'none')
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            color: AppColors.primaryLight.withValues(alpha: 0.1),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  _groupBy == 'mission'
-                                      ? Icons.business
-                                      : _groupBy == 'role'
-                                          ? Icons.admin_panel_settings
-                                          : Icons.work,
-                                  size: 20,
-                                  color: AppColors.primaryLight,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '$groupKey (${groupUsers.length})',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primaryLight,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+        return SliverPadding(
+          padding: const EdgeInsets.all(16),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => roleGroups[index],
+              childCount: roleGroups.length,
+            ),
+          ),
+        );
+      },
+    );
+  }
 
-                        // Group Users
-                        ...groupUsers.map((user) => _buildUserCard(user)),
-                      ],
-                    );
-                  },
-                );
-              },
+  Widget _buildRoleSectionHeader(UserRole role) {
+    Color roleColor = _getRoleColor(role);
+    IconData roleIcon = _getRoleIcon(role);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 12),
+      child: Row(
+        children: [
+          Icon(roleIcon, color: roleColor, size: 24),
+          const SizedBox(width: 12),
+          Text(
+            '${role.displayName}s', // Pluralize the role name
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[800],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: roleColor.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              _getRoleDescription(role),
+              style: TextStyle(
+                fontSize: 12,
+                color: roleColor,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -370,107 +343,626 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 
   Widget _buildUserCard(UserModel user) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: user.isAdmin
-              ? Colors.red
-              : user.isMissionAdmin
-                  ? Colors.orange
-                  : user.isEditor
-                      ? Colors.blue
-                      : AppColors.primaryLight,
-          child: Icon(
-            user.isAdmin
-                ? Icons.admin_panel_settings
-                : user.isMissionAdmin
-                    ? Icons.business_center
-                    : user.isEditor
-                        ? Icons.edit
-                        : Icons.person,
-            color: Colors.white,
+    // Get role color for the card
+    final roleColor = _getRoleColor(user.userRole);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: roleColor.withOpacity(0.3), width: 1.5),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: roleColor.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
-        ),
-        title: Text(user.displayName),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: Stack(
           children: [
-            Text(user.email),
-            const SizedBox(height: 4),
-            Wrap(
-              spacing: 8,
-              children: [
-                if (user.mission != null && user.mission!.isNotEmpty)
-                  Chip(
-                    label: Text(user.mission!),
-                    avatar: const Icon(Icons.business, size: 16),
-                    visualDensity: VisualDensity.compact,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            // Role indicator in top right corner
+            Positioned(
+              top: 0,
+              right: 0,
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: roleColor,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
                   ),
-                if (user.role != null && user.role!.isNotEmpty)
-                  Chip(
-                    label: Text(user.role!),
-                    avatar: const Icon(Icons.work, size: 16),
-                    visualDensity: VisualDensity.compact,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                Chip(
-                  label: Text(user.roleString),
-                  backgroundColor: user.isAdmin
-                      ? Colors.red.shade100
-                      : user.isMissionAdmin
-                          ? Colors.orange.shade100
-                          : user.isEditor
-                              ? Colors.blue.shade100
-                              : Colors.grey.shade200,
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-              ],
+                child: Center(
+                  child: Icon(
+                    _getRoleIcon(user.userRole),
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+              ),
+            ),
+            InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => _showUserDetails(user),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    // Avatar
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            roleColor.withOpacity(0.8),
+                            roleColor,
+                          ],
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _getRoleIcon(user.userRole),
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // User info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user.displayName,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            user.email,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              _buildChip(
+                                user.role ?? 'User',
+                                _getRoleIcon(user.userRole),
+                                _getRoleColor(user.userRole).withOpacity(0.1),
+                                _getRoleColor(user.userRole),
+                              ),
+                              if (user.mission != null)
+                                _buildChip(
+                                  user.mission!,
+                                  Icons.business,
+                                  Colors.blue.shade100,
+                                  Colors.blue.shade700,
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Role management button
+                    IconButton(
+                      icon: Icon(
+                        Icons.manage_accounts,
+                        color: _currentUser?.userRole
+                                    .canManageRole(user.userRole) ==
+                                true
+                            ? AppColors.primaryLight
+                            : Colors.grey,
+                      ),
+                      onPressed:
+                          _currentUser?.userRole.canManageRole(user.userRole) ==
+                                  true
+                              ? () => _showChangeRoleDialog(user)
+                              : null,
+                      tooltip: 'Manage Role',
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
-        trailing: Switch(
-          value: user.isAdmin,
-          onChanged: (value) async {
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: Text('${value ? 'Grant' : 'Remove'} Admin Access'),
-                content: Text(
-                  'Are you sure you want to ${value ? 'grant' : 'remove'} admin access for ${user.displayName}?',
+      ),
+    );
+  }
+
+  // Helper method to get role icon
+  IconData _getRoleIcon(UserRole role) {
+    switch (role) {
+      case UserRole.superAdmin:
+        return Icons.security;
+      case UserRole.admin:
+        return Icons.admin_panel_settings;
+      case UserRole.missionAdmin:
+        return Icons.business;
+      case UserRole.editor:
+        return Icons.edit_note;
+      case UserRole.churchTreasurer:
+        return Icons.account_balance_wallet;
+      case UserRole.user:
+        return Icons.person;
+    }
+  }
+
+  // Helper method to get role color
+  Color _getRoleColor(UserRole role) {
+    switch (role) {
+      case UserRole.superAdmin:
+        return Colors.deepPurple;
+      case UserRole.admin:
+        return Colors.red.shade700;
+      case UserRole.missionAdmin:
+        return Colors.blue.shade700;
+      case UserRole.editor:
+        return Colors.green.shade700;
+      case UserRole.churchTreasurer:
+        return Colors.amber.shade800;
+      case UserRole.user:
+        return AppColors.primaryDark;
+    }
+  }
+
+  Widget _buildChip(
+      String label, IconData icon, Color bgColor, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: textColor),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: textColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showUserDetails(UserModel user) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Header
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: user.isAdmin
+                      ? [Colors.red, Colors.red.shade700]
+                      : [AppColors.primaryLight, AppColors.primaryDark],
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Cancel'),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      user.isAdmin ? Icons.admin_panel_settings : Icons.person,
+                      size: 40,
+                      color: user.isAdmin ? Colors.red : AppColors.primaryLight,
+                    ),
                   ),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: const Text('Confirm'),
+                  const SizedBox(height: 16),
+                  Text(
+                    user.displayName,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      user.isAdmin ? 'Admin' : 'Pastor',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ],
               ),
-            );
-
-            if (confirm == true) {
-              try {
-                await userService.toggleAdminStatus(user.uid, value);
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('User updated')),
-                );
-              } catch (e) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: $e')),
-                );
-              }
-            }
-          },
+            ),
+            // Details
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(24),
+                children: [
+                  _buildDetailRow(Icons.email, 'Email', user.email),
+                  const SizedBox(height: 16),
+                  _buildDetailRow(Icons.badge, 'User ID', user.uid),
+                  if (user.mission != null) ...[
+                    const SizedBox(height: 16),
+                    _buildDetailRow(Icons.business, 'Mission', user.mission!),
+                  ],
+                  if (user.district != null) ...[
+                    const SizedBox(height: 16),
+                    _buildDetailRow(Icons.map, 'District', user.district!),
+                  ],
+                  if (user.region != null) ...[
+                    const SizedBox(height: 16),
+                    _buildDetailRow(Icons.place, 'Region', user.region!),
+                  ],
+                  if (user.role != null) ...[
+                    const SizedBox(height: 16),
+                    _buildDetailRow(Icons.work, 'Position', user.role!),
+                  ],
+                  const SizedBox(height: 24),
+                  // Actions
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed:
+                          _currentUser?.userRole.canManageRole(user.userRole) ==
+                                  true
+                              ? () {
+                                  Navigator.pop(context);
+                                  _showChangeRoleDialog(user);
+                                }
+                              : null,
+                      icon: const Icon(Icons.manage_accounts),
+                      label: const Text('Manage User Role'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            user.isAdmin ? Colors.red : AppColors.primaryLight,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.all(16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: Colors.grey.shade600),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Show a dialog to change user role
+  Future<void> _showChangeRoleDialog(UserModel user) async {
+    if (_currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to determine your permissions')),
+      );
+      return;
+    }
+
+    // Only show roles that the current user can assign
+    List<UserRole> availableRoles = [];
+
+    for (var role in UserRole.values) {
+      if (_currentUser!.userRole.canManageRole(role)) {
+        availableRoles.add(role);
+      }
+    }
+
+    if (availableRoles.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('You don\'t have permission to change roles')),
+      );
+      return;
+    }
+
+    UserRole selectedRole = user.userRole;
+
+    final newRole = await showModalBottomSheet<UserRole>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
+            // Header
+            Row(
+              children: [
+                Icon(
+                  Icons.manage_accounts,
+                  color: AppColors.primaryLight,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Change Role',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+              ],
+            ),
+
+            const Divider(height: 24),
+
+            Text(
+              'Select a new role for ${user.displayName}',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Role selection list
+            ...availableRoles.map((role) => _buildRoleSelectionTile(
+                  role: role,
+                  isSelected: selectedRole == role,
+                  onTap: () {
+                    selectedRole = role;
+                    Navigator.pop(context, role);
+                  },
+                )),
+
+            const SizedBox(height: 20),
+
+            // Cancel button
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: BorderSide(color: Colors.grey.shade300),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+
+            // Add padding for bottom safe area
+            SizedBox(height: MediaQuery.of(context).padding.bottom),
+          ],
+        ),
+      ),
+    );
+
+    if (newRole != null && newRole != user.userRole) {
+      try {
+        await userService.updateUserRole(uid: user.uid, newRole: newRole);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Text(
+                    'Role updated for ${user.displayName} to ${newRole.displayName}'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Error: $e')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    }
+  }
+
+  // Helper method to build role selection tile for the bottom sheet
+  Widget _buildRoleSelectionTile({
+    required UserRole role,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final roleColor = _getRoleColor(role);
+    final roleIcon = _getRoleIcon(role);
+    final roleDescription = _getRoleDescription(role);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? roleColor.withOpacity(0.1) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? roleColor : Colors.grey.shade200,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: roleColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(roleIcon, color: roleColor, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    role.displayName,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  Text(
+                    roleDescription,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(Icons.check_circle, color: roleColor, size: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper method for role description
+  String _getRoleDescription(UserRole role) {
+    switch (role) {
+      case UserRole.superAdmin:
+        return 'Full system access';
+      case UserRole.admin:
+        return 'Manage users and missions';
+      case UserRole.missionAdmin:
+        return 'Manage own mission';
+      case UserRole.editor:
+        return 'Edit department URLs';
+      case UserRole.churchTreasurer:
+        return 'Manage financial reports';
+      case UserRole.user:
+        return 'Basic access';
+    }
   }
 }

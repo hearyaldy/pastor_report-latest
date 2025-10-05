@@ -3,6 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/services/user_management_service.dart';
+import 'package:pastor_report/services/mission_service.dart';
+import 'package:pastor_report/services/region_service.dart';
+import 'package:pastor_report/services/district_service.dart';
+import 'package:pastor_report/models/mission_model.dart';
+import 'package:pastor_report/models/region_model.dart';
+import 'package:pastor_report/models/district_model.dart';
+import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/utils/theme.dart';
 
@@ -15,19 +22,70 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _districtController = TextEditingController();
-  final _regionController = TextEditingController();
   final UserManagementService _userService = UserManagementService();
 
   String? _selectedMission;
+  String? _selectedRegion;
+  String? _selectedDistrict;
   String? _selectedRole;
   bool _isLoading = false;
 
+  List<Mission> _missions = [];
+  List<Region> _regions = [];
+  List<District> _districts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMissions();
+  }
+
   @override
   void dispose() {
-    _districtController.dispose();
-    _regionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadMissions() async {
+    setState(() => _isLoading = true);
+    try {
+      _missions = await MissionService.instance.getAllMissions();
+      setState(() {});
+    } catch (e) {
+      print('Error loading missions: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadRegions(String missionId) async {
+    setState(() {
+      _regions = [];
+      _districts = [];
+      _selectedRegion = null;
+      _selectedDistrict = null;
+    });
+
+    try {
+      _regions = await RegionService.instance.getRegionsByMission(missionId);
+      setState(() {});
+    } catch (e) {
+      print('Error loading regions: $e');
+    }
+  }
+
+  Future<void> _loadDistricts(String regionId) async {
+    setState(() {
+      _districts = [];
+      _selectedDistrict = null;
+    });
+
+    try {
+      _districts =
+          await DistrictService.instance.getDistrictsByRegion(regionId);
+      setState(() {});
+    } catch (e) {
+      print('Error loading districts: $e');
+    }
   }
 
   Future<void> _completeOnboarding() async {
@@ -42,8 +100,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       await _userService.updateUserProfile(
         uid: authProvider.user!.uid,
         mission: _selectedMission,
-        district: _districtController.text.trim(),
-        region: _regionController.text.trim(),
+        district: _selectedDistrict,
+        region: _selectedRegion,
         role: _selectedRole,
       );
 
@@ -98,10 +156,38 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
+
+                Consumer<AuthProvider>(builder: (context, authProvider, child) {
+                  final user = authProvider.user;
+                  String welcomeText =
+                      'Let\'s set up your profile to get started';
+
+                  if (user != null) {
+                    if (user.userRole == UserRole.churchTreasurer) {
+                      welcomeText =
+                          'Welcome, Church Treasurer! Please complete your profile to start submitting financial reports for your church.';
+                    } else if (user.roleTitle?.contains('Pastor') == true ||
+                        (user.role?.contains('Pastor') == true)) {
+                      welcomeText =
+                          'Welcome, Pastor! Please complete your profile to start managing your ministry and churches.';
+                    }
+                  }
+
+                  return Text(
+                    welcomeText,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                    textAlign: TextAlign.center,
+                  );
+                }),
+
+                const SizedBox(height: 12),
                 Text(
-                  'Let\'s set up your profile to get started',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppTheme.textSecondary,
+                  'All users need to complete onboarding again for our new database system.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.bold,
                       ),
                   textAlign: TextAlign.center,
                 ),
@@ -115,16 +201,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     hintText: 'Select your mission',
                     prefixIcon: Icon(Icons.church_outlined),
                   ),
-                  items: AppConstants.missions.map((String mission) {
+                  items: _missions.map((Mission mission) {
                     return DropdownMenuItem<String>(
-                      value: mission,
-                      child: Text(mission),
+                      value: mission.id,
+                      child: Text(mission.name),
                     );
                   }).toList(),
                   onChanged: (String? newValue) {
                     setState(() {
                       _selectedMission = newValue;
                     });
+                    if (newValue != null) {
+                      _loadRegions(newValue);
+                    }
                   },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -135,40 +224,71 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // District Field
-                TextFormField(
-                  controller: _districtController,
+                // Region Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedRegion,
                   decoration: const InputDecoration(
-                    labelText: 'District',
-                    hintText: 'Enter your district',
-                    prefixIcon: Icon(Icons.location_city_outlined),
+                    labelText: 'Region',
+                    hintText: 'Select your region',
+                    prefixIcon: Icon(Icons.map_outlined),
                   ),
-                  textInputAction: TextInputAction.next,
+                  items: _regions.map((Region region) {
+                    return DropdownMenuItem<String>(
+                      value: region.id,
+                      child: Text(region.name),
+                    );
+                  }).toList(),
+                  onChanged: _regions.isEmpty
+                      ? null
+                      : (String? newValue) {
+                          setState(() {
+                            _selectedRegion = newValue;
+                          });
+                          if (newValue != null) {
+                            _loadDistricts(newValue);
+                          }
+                        },
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your district';
+                    if (_regions.isNotEmpty &&
+                        (value == null || value.isEmpty)) {
+                      return 'Please select a region';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 20),
 
-                // Region Field
-                TextFormField(
-                  controller: _regionController,
+                // District Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedDistrict,
                   decoration: const InputDecoration(
-                    labelText: 'Region',
-                    hintText: 'Enter your region',
-                    prefixIcon: Icon(Icons.map_outlined),
+                    labelText: 'District',
+                    hintText: 'Select your district',
+                    prefixIcon: Icon(Icons.location_city_outlined),
                   ),
-                  textInputAction: TextInputAction.next,
+                  items: _districts.map((District district) {
+                    return DropdownMenuItem<String>(
+                      value: district.id,
+                      child: Text(district.name),
+                    );
+                  }).toList(),
+                  onChanged: _districts.isEmpty
+                      ? null
+                      : (String? newValue) {
+                          setState(() {
+                            _selectedDistrict = newValue;
+                          });
+                        },
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your region';
+                    if (_districts.isNotEmpty &&
+                        (value == null || value.isEmpty)) {
+                      return 'Please select your district';
                     }
                     return null;
                   },
                 ),
+                const SizedBox(height: 20),
+
                 const SizedBox(height: 20),
 
                 // Role Dropdown
@@ -221,33 +341,52 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Info Text
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: AppTheme.primary,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'This information helps us show you relevant departments and reports for your mission.',
-                          style: TextStyle(
-                            color: AppTheme.textPrimary,
-                            fontSize: 13,
+                // Info Text - Dynamic based on role
+                Consumer<AuthProvider>(builder: (context, authProvider, child) {
+                  final user = authProvider.user;
+                  String infoText =
+                      'This information helps us show you relevant departments and reports for your mission.';
+                  IconData infoIcon = Icons.info_outline;
+
+                  if (user != null &&
+                      user.userRole == UserRole.churchTreasurer) {
+                    infoText =
+                        'As a Church Treasurer, you will be able to:\n'
+                        '• Submit monthly tithe and offering reports\n'
+                        '• View financial statistics for your church\n'
+                        '• Edit and export your church\'s reports\n'
+                        '• Track submission history';
+                    infoIcon = Icons.account_balance_wallet;
+                  }
+
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          infoIcon,
+                          color: AppTheme.primary,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            infoText,
+                            style: TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
+                      ],
+                    ),
+                  );
+                }),
               ],
             ),
           ),

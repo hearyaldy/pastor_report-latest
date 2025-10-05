@@ -47,6 +47,20 @@ class UserManagementService {
     }
   }
 
+  // Get current logged in user
+  Future<UserModel?> getCurrentUser() async {
+    try {
+      final User? firebaseUser = _auth.currentUser;
+      if (firebaseUser == null) {
+        return null;
+      }
+
+      return await getUser(firebaseUser.uid);
+    } catch (e) {
+      throw 'Failed to fetch current user: $e';
+    }
+  }
+
   // Update user profile
   Future<void> updateUserProfile({
     required String uid,
@@ -83,7 +97,15 @@ class UserManagementService {
       }
 
       if (role != null) {
-        updates['role'] = role;
+        updates['roleTitle'] = role;
+
+        // Also update userRole if the role is Church Treasurer
+        if (role == 'Church Treasurer') {
+          updates['userRole'] = UserRole.churchTreasurer.name;
+          updates['isAdmin'] = false;
+          updates['isMissionAdmin'] = false;
+          updates['isEditor'] = false;
+        }
       }
 
       if (updates.isNotEmpty) {
@@ -94,37 +116,39 @@ class UserManagementService {
     }
   }
 
-  // Toggle admin status (Admin only)
+  // Toggle admin status (legacy method - for backward compatibility)
   Future<void> toggleAdminStatus(String uid, bool isAdmin) async {
     try {
-      await _firestore.collection('users').doc(uid).update({
-        'isAdmin': isAdmin,
-      });
+      if (isAdmin) {
+        await updateUserRole(uid: uid, newRole: UserRole.admin);
+      } else {
+        await updateUserRole(uid: uid, newRole: UserRole.user);
+      }
     } catch (e) {
       throw 'Failed to update admin status: $e';
     }
   }
 
-  // Update user role (Admin only)
+  // Update user role using new role system
   Future<void> updateUserRole({
     required String uid,
-    bool? isAdmin,
-    bool? isEditor,
+    required UserRole newRole,
   }) async {
     try {
-      final Map<String, dynamic> updates = {};
+      // Update with the new role system
+      await _firestore.collection('users').doc(uid).update({
+        'userRole': newRole.name,
+      });
 
-      if (isAdmin != null) {
-        updates['isAdmin'] = isAdmin;
-      }
+      // Also update legacy fields for backward compatibility
+      final Map<String, dynamic> legacyUpdates = {
+        'isAdmin': newRole == UserRole.admin || newRole == UserRole.superAdmin,
+        'isMissionAdmin': newRole == UserRole.missionAdmin,
+        'isEditor': newRole == UserRole.editor,
+        'isChurchTreasurer': newRole == UserRole.churchTreasurer,
+      };
 
-      if (isEditor != null) {
-        updates['isEditor'] = isEditor;
-      }
-
-      if (updates.isNotEmpty) {
-        await _firestore.collection('users').doc(uid).update(updates);
-      }
+      await _firestore.collection('users').doc(uid).update(legacyUpdates);
     } catch (e) {
       throw 'Failed to update user role: $e';
     }

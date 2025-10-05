@@ -39,14 +39,35 @@ class RegionService {
   // Get all regions for a mission
   Future<List<Region>> getRegionsByMission(String missionId) async {
     try {
-      final querySnapshot = await _firestore
+      print('RegionService: Querying regions with missionId=$missionId');
+
+      // Try querying by missionId field first
+      var querySnapshot = await _firestore
           .collection(_collectionName)
           .where('missionId', isEqualTo: missionId)
           .orderBy('name')
           .get();
 
+      print('RegionService: Found ${querySnapshot.docs.length} regions by missionId');
+
+      // If no results, try querying by 'mission' field (backward compatibility)
+      if (querySnapshot.docs.isEmpty) {
+        print('RegionService: No results by missionId, trying mission field...');
+        querySnapshot = await _firestore
+            .collection(_collectionName)
+            .where('mission', isEqualTo: missionId)
+            .orderBy('name')
+            .get();
+        print('RegionService: Found ${querySnapshot.docs.length} regions by mission field');
+      }
+
+      for (var doc in querySnapshot.docs) {
+        print('  Region doc: ${doc.id} - ${doc.data()}');
+      }
+
       return querySnapshot.docs.map((doc) => Region.fromSnapshot(doc)).toList();
     } catch (e) {
+      print('RegionService ERROR: $e');
       throw Exception('Failed to get regions: $e');
     }
   }

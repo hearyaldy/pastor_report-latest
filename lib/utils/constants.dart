@@ -54,6 +54,7 @@ class AppConstants {
     'District Pastor',
     'Lay Pastor',
     'Contract Pastor',
+    'Church Treasurer',
     'Mission Staff',
     'Volunteer',
   ];

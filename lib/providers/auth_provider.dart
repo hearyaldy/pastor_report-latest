@@ -88,6 +88,7 @@ class AuthProvider with ChangeNotifier {
     String? district,
     String? region,
     String? role,
+    String? churchId,
   }) async {
     _setLoading(true);
     _clearError();
@@ -102,6 +103,7 @@ class AuthProvider with ChangeNotifier {
         district: district,
         region: region,
         role: role,
+        churchId: churchId,
       );
 
       _setLoading(false);

@@ -15,7 +15,7 @@ import 'package:pastor_report/screens/welcome_screen.dart';
 import 'package:pastor_report/screens/main_screen.dart';
 import 'package:pastor_report/screens/registration_screen.dart';
 import 'package:pastor_report/screens/settings_screen.dart';
-import 'package:pastor_report/screens/admin_dashboard.dart';
+import 'package:pastor_report/screens/admin_dashboard_improved.dart';
 import 'package:pastor_report/screens/admin_utilities_screen.dart';
 import 'package:pastor_report/screens/inapp_webview_screen.dart';
 import 'package:pastor_report/screens/onboarding_screen.dart';
@@ -120,7 +120,7 @@ class PastorReportApp extends StatelessWidget {
               AppConstants.routeRegister: (context) =>
                   const RegistrationScreen(),
               AppConstants.routeSettings: (context) => const SettingsScreen(),
-              AppConstants.routeAdmin: (context) => const AdminDashboard(),
+              AppConstants.routeAdmin: (context) => const ImprovedAdminDashboard(),
               AppConstants.routeOnboarding: (context) =>
                   const OnboardingScreen(),
               AppConstants.routeAdminUtilities: (context) =>

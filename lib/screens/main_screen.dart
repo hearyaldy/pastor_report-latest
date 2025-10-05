@@ -4,9 +4,11 @@ import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/screens/my_mission_screen.dart';
 import 'package:pastor_report/screens/dashboard_screen_improved.dart';
 import 'package:pastor_report/screens/profile_screen.dart';
-import 'package:pastor_report/screens/admin_dashboard.dart';
+import 'package:pastor_report/screens/admin_dashboard_improved.dart';
+import 'package:pastor_report/screens/treasurer/treasurer_dashboard.dart';
 import 'package:pastor_report/utils/theme.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/models/user_model.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -23,6 +25,9 @@ class _MainScreenState extends State<MainScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final isAdmin =
         authProvider.isAuthenticated && (authProvider.user?.isAdmin ?? false);
+    final isChurchTreasurer = authProvider.isAuthenticated &&
+        (authProvider.user?.userRole == UserRole.churchTreasurer);
+    final showAdminTab = isAdmin || isChurchTreasurer;
 
     return [
       Stack(
@@ -40,7 +45,10 @@ class _MainScreenState extends State<MainScreen> {
         ],
       ),
       const ProfileScreen(),
-      if (isAdmin) const AdminDashboard(),
+      if (showAdminTab)
+        isChurchTreasurer && !isAdmin
+            ? const TreasurerDashboard() // Show Treasurer Dashboard for church treasurers
+            : const ImprovedAdminDashboard(), // Show Admin Dashboard for admins
     ];
   }
 
@@ -127,7 +135,8 @@ class _MainScreenState extends State<MainScreen> {
     );
 
     if (shouldLogin == true && mounted) {
-      final result = await Navigator.pushNamed(context, AppConstants.routeWelcome);
+      final result =
+          await Navigator.pushNamed(context, AppConstants.routeWelcome);
       if (result == true && mounted) {
         setState(() {
           _currentIndex = 2; // Switch to profile after successful login
@@ -179,11 +188,28 @@ class _MainScreenState extends State<MainScreen> {
               label: 'Profile',
             ),
             if (Provider.of<AuthProvider>(context).isAuthenticated &&
-                (Provider.of<AuthProvider>(context).user?.isAdmin ?? false))
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.admin_panel_settings_outlined),
-                activeIcon: Icon(Icons.admin_panel_settings),
-                label: 'Admin',
+                ((Provider.of<AuthProvider>(context).user?.isAdmin ?? false) ||
+                    (Provider.of<AuthProvider>(context).user?.userRole ==
+                        UserRole.churchTreasurer)))
+              BottomNavigationBarItem(
+                icon: Provider.of<AuthProvider>(context).user?.userRole ==
+                            UserRole.churchTreasurer &&
+                        !(Provider.of<AuthProvider>(context).user?.isAdmin ??
+                            false)
+                    ? const Icon(Icons.account_balance_wallet_outlined)
+                    : const Icon(Icons.admin_panel_settings_outlined),
+                activeIcon: Provider.of<AuthProvider>(context).user?.userRole ==
+                            UserRole.churchTreasurer &&
+                        !(Provider.of<AuthProvider>(context).user?.isAdmin ??
+                            false)
+                    ? const Icon(Icons.account_balance_wallet)
+                    : const Icon(Icons.admin_panel_settings),
+                label: Provider.of<AuthProvider>(context).user?.userRole ==
+                            UserRole.churchTreasurer &&
+                        !(Provider.of<AuthProvider>(context).user?.isAdmin ??
+                            false)
+                    ? 'Treasury'
+                    : 'Admin',
               ),
           ],
         ),

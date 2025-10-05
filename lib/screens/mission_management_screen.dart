@@ -23,6 +23,17 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
 
+    // Add listener to prevent invalid index
+    _tabController.addListener(() {
+      if (_tabController.index < 0 || _tabController.index >= 2) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _tabController.index != 0) {
+            _tabController.animateTo(0);
+          }
+        });
+      }
+    });
+
     // Load missions when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final missionProvider =

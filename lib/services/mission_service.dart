@@ -5,6 +5,10 @@ import 'package:pastor_report/models/department_model.dart';
 import 'package:pastor_report/utils/constants.dart';
 
 class MissionService {
+  static final MissionService instance = MissionService._internal();
+  factory MissionService() => instance;
+  MissionService._internal();
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _missionsCollection = 'missions';
   final String _departmentsCollection =
@@ -124,7 +128,8 @@ class MissionService {
       print('MissionService: Found ${snapshot.docs.length} missions');
       if (snapshot.docs.isEmpty) {
         // Debug: List all missions to see what names exist
-        final allMissions = await _firestore.collection(_missionsCollection).get();
+        final allMissions =
+            await _firestore.collection(_missionsCollection).get();
         print('MissionService: Available missions:');
         for (var doc in allMissions.docs) {
           print('  - ID: ${doc.id}, Name: "${doc.data()['name']}"');
@@ -133,7 +138,8 @@ class MissionService {
       }
 
       final doc = snapshot.docs.first;
-      print('MissionService: Found mission - ID: ${doc.id}, Name: "${doc.data()['name']}"');
+      print(
+          'MissionService: Found mission - ID: ${doc.id}, Name: "${doc.data()['name']}"');
       return Mission.fromMap(doc.data(), doc.id);
     } catch (e) {
       print('MissionService: Error fetching mission: $e');

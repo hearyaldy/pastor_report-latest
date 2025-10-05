@@ -35,7 +35,8 @@ class Region {
       id: map['id'] ?? '',
       name: map['name'] ?? '',
       code: map['code'] ?? '',
-      missionId: map['missionId'] ?? '',
+      // Handle both 'missionId' and 'mission' fields for backward compatibility
+      missionId: map['missionId'] ?? map['mission'] ?? '',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       createdBy: map['createdBy'] ?? '',
     );

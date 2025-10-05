@@ -53,6 +53,23 @@ class ChurchService {
     }
   }
 
+  // Get all churches for a region (includes all churches in all districts in the region)
+  Future<List<Church>> getChurchesByRegion(String regionId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_collectionName)
+          .where('regionId', isEqualTo: regionId)
+          .orderBy('churchName')
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => Church.fromJson(doc.data()))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to get churches by region: $e');
+    }
+  }
+
   // Get all churches for a user (pastor)
   Future<List<Church>> getUserChurches(String userId) async {
     try {
@@ -249,6 +266,23 @@ class ChurchService {
       return null;
     } catch (e) {
       throw Exception('Failed to get church by treasurer: $e');
+    }
+  }
+
+  // Get all churches for a mission
+  Future<List<Church>> getChurchesByMission(String missionId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_collectionName)
+          .where('missionId', isEqualTo: missionId)
+          .orderBy('churchName')
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => Church.fromJson(doc.data()))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to get churches by mission: $e');
     }
   }
 }

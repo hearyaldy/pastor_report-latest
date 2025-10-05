@@ -2,6 +2,7 @@
 
 enum UserRole {
   user,
+  churchTreasurer,
   editor,
   missionAdmin,
   admin,
@@ -19,6 +20,8 @@ extension UserRoleExtension on UserRole {
         return 'Mission Admin';
       case UserRole.editor:
         return 'Editor';
+      case UserRole.churchTreasurer:
+        return 'Church Treasurer';
       case UserRole.user:
         return 'User';
     }
@@ -34,13 +37,33 @@ extension UserRoleExtension on UserRole {
         return 3;
       case UserRole.editor:
         return 2;
+      case UserRole.churchTreasurer:
+        return 1; // Same level as regular user in hierarchy
       case UserRole.user:
         return 1;
     }
   }
 
   bool canManageRole(UserRole targetRole) {
-    return level > targetRole.level;
+    // SuperAdmin can assign any role
+    if (this == UserRole.superAdmin) {
+      return true;
+    }
+
+    // Admin can only assign missionAdmin, editor, churchTreasurer or user
+    if (this == UserRole.admin) {
+      return targetRole != UserRole.admin && targetRole != UserRole.superAdmin;
+    }
+
+    // MissionAdmin can only assign editor, churchTreasurer or user
+    if (this == UserRole.missionAdmin) {
+      return targetRole == UserRole.editor ||
+          targetRole == UserRole.churchTreasurer ||
+          targetRole == UserRole.user;
+    }
+
+    // Other roles cannot assign roles
+    return false;
   }
 }
 
@@ -52,6 +75,9 @@ class UserModel {
   final String? mission;
   final String? district;
   final String? region;
+  final String?
+      roleTitle; // Stores the specific role title (e.g. District Pastor, Mission Officer)
+  final String? churchId; // For church treasurers - assigned church ID
   final bool isPremium;
 
   UserModel({
@@ -62,14 +88,20 @@ class UserModel {
     this.mission,
     this.district,
     this.region,
+    this.roleTitle,
+    this.churchId,
     this.isPremium = false,
   });
 
   // Backward compatibility getters
-  bool get isAdmin => userRole == UserRole.admin || userRole == UserRole.superAdmin;
+  bool get isAdmin =>
+      userRole == UserRole.admin || userRole == UserRole.superAdmin;
   bool get isSuperAdmin => userRole == UserRole.superAdmin;
   bool get isMissionAdmin => userRole == UserRole.missionAdmin;
   bool get isEditor => userRole == UserRole.editor;
+  bool get isChurchTreasurer => userRole == UserRole.churchTreasurer;
+  bool get canAccessFinancialReports =>
+      userRole == UserRole.churchTreasurer || isAdmin || isSuperAdmin;
   String? get role => userRole.displayName;
 
   // Create UserModel from Firebase User and Firestore data
@@ -95,6 +127,8 @@ class UserModel {
         role = UserRole.admin;
       } else if (map['isMissionAdmin'] == true) {
         role = UserRole.missionAdmin;
+      } else if (map['isChurchTreasurer'] == true) {
+        role = UserRole.churchTreasurer;
       } else if (map['isEditor'] == true) {
         role = UserRole.editor;
       }
@@ -108,6 +142,8 @@ class UserModel {
       mission: map['mission'],
       district: map['district'],
       region: map['region'],
+      roleTitle: map['roleTitle'],
+      churchId: map['churchId'],
       isPremium: map['isPremium'] ?? false,
     );
   }
@@ -125,6 +161,8 @@ class UserModel {
       'mission': mission,
       'district': district,
       'region': region,
+      'roleTitle': roleTitle,
+      'churchId': churchId,
       'role': role,
       'isPremium': isPremium,
     };
@@ -143,7 +181,8 @@ class UserModel {
 
   // Mission-specific permissions
   bool canManageMission(String? missionName) {
-    if (userRole.level >= UserRole.admin.level) return true; // Admin can manage all
+    if (userRole.level >= UserRole.admin.level)
+      return true; // Admin can manage all
     if (userRole == UserRole.missionAdmin) return mission == missionName;
     return false;
   }
@@ -156,6 +195,8 @@ class UserModel {
     String? mission,
     String? district,
     String? region,
+    String? roleTitle,
+    String? churchId,
     bool? isPremium,
   }) {
     return UserModel(
@@ -166,6 +207,8 @@ class UserModel {
       mission: mission ?? this.mission,
       district: district ?? this.district,
       region: region ?? this.region,
+      roleTitle: roleTitle ?? this.roleTitle,
+      churchId: churchId ?? this.churchId,
       isPremium: isPremium ?? this.isPremium,
     );
   }
