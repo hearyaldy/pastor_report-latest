@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/services/department_service.dart';
+import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/models/department_model.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
@@ -17,26 +18,32 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
   String _searchQuery = '';
   bool _showInactive = false;
 
-  // Available colors for department selection
+  // Available colors for department selection - Bright CMYK colors
   static final List<Color> _availableColors = [
-    const Color(0xFFE8F5E9), // Light Green
-    const Color(0xFFE3F2FD), // Light Blue
-    const Color(0xFFFFF3E0), // Light Orange
-    const Color(0xFFF3E5F5), // Light Purple
-    const Color(0xFFFCE4EC), // Light Pink
-    const Color(0xFFE0F2F1), // Light Teal
-    const Color(0xFFFFF9C4), // Light Yellow
-    const Color(0xFFFFEBEE), // Light Red
-    const Color(0xFFEDE7F6), // Light Deep Purple
-    const Color(0xFFE1F5FE), // Light Cyan
-    const Color(0xFFC8E6C9), // Medium Green
-    const Color(0xFFBBDEFB), // Medium Blue
-    const Color(0xFFFFE0B2), // Medium Orange
-    const Color(0xFFE1BEE7), // Medium Purple
-    const Color(0xFFF8BBD0), // Medium Pink
-    Colors.white, // White
-    const Color(0xFFF5F5F5), // Light Grey
-    const Color(0xFFECEFF1), // Blue Grey Light
+    const Color(0xFF00FFFF), // Bright Cyan
+    const Color(0xFFFF00FF), // Bright Magenta
+    const Color(0xFFFFFF00), // Bright Yellow
+    const Color(0xFF00FF00), // Bright Green (Key alternative)
+    const Color(0xFF00CCFF), // Sky Blue
+    const Color(0xFFFF0099), // Hot Pink
+    const Color(0xFFFFCC00), // Golden Yellow
+    const Color(0xFF00FF99), // Spring Green
+    const Color(0xFF0099FF), // Azure Blue
+    const Color(0xFFFF3399), // Rose
+    const Color(0xFFFFFF66), // Light Yellow
+    const Color(0xFF66FF66), // Light Green
+    const Color(0xFF66FFFF), // Light Cyan
+    const Color(0xFFFF66FF), // Light Magenta
+    const Color(0xFFFF9933), // Orange
+    const Color(0xFF9933FF), // Purple
+    const Color(0xFF33FF99), // Mint Green
+    const Color(0xFFFF6699), // Pink
+    const Color(0xFF99FF33), // Lime
+    const Color(0xFF3399FF), // Blue
+    const Color(0xFFFFCC99), // Peach
+    const Color(0xFF99CCFF), // Light Blue
+    const Color(0xFFFF99CC), // Pastel Pink
+    const Color(0xFFCCFF99), // Pastel Green
   ];
 
   @override
@@ -79,18 +86,53 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
   }
 
   Widget _buildModernAppBar(String? userMission) {
+    final missionName = userMission != null
+        ? MissionService().getMissionNameById(userMission)
+        : 'All Missions';
+
     return SliverAppBar(
-      expandedHeight: 160,
+      expandedHeight: 180,
       floating: false,
       pinned: true,
       backgroundColor: AppColors.primaryLight,
       flexibleSpace: FlexibleSpaceBar(
-        title: const Text(
-          'Department Management',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+        titlePadding: const EdgeInsets.only(left: 16, bottom: 16, right: 16),
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Department Management',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.business,
+                  color: Colors.white70,
+                  size: 14,
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    missionName,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      fontWeight: FontWeight.normal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
         background: Container(
           decoration: BoxDecoration(
@@ -105,6 +147,7 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
           ),
           child: Stack(
             children: [
+              // Large background icon
               Positioned(
                 right: -30,
                 top: -30,
@@ -112,6 +155,47 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                   Icons.dashboard_customize,
                   size: 150,
                   color: Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+              // Info card in top right
+              Positioned(
+                top: 60,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.dashboard,
+                        color: Colors.white.withValues(alpha: 0.9),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 6),
+                      StreamBuilder<List<Department>>(
+                        stream: DepartmentService().getDepartmentsStream(mission: userMission),
+                        builder: (context, snapshot) {
+                          final count = snapshot.data?.length ?? 0;
+                          return Text(
+                            '$count Dept${count != 1 ? 's' : ''}',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -282,10 +366,17 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
   }
 
   Widget _buildDepartmentCard(Department dept, String? userMission) {
+    // Brighten the card color
+    final cardColor = _brightenColor(dept.color ?? Colors.grey.shade100);
+
     return Container(
       decoration: BoxDecoration(
-        color: dept.color ?? Colors.grey.shade100,
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white,
+          width: 3,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
@@ -301,80 +392,101 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
           onTap: () => _showDepartmentDetails(dept, userMission),
           child: Stack(
             children: [
-              // Inactive overlay
+              // Inactive badge at top-right corner
               if (!dept.isActive)
-                Positioned.fill(
+                Positioned(
+                  top: 8,
+                  right: 8,
                   child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: const Center(
-                      child: Chip(
-                        label: Text('Inactive'),
-                        backgroundColor: Colors.red,
-                        labelStyle: TextStyle(color: Colors.white, fontSize: 12),
-                      ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.pause_circle, size: 12, color: Colors.white),
+                        SizedBox(width: 4),
+                        Text(
+                          'Inactive',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               // Content
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Icon
                     Container(
-                      width: 56,
-                      height: 56,
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.9),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 8,
+                            blurRadius: 6,
                             offset: const Offset(0, 2),
                           ),
                         ],
                       ),
                       child: Icon(
                         dept.icon,
-                        size: 28,
+                        size: 24,
                         color: _getIconColor(dept.color),
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(height: 8),
                     // Name
                     Text(
                       dept.name,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     // URL preview
                     Text(
                       dept.formUrl,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 10,
                         color: Colors.grey.shade700,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 6),
                     // Actions
                     Row(
                       children: [
                         Expanded(
                           child: IconButton(
-                            icon: const Icon(Icons.edit, size: 20),
+                            icon: const Icon(Icons.edit, size: 16),
+                            padding: const EdgeInsets.all(6),
+                            constraints: const BoxConstraints(minHeight: 32, minWidth: 32),
                             onPressed: () => _showDepartmentDialog(context, dept, userMission),
                             style: IconButton.styleFrom(
                               backgroundColor: Colors.white.withValues(alpha: 0.9),
@@ -382,10 +494,12 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: IconButton(
-                            icon: const Icon(Icons.link, size: 20),
+                            icon: const Icon(Icons.link, size: 16),
+                            padding: const EdgeInsets.all(6),
+                            constraints: const BoxConstraints(minHeight: 32, minWidth: 32),
                             onPressed: () => _openUrl(dept.formUrl),
                             style: IconButton.styleFrom(
                               backgroundColor: Colors.white.withValues(alpha: 0.9),
@@ -410,6 +524,11 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
     // Calculate brightness
     final luminance = bgColor.computeLuminance();
     return luminance > 0.7 ? AppColors.primaryDark : AppColors.primaryLight;
+  }
+
+  /// Keep bright colors vibrant - no brightening needed for CMYK colors
+  Color _brightenColor(Color color) {
+    return color; // Return original bright color without modification
   }
 
   void _showDepartmentDetails(Department dept, String? userMission) {
@@ -794,26 +913,62 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
     IconData selectedIcon = department?.icon ?? Icons.dashboard;
     Color selectedColor = department?.color ?? AppColors.cardBackground;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Row(
-              children: [
-                Icon(
-                  department == null ? Icons.add : Icons.edit,
-                  color: AppColors.primaryLight,
-                ),
-                const SizedBox(width: 12),
-                Text(department == null ? 'Add Department' : 'Edit Department'),
-              ],
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+            child: Column(
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.primaryLight, AppColors.primaryDark],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        department == null ? Icons.add_circle : Icons.edit,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        department == null ? 'Add Department' : 'Edit Department',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                   TextField(
                     controller: nameController,
                     decoration: const InputDecoration(
@@ -935,94 +1090,138 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                       },
                     ),
                   ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (nameController.text.isEmpty || urlController.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Row(
-                          children: [
-                            Icon(Icons.error, color: Colors.white),
-                            SizedBox(width: 12),
-                            Text('Please fill all fields'),
-                          ],
-                        ),
-                        backgroundColor: Colors.red,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    );
-                    return;
-                  }
-
-                  try {
-                    final deptService = DepartmentService();
-
-                    final newDept = Department(
-                      id: department?.id ?? '',
-                      name: nameController.text,
-                      icon: selectedIcon,
-                      formUrl: urlController.text,
-                      mission: userMission,
-                      color: selectedColor,
-                      isActive: department?.isActive ?? true,
-                    );
-
-                    if (department == null) {
-                      await deptService.addDepartment(newDept);
-                    } else {
-                      await deptService.updateDepartment(newDept);
-                    }
-
-                    if (!context.mounted) return;
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Row(
-                          children: [
-                            const Icon(Icons.check_circle, color: Colors.white),
-                            const SizedBox(width: 12),
-                            Text('Department ${department == null ? 'added' : 'updated'}'),
-                          ],
-                        ),
-                        backgroundColor: Colors.green,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    );
-                  } catch (e) {
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Row(
-                          children: [
-                            const Icon(Icons.error, color: Colors.white),
-                            const SizedBox(width: 12),
-                            Expanded(child: Text('Error: $e')),
-                          ],
-                        ),
-                        backgroundColor: Colors.red,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryLight,
-                  foregroundColor: Colors.white,
+                      ],
+                    ),
+                  ),
                 ),
-                child: Text(department == null ? 'Add' : 'Update'),
-              ),
-            ],
+                // Bottom action buttons
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border(
+                      top: BorderSide(color: Colors.grey.shade300),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            side: BorderSide(color: AppColors.primaryLight),
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (nameController.text.isEmpty || urlController.text.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Row(
+                                    children: [
+                                      Icon(Icons.error, color: Colors.white),
+                                      SizedBox(width: 12),
+                                      Text('Please fill all fields'),
+                                    ],
+                                  ),
+                                  backgroundColor: Colors.red,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                              );
+                              return;
+                            }
+
+                            try {
+                              final deptService = DepartmentService();
+
+                              final newDept = Department(
+                                id: department?.id ?? '',
+                                name: nameController.text,
+                                icon: selectedIcon,
+                                formUrl: urlController.text,
+                                mission: userMission,
+                                color: selectedColor,
+                                isActive: department?.isActive ?? true,
+                              );
+
+                              if (department == null) {
+                                await deptService.addDepartment(newDept);
+                              } else {
+                                await deptService.updateDepartment(newDept);
+                              }
+
+                              if (!context.mounted) return;
+
+                              // Close the bottom sheet
+                              Navigator.pop(context);
+
+                              // Refresh the parent screen
+                              if (context.mounted) {
+                                // Use findAncestorStateOfType to refresh the parent
+                                context.findAncestorStateOfType<_DepartmentManagementScreenState>()?.setState(() {});
+                              }
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      const Icon(Icons.check_circle, color: Colors.white),
+                                      const SizedBox(width: 12),
+                                      Text('Department ${department == null ? 'added' : 'updated'} successfully!'),
+                                    ],
+                                  ),
+                                  backgroundColor: Colors.green,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                              );
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              debugPrint('Error updating department: $e');
+
+                              // Don't close the sheet on error so user can try again
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      const Icon(Icons.error, color: Colors.white),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'Error: $e',
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  backgroundColor: Colors.red,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  duration: const Duration(seconds: 5),
+                                ),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryLight,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: Text(department == null ? 'Add Department' : 'Update Department'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           );
         },
       ),

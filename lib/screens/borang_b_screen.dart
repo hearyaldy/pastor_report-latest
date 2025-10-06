@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:pastor_report/models/borang_b_model.dart';
-import 'package:pastor_report/services/borang_b_storage_service.dart';
+import 'package:pastor_report/services/borang_b_firestore_service.dart';
 import 'package:pastor_report/services/borang_b_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/constants.dart';
@@ -19,7 +19,7 @@ class BorangBScreen extends StatefulWidget {
 }
 
 class _BorangBScreenState extends State<BorangBScreen> {
-  final BorangBStorageService _storageService = BorangBStorageService.instance;
+  final BorangBFirestoreService _firestoreService = BorangBFirestoreService.instance;
   final BorangBService _exportService = BorangBService.instance;
 
   DateTime _selectedMonth = DateTime.now();
@@ -62,12 +62,13 @@ class _BorangBScreenState extends State<BorangBScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final userId = authProvider.user?.uid ?? '';
 
-    final data = await _storageService.getReportByMonth(
+    final data = await _firestoreService.getReportByUserAndMonth(
+      userId,
       _selectedMonth.year,
       _selectedMonth.month,
     );
 
-    if (data != null && data.userId == userId) {
+    if (data != null) {
       _currentData = data;
       _populateFields(data);
     } else {
@@ -123,9 +124,9 @@ class _BorangBScreenState extends State<BorangBScreen> {
 
   Future<void> _saveData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final userId = authProvider.user?.uid ?? '';
+    final user = authProvider.user;
 
-    if (userId.isEmpty) {
+    if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('User not authenticated')),
       );
@@ -135,7 +136,11 @@ class _BorangBScreenState extends State<BorangBScreen> {
     final data = BorangBData(
       id: _currentData?.id ?? const Uuid().v4(),
       month: DateTime(_selectedMonth.year, _selectedMonth.month),
-      userId: userId,
+      userId: user.uid,
+      userName: user.displayName,
+      missionId: user.mission,
+      districtId: user.district,
+      churchId: user.churchId,
       membersBeginning: int.tryParse(_controllers['membersBeginning']!.text) ?? 0,
       membersReceived: int.tryParse(_controllers['membersReceived']!.text) ?? 0,
       membersTransferredIn: int.tryParse(_controllers['membersTransferredIn']!.text) ?? 0,
@@ -166,20 +171,35 @@ class _BorangBScreenState extends State<BorangBScreen> {
       createdAt: _currentData?.createdAt ?? DateTime.now(),
     );
 
-    final success = await _storageService.saveReport(data);
+    final success = await _firestoreService.saveReport(data);
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_currentData == null ? 'Report saved successfully' : 'Report updated successfully'),
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 12),
+              Text(_currentData == null ? 'Report saved successfully' : 'Report updated successfully'),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
         ),
       );
       _loadData(); // Reload to get the saved data
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Error saving report'),
+          content: Row(
+            children: [
+              Icon(Icons.error, color: Colors.white),
+              SizedBox(width: 12),
+              Text('Error saving report'),
+            ],
+          ),
           backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }

@@ -206,6 +206,8 @@ class FinancialReportService {
       final startOfMonth = DateTime(month.year, month.month, 1);
       final endOfMonth = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
 
+      print('🔎 FinancialReportService: Querying for missionId="$missionId", month=$month');
+
       final querySnapshot = await _firestore
           .collection(_collectionName)
           .where('missionId', isEqualTo: missionId)
@@ -213,6 +215,8 @@ class FinancialReportService {
           .where('month', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
           .where('status', isEqualTo: 'submitted')
           .get();
+
+      print('🔎 FinancialReportService: Found ${querySnapshot.docs.length} reports');
 
       double totalTithe = 0.0;
       double totalOfferings = 0.0;

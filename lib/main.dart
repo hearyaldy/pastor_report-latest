@@ -13,12 +13,12 @@ import 'package:pastor_report/models/activity_model.dart';
 import 'package:pastor_report/screens/splash_screen.dart';
 import 'package:pastor_report/screens/welcome_screen.dart';
 import 'package:pastor_report/screens/main_screen.dart';
-import 'package:pastor_report/screens/registration_screen.dart';
+import 'package:pastor_report/screens/simplified_registration_screen.dart';
+import 'package:pastor_report/screens/comprehensive_onboarding_screen.dart';
 import 'package:pastor_report/screens/settings_screen.dart';
 import 'package:pastor_report/screens/admin_dashboard_improved.dart';
 import 'package:pastor_report/screens/admin_utilities_screen.dart';
 import 'package:pastor_report/screens/inapp_webview_screen.dart';
-import 'package:pastor_report/screens/onboarding_screen.dart';
 import 'package:pastor_report/screens/mission_management_screen.dart';
 import 'package:pastor_report/screens/activities_list_screen.dart';
 import 'package:pastor_report/screens/add_edit_activity_screen.dart';
@@ -30,6 +30,7 @@ import 'package:pastor_report/screens/calendar_screen.dart';
 import 'package:pastor_report/screens/borang_b_screen.dart';
 import 'package:pastor_report/screens/borang_b_preview_screen.dart';
 import 'package:pastor_report/screens/borang_b_list_screen.dart';
+import 'package:pastor_report/screens/ministerial_secretary_dashboard.dart';
 import 'package:pastor_report/screens/my_ministry_screen.dart';
 import 'package:pastor_report/screens/staff_management_screen.dart';
 import 'package:pastor_report/screens/about_screen.dart';
@@ -37,7 +38,6 @@ import 'package:pastor_report/services/todo_storage_service.dart';
 import 'package:pastor_report/services/appointment_storage_service.dart';
 import 'package:pastor_report/services/event_service.dart';
 import 'package:pastor_report/services/role_service.dart';
-import 'package:pastor_report/services/borang_b_storage_service.dart';
 import 'package:pastor_report/services/church_storage_service.dart';
 import 'package:pastor_report/services/team_member_storage_service.dart';
 import 'package:pastor_report/utils/constants.dart';
@@ -67,9 +67,6 @@ void main() async {
   await TodoStorageService.instance.initialize();
   await AppointmentStorageService.instance.initialize();
   await EventService.instance.initialize();
-
-  // Initialize Borang B service
-  await BorangBStorageService.instance.initialize();
 
   // Initialize Church and Team Member services
   await ChurchStorageService.instance.initialize();
@@ -118,11 +115,12 @@ class PastorReportApp extends StatelessWidget {
               AppConstants.routeHome: (context) => const MainScreen(),
               AppConstants.routeLogin: (context) => const WelcomeScreen(),
               AppConstants.routeRegister: (context) =>
-                  const RegistrationScreen(),
+                  const SimplifiedRegistrationScreen(),
               AppConstants.routeSettings: (context) => const SettingsScreen(),
-              AppConstants.routeAdmin: (context) => const ImprovedAdminDashboard(),
+              AppConstants.routeAdmin: (context) =>
+                  const ImprovedAdminDashboard(),
               AppConstants.routeOnboarding: (context) =>
-                  const OnboardingScreen(),
+                  const ComprehensiveOnboardingScreen(),
               AppConstants.routeAdminUtilities: (context) =>
                   const AdminUtilitiesScreen(),
               AppConstants.routeMissionManagement: (context) =>
@@ -137,6 +135,8 @@ class PastorReportApp extends StatelessWidget {
               '/borang-b': (context) => const BorangBScreen(),
               '/borang-b-preview': (context) => const BorangBPreviewScreen(),
               '/borang-b-list': (context) => const BorangBListScreen(),
+              '/ministerial-secretary': (context) =>
+                  const MinisterialSecretaryDashboard(),
               '/my-ministry': (context) => const MyMinistryScreen(),
               '/staff-management': (context) => const StaffManagementScreen(),
               AppConstants.routeAbout: (context) => const AboutScreen(),

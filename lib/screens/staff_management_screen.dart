@@ -184,9 +184,11 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                       fillColor: Colors.white,
                       prefixIcon: const Icon(Icons.filter_list),
                     ),
-                    items: ['All', ...AppConstants.missions]
-                        .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-                        .toList(),
+                    items: [
+                      const DropdownMenuItem(value: 'All', child: Text('All')),
+                      ...AppConstants.missions.map((m) => DropdownMenuItem(
+                          value: m['name'], child: Text(m['name']!))),
+                    ],
                     onChanged: (value) =>
                         setState(() => _selectedMission = value!),
                   ),
@@ -214,9 +216,15 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                 if (_searchQuery.isNotEmpty) {
                   staffList = staffList
                       .where((s) =>
-                          s.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                          s.role.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                          s.email.toLowerCase().contains(_searchQuery.toLowerCase()))
+                          s.name
+                              .toLowerCase()
+                              .contains(_searchQuery.toLowerCase()) ||
+                          s.role
+                              .toLowerCase()
+                              .contains(_searchQuery.toLowerCase()) ||
+                          s.email
+                              .toLowerCase()
+                              .contains(_searchQuery.toLowerCase()))
                       .toList();
                 }
 
@@ -310,7 +318,8 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
               PopupMenuButton(
                 itemBuilder: (context) => [
                   const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                  const PopupMenuItem(value: 'email', child: Text('Send Email')),
+                  const PopupMenuItem(
+                      value: 'email', child: Text('Send Email')),
                   const PopupMenuItem(value: 'delete', child: Text('Delete')),
                 ],
                 onSelected: (value) {
@@ -343,7 +352,8 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
           if (canAdd) ...[
             const SizedBox(height: 8),
             ElevatedButton.icon(
-              onPressed: () => _addStaff(context, context.read<AuthProvider>().user!),
+              onPressed: () =>
+                  _addStaff(context, context.read<AuthProvider>().user!),
               icon: const Icon(Icons.add),
               label: const Text('Add First Staff Member'),
             ),
@@ -425,60 +435,64 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-            CircleAvatar(
-              radius: 40,
-              backgroundColor: AppColors.primaryLight,
-              child: Text(
-                staff.name.substring(0, 1).toUpperCase(),
-                style: const TextStyle(
-                    fontSize: 32, color: Colors.white, fontWeight: FontWeight.bold),
+              CircleAvatar(
+                radius: 40,
+                backgroundColor: AppColors.primaryLight,
+                child: Text(
+                  staff.name.substring(0, 1).toUpperCase(),
+                  style: const TextStyle(
+                      fontSize: 32,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(staff.name,
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            Text(staff.role, style: const TextStyle(fontSize: 16, color: Colors.grey)),
-            const SizedBox(height: 24),
-            _detailRow(Icons.business, 'Mission', staff.mission),
-            if (staff.department != null)
-              _detailRow(Icons.category, 'Department', staff.department!),
-            if (staff.district != null)
-              _detailRow(Icons.location_on, 'District', staff.district!),
-            if (staff.region != null)
-              _detailRow(Icons.map, 'Region', staff.region!),
-            _detailRow(Icons.email, 'Email', staff.email),
-            _detailRow(Icons.phone, 'Phone', staff.phone),
-            if (staff.notes != null && staff.notes!.isNotEmpty)
-              _detailRow(Icons.note, 'Notes', staff.notes!),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _makePhoneCall(staff.phone),
-                    icon: const Icon(Icons.phone),
-                    label: const Text('Call'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
+              const SizedBox(height: 16),
+              Text(staff.name,
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(staff.role,
+                  style: const TextStyle(fontSize: 16, color: Colors.grey)),
+              const SizedBox(height: 24),
+              _detailRow(Icons.business, 'Mission', staff.mission),
+              if (staff.department != null)
+                _detailRow(Icons.category, 'Department', staff.department!),
+              if (staff.district != null)
+                _detailRow(Icons.location_on, 'District', staff.district!),
+              if (staff.region != null)
+                _detailRow(Icons.map, 'Region', staff.region!),
+              _detailRow(Icons.email, 'Email', staff.email),
+              _detailRow(Icons.phone, 'Phone', staff.phone),
+              if (staff.notes != null && staff.notes!.isNotEmpty)
+                _detailRow(Icons.note, 'Notes', staff.notes!),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _makePhoneCall(staff.phone),
+                      icon: const Icon(Icons.phone),
+                      label: const Text('Call'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _sendEmail(staff.email),
-                    icon: const Icon(Icons.email),
-                    label: const Text('Email'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryLight,
-                      foregroundColor: Colors.white,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _sendEmail(staff.email),
+                      icon: const Icon(Icons.email),
+                      label: const Text('Email'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryLight,
+                        foregroundColor: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -497,9 +511,11 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    style:
+                        TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                 Text(value,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -553,7 +569,8 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text(importResult['success'] ? 'Import Complete' : 'Import Failed'),
+          title: Text(
+              importResult['success'] ? 'Import Complete' : 'Import Failed'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -562,10 +579,14 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
               if (importResult['errors'] != null &&
                   (importResult['errors'] as List).isNotEmpty) ...[
                 const SizedBox(height: 12),
-                const Text('Errors:', style: TextStyle(fontWeight: FontWeight.bold)),
-                ...(importResult['errors'] as List).take(5).map((e) => Text('• $e')),
+                const Text('Errors:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                ...(importResult['errors'] as List)
+                    .take(5)
+                    .map((e) => Text('• $e')),
                 if ((importResult['errors'] as List).length > 5)
-                  Text('... and ${(importResult['errors'] as List).length - 5} more'),
+                  Text(
+                      '... and ${(importResult['errors'] as List).length - 5} more'),
               ],
             ],
           ),
@@ -580,14 +601,17 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error importing CSV: $e'), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text('Error importing CSV: $e'),
+            backgroundColor: Colors.red),
       );
     }
   }
 
   Future<void> _exportCSV(BuildContext context, UserModel user) async {
     try {
-      final staff = await StaffService.instance.getStaffByMission(user.mission ?? '');
+      final staff =
+          await StaffService.instance.getStaffByMission(user.mission ?? '');
 
       if (staff.isEmpty) {
         if (!mounted) return;
@@ -601,7 +625,8 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
 
       // Save to temp file
       final directory = await getTemporaryDirectory();
-      final fileName = 'staff_export_${DateTime.now().millisecondsSinceEpoch}.csv';
+      final fileName =
+          'staff_export_${DateTime.now().millisecondsSinceEpoch}.csv';
       final file = File('${directory.path}/$fileName');
       await file.writeAsString(csvData);
 
@@ -614,14 +639,17 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error exporting CSV: $e'), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text('Error exporting CSV: $e'),
+            backgroundColor: Colors.red),
       );
     }
   }
 
   Future<void> _downloadTemplate(BuildContext context) async {
     try {
-      const template = 'name,role,email,phone,mission,department,district,region,notes\n'
+      const template =
+          'name,role,email,phone,mission,department,district,region,notes\n'
           'John Doe,District Pastor,john@example.com,+60123456789,Sabah Mission,Evangelism,Kota Kinabalu,West Coast,Sample entry';
 
       final directory = await getTemporaryDirectory();
@@ -765,10 +793,19 @@ class _StaffFormState extends State<_StaffForm> {
         TextEditingController(text: widget.staff?.department ?? '');
     _districtController =
         TextEditingController(text: widget.staff?.district ?? '');
-    _regionController =
-        TextEditingController(text: widget.staff?.region ?? '');
+    _regionController = TextEditingController(text: widget.staff?.region ?? '');
     _notesController = TextEditingController(text: widget.staff?.notes ?? '');
-    _selectedMission = widget.staff?.mission ?? widget.userMission;
+
+    // Initialize mission selection, handling both ID and name formats
+    String initialMission = widget.staff?.mission ?? widget.userMission;
+    // Check if the initialMission is actually a mission ID
+    final matchingMission = AppConstants.missions.firstWhere(
+      (m) => m['id'] == initialMission || m['name'] == initialMission,
+      orElse: () => AppConstants.missions.isNotEmpty
+          ? AppConstants.missions.first
+          : {'id': '', 'name': 'Unknown Mission'},
+    );
+    _selectedMission = matchingMission['name']!;
   }
 
   @override
@@ -808,8 +845,11 @@ class _StaffFormState extends State<_StaffForm> {
                   ),
                 ),
                 Text(
-                  widget.staff == null ? 'Add Staff Member' : 'Edit Staff Member',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  widget.staff == null
+                      ? 'Add Staff Member'
+                      : 'Edit Staff Member',
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 24),
                 TextFormField(
@@ -862,9 +902,11 @@ class _StaffFormState extends State<_StaffForm> {
                     prefixIcon: Icon(Icons.church),
                   ),
                   items: AppConstants.missions
-                      .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                      .map((m) => DropdownMenuItem(
+                          value: m['name'], child: Text(m['name']!)))
                       .toList(),
-                  onChanged: (value) => setState(() => _selectedMission = value!),
+                  onChanged: (value) =>
+                      setState(() => _selectedMission = value!),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -936,19 +978,22 @@ class _StaffFormState extends State<_StaffForm> {
                                 email: _emailController.text.trim(),
                                 phone: _phoneController.text.trim(),
                                 mission: _selectedMission,
-                                department: _departmentController.text.trim().isEmpty
-                                    ? null
-                                    : _departmentController.text.trim(),
-                                district: _districtController.text.trim().isEmpty
-                                    ? null
-                                    : _districtController.text.trim(),
+                                department:
+                                    _departmentController.text.trim().isEmpty
+                                        ? null
+                                        : _departmentController.text.trim(),
+                                district:
+                                    _districtController.text.trim().isEmpty
+                                        ? null
+                                        : _districtController.text.trim(),
                                 region: _regionController.text.trim().isEmpty
                                     ? null
                                     : _regionController.text.trim(),
                                 notes: _notesController.text.trim().isEmpty
                                     ? null
                                     : _notesController.text.trim(),
-                                createdAt: widget.staff?.createdAt ?? DateTime.now(),
+                                createdAt:
+                                    widget.staff?.createdAt ?? DateTime.now(),
                                 createdBy: widget.userId,
                               );
                               widget.onSave(staff);

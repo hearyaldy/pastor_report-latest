@@ -29,7 +29,6 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
   late TabController _tabController;
   List<Church> _churches = [];
   List<Mission> _missions = [];
-  String? _selectedMissionId;
   bool _isLoading = false;
   bool _isStatsExpanded = false;
   bool _isStaffStatsExpanded = false;
@@ -41,8 +40,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
   String _staffSortBy = 'name'; // name, role, mission
 
   // Maps to store region and district names
-  Map<String, String> _regionNames = {};
-  Map<String, String> _districtNames = {};
+  final Map<String, String> _regionNames = {};
+  final Map<String, String> _districtNames = {};
 
   @override
   void initState() {
@@ -58,18 +57,62 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
 
   Future<void> _loadRegionAndDistrictNames() async {
     try {
-      final regions = await RegionService.instance.getAllRegions();
-      final districts = await DistrictService.instance.getAllDistricts();
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final user = authProvider.user;
+
+      // Only load the regions and districts that the user actually needs
+      final Map<String, String> regionNames = {};
+      final Map<String, String> districtNames = {};
+
+      // Load user's region if they have one
+      if (user?.region != null && user!.region!.isNotEmpty) {
+        try {
+          final region =
+              await RegionService.instance.getRegionById(user.region!);
+          if (region != null) {
+            regionNames[region.id] = region.name;
+          }
+        } catch (e) {
+          print('Error loading user region: $e');
+        }
+      }
+
+      // Load user's district if they have one
+      if (user?.district != null && user!.district!.isNotEmpty) {
+        try {
+          final district =
+              await DistrictService.instance.getDistrictById(user.district!);
+          if (district != null) {
+            districtNames[district.id] = district.name;
+          }
+        } catch (e) {
+          print('Error loading user district: $e');
+        }
+      }
+
+      // For super admin, load a few more for reference, but still not all
+      if (user?.userRole == UserRole.superAdmin && user?.mission != null) {
+        try {
+          final regions =
+              await RegionService.instance.getRegionsByMission(user!.mission!);
+          for (var region in regions) {
+            regionNames[region.id] = region.name;
+          }
+
+          final districts = await DistrictService.instance
+              .getDistrictsByMission(user.mission!);
+          for (var district in districts) {
+            districtNames[district.id] = district.name;
+          }
+        } catch (e) {
+          print('Error loading mission regions/districts for super admin: $e');
+        }
+      }
 
       if (mounted) {
         setState(() {
-          for (var region in regions) {
-            _regionNames[region.id] = region.name;
-          }
-
-          for (var district in districts) {
-            _districtNames[district.id] = district.name;
-          }
+          _regionNames.addAll(regionNames);
+          _districtNames.addAll(districtNames);
         });
       }
     } catch (e) {
@@ -80,20 +123,29 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
   Future<void> _loadMissions() async {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final userModel = authProvider.user;
+      final user = authProvider.user;
 
-      // Only load missions if user is super admin
-      if (userModel != null && userModel.userRole == UserRole.superAdmin) {
+      // Only load all missions for super admin, otherwise just load user's mission
+      if (user?.userRole == UserRole.superAdmin) {
         final missions = await MissionService.instance.getAllMissions();
-
         if (mounted) {
           setState(() {
             _missions = missions;
-            // Default to the first mission if none selected
-            if (_selectedMissionId == null && missions.isNotEmpty) {
-              _selectedMissionId = missions[0].id;
-            }
           });
+        }
+      } else if (user?.mission != null && user!.mission!.isNotEmpty) {
+        // For regular users, only load their specific mission
+        try {
+          final userMission =
+              await MissionService.instance.getMissionByID(user.mission!);
+          if (userMission != null && mounted) {
+            setState(() {
+              _missions = [userMission]; // Store as list for compatibility
+            });
+          }
+        } catch (e) {
+          print('Error loading user mission: $e');
+          // Continue without mission data
         }
       }
     } catch (e) {
@@ -134,45 +186,95 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
       List<Church> churches = [];
 
       if (userModel != null) {
-        // Super admin can view churches by mission
-        if (userModel.userRole == UserRole.superAdmin &&
-            _selectedMissionId != null) {
+        print('MyMinistryScreen: Loading data for user: ${userModel.uid}');
+        print('MyMinistryScreen: User district: ${userModel.district}');
+        print('MyMinistryScreen: User region: ${userModel.region}');
+        print('MyMinistryScreen: User mission: ${userModel.mission}');
+        print('MyMinistryScreen: User role: ${userModel.userRole}');
+
+        // Priority: District > Region > Mission > User-created
+        // This ensures users see churches under their assigned district
+
+        // If user has a district assigned, show churches under that district
+        if (userModel.district != null && userModel.district!.isNotEmpty) {
           try {
-            // Get churches by selected mission
+            print(
+                'MyMinistryScreen: Loading churches by district: ${userModel.district}');
             churches = await ChurchService.instance
-                .getChurchesByMission(_selectedMissionId!);
+                .getChurchesByDistrict(userModel.district!);
+            print(
+                'MyMinistryScreen: Found ${churches.length} churches by district');
+
+            // Debug: If no churches found, this is expected if no churches exist in this district
+            if (churches.isEmpty) {
+              print(
+                  'MyMinistryScreen: No churches found for district ${userModel.district}, this is expected if no churches exist in this district');
+
+              // Fallback: Also show churches created by this user
+              print(
+                  'MyMinistryScreen: Falling back to user-created churches for userId: $userId');
+              try {
+                final userChurches =
+                    await ChurchService.instance.getUserChurches(userId);
+                print(
+                    'MyMinistryScreen: Found ${userChurches.length} user-created churches');
+                churches.addAll(userChurches);
+              } catch (e) {
+                print('Error loading user churches as fallback: $e');
+              }
+            }
           } catch (e) {
-            print('Error loading churches by mission: $e');
+            print('Error loading churches by district: $e');
             churches = [];
           }
         }
-        // If user has a region assigned (regional pastor)
+        // If user has a region assigned but no district, show churches under that region
         else if (userModel.region != null && userModel.region!.isNotEmpty) {
           try {
-            // Use Firebase to get churches by regionId
+            print(
+                'MyMinistryScreen: Loading churches by region: ${userModel.region}');
             churches = await ChurchService.instance
                 .getChurchesByRegion(userModel.region!);
+            print(
+                'MyMinistryScreen: Found ${churches.length} churches by region');
           } catch (e) {
             print('Error loading churches by region: $e');
             churches = [];
           }
         }
-        // If user has a district assigned (district pastor)
-        else if (userModel.district != null && userModel.district!.isNotEmpty) {
+        // Super admin can view churches by their assigned mission or all churches
+        else if (userModel.userRole == UserRole.superAdmin) {
           try {
-            // Use Firebase to get churches by districtId
-            churches = await ChurchService.instance
-                .getChurchesByDistrict(userModel.district!);
+            print('MyMinistryScreen: Loading churches for super admin');
+            // Use the user's assigned mission if available
+            if (userModel.mission != null && userModel.mission!.isNotEmpty) {
+              churches = await ChurchService.instance
+                  .getChurchesByMission(userModel.mission!);
+            } else {
+              // Default to first mission or get all churches
+              if (_missions.isNotEmpty) {
+                churches = await ChurchService.instance
+                    .getChurchesByMission(_missions[0].id);
+              } else {
+                // Get all churches if no missions are available
+                churches = await ChurchService.instance.getAllChurches();
+              }
+            }
+            print(
+                'MyMinistryScreen: Found ${churches.length} churches for super admin');
           } catch (e) {
-            print('Error loading churches by district: $e');
+            print('Error loading churches by mission: $e');
             churches = [];
           }
         }
         // Regular pastor - get only churches they created
         else if (userId.isNotEmpty) {
           try {
+            print(
+                'MyMinistryScreen: Loading user churches for userId: $userId');
             // Try Firebase first
             churches = await ChurchService.instance.getUserChurches(userId);
+            print('MyMinistryScreen: Found ${churches.length} user churches');
           } catch (e) {
             print('Error loading churches from Firebase: $e');
             // Fall back to local storage
@@ -180,6 +282,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                 await ChurchStorageService.instance.getUserChurches(userId);
           }
         }
+
+        print('MyMinistryScreen: Final church count: ${churches.length}');
 
         if (mounted) {
           setState(() {
@@ -341,14 +445,16 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text('My Ministry'),
         backgroundColor: AppColors.primaryLight,
         foregroundColor: Colors.white,
-        // Check if user is super admin and missions are loaded to show dropdown
+        // Use a simpler bottom with just the tab bar
         bottom: PreferredSize(
-          preferredSize: _shouldShowMissionSelector()
-              ? const Size.fromHeight(100)
-              : const Size.fromHeight(60),
+          preferredSize: const Size.fromHeight(60),
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -360,47 +466,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
             ),
             child: Column(
               children: [
-                // Mission selector for super admin
-                if (_shouldShowMissionSelector())
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: DropdownButton<String>(
-                        value: _selectedMissionId,
-                        isExpanded: true,
-                        dropdownColor: AppColors.primaryLight,
-                        underline: Container(), // Remove the default underline
-                        icon: const Icon(Icons.arrow_drop_down,
-                            color: Colors.white),
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 16),
-                        hint: const Text('Select Mission',
-                            style: TextStyle(color: Colors.white)),
-                        onChanged: (String? newValue) {
-                          if (newValue != _selectedMissionId) {
-                            setState(() {
-                              _selectedMissionId = newValue;
-                            });
-                            _loadData(); // Reload churches with the new mission
-                          }
-                        },
-                        items: _missions
-                            .map<DropdownMenuItem<String>>((Mission mission) {
-                          return DropdownMenuItem<String>(
-                            value: mission.id,
-                            child: Text(mission.name),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ),
+                // Clean tab bar for navigation
                 TabBar(
                   controller: _tabController,
                   labelColor: Colors.white,
@@ -1642,12 +1708,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
     );
   }
 
-  // Helper method to check if mission selector should be shown
-  bool _shouldShowMissionSelector() {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final userModel = authProvider.user;
-    return userModel?.userRole == UserRole.superAdmin && _missions.isNotEmpty;
-  }
+  // We're not using the mission selector anymore, but we still load missions for data purposes
 
   Stream<List<Staff>> _getStaffStream(UserModel? user) {
     if (user == null) return Stream.value([]);
@@ -1658,7 +1719,12 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
       return StaffService.instance.streamAllStaff();
     }
 
-    // Others see staff from their mission only
+    // Regular users see staff from their district only (more restrictive than mission)
+    if (user.district != null && user.district!.isNotEmpty) {
+      return StaffService.instance.streamStaffByDistrict(user.district!);
+    }
+
+    // Fallback: see staff from their mission if no district assigned
     if (user.mission != null && user.mission!.isNotEmpty) {
       return StaffService.instance.streamStaffByMission(user.mission!);
     }
@@ -1961,39 +2027,53 @@ class _ChurchFormState extends State<_ChurchForm> {
 
   Future<void> _loadOrganizationalData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final missionId = authProvider.user?.mission;
+    final user = authProvider.user;
+    final missionId = user?.mission;
 
     if (missionId != null && missionId.isNotEmpty) {
       try {
-        final regions =
-            await RegionService.instance.getRegionsByMission(missionId);
-        setState(() {
-          _regions = regions;
-        });
+        // For regular users (not super admin), only show their assigned region/district
+        // For super admin, show all regions/districts in the mission
+        if (user?.userRole == UserRole.superAdmin) {
+          // Super admin sees all regions in the mission
+          final regions =
+              await RegionService.instance.getRegionsByMission(missionId);
+          setState(() {
+            _regions = regions;
+          });
+        } else {
+          // Regular users only see their assigned region
+          if (user?.region != null && user!.region!.isNotEmpty) {
+            final userRegion =
+                await RegionService.instance.getRegionById(user.region!);
+            if (userRegion != null) {
+              setState(() {
+                _regions = [userRegion];
+                _selectedRegionId = user.region;
+              });
+            }
+          }
+        }
 
-        if (_selectedRegionId != null) {
-          final districts = await DistrictService.instance
-              .getDistrictsByRegion(_selectedRegionId!);
+        // Auto-select user's region if they have one
+        if (user?.region != null && user!.region!.isNotEmpty) {
+          _selectedRegionId = user.region;
+
+          // Load districts for the user's region
+          final districts =
+              await DistrictService.instance.getDistrictsByRegion(user.region!);
           setState(() {
             _districts = districts;
           });
+
+          // Auto-select user's district if they have one
+          if (user.district != null && user.district!.isNotEmpty) {
+            _selectedDistrictId = user.district;
+          }
         }
       } catch (e) {
         // Handle error silently
       }
-    }
-  }
-
-  Future<void> _loadDistrictsForRegion(String regionId) async {
-    try {
-      final districts =
-          await DistrictService.instance.getDistrictsByRegion(regionId);
-      setState(() {
-        _districts = districts;
-        _selectedDistrictId = null; // Reset district when region changes
-      });
-    } catch (e) {
-      // Handle error
     }
   }
 
@@ -2070,60 +2150,48 @@ class _ChurchFormState extends State<_ChurchForm> {
                   },
                 ),
                 const SizedBox(height: 16),
-                // Region Dropdown
+                // Region Dropdown - Auto-selected from user profile
                 if (_regions.isNotEmpty)
                   DropdownButtonFormField<String>(
                     value: _selectedRegionId,
                     decoration: const InputDecoration(
-                      labelText: 'Region (Optional)',
+                      labelText: 'Region (Auto-selected)',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.map),
+                      filled: true,
+                      fillColor: Color(0xFFF5F5F5),
                     ),
                     items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('None'),
-                      ),
                       ..._regions.map((region) => DropdownMenuItem(
                             value: region.id,
                             child: Text(region.name),
                           )),
                     ],
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedRegionId = value;
-                        if (value != null) {
-                          _loadDistrictsForRegion(value);
-                        } else {
-                          _districts = [];
-                          _selectedDistrictId = null;
-                        }
-                      });
-                    },
+                    onChanged: null, // Disabled - auto-selected
+                    validator: (value) =>
+                        value == null ? 'Region is required' : null,
                   ),
                 if (_regions.isNotEmpty) const SizedBox(height: 16),
-                // District Dropdown
+                // District Dropdown - Auto-selected from user profile
                 if (_selectedRegionId != null && _districts.isNotEmpty)
                   DropdownButtonFormField<String>(
                     value: _selectedDistrictId,
                     decoration: const InputDecoration(
-                      labelText: 'District (Optional)',
+                      labelText: 'District (Auto-selected)',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.location_city),
+                      filled: true,
+                      fillColor: Color(0xFFF5F5F5),
                     ),
                     items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('None'),
-                      ),
                       ..._districts.map((district) => DropdownMenuItem(
                             value: district.id,
                             child: Text(district.name),
                           )),
                     ],
-                    onChanged: (value) {
-                      setState(() => _selectedDistrictId = value);
-                    },
+                    onChanged: null, // Disabled - auto-selected
+                    validator: (value) =>
+                        value == null ? 'District is required' : null,
                   ),
                 if (_selectedRegionId != null && _districts.isNotEmpty)
                   const SizedBox(height: 16),
@@ -2363,7 +2431,17 @@ class _StaffFormState extends State<_StaffForm> {
         TextEditingController(text: widget.staff?.district ?? '');
     _regionController = TextEditingController(text: widget.staff?.region ?? '');
     _notesController = TextEditingController(text: widget.staff?.notes ?? '');
-    _selectedMission = widget.staff?.mission ?? widget.userMission;
+
+    // Initialize mission selection, handling both ID and name formats
+    String initialMission = widget.staff?.mission ?? widget.userMission;
+    // Check if the initialMission is actually a mission ID
+    final matchingMission = AppConstants.missions.firstWhere(
+      (m) => m['id'] == initialMission || m['name'] == initialMission,
+      orElse: () => AppConstants.missions.isNotEmpty
+          ? AppConstants.missions.first
+          : {'id': '', 'name': 'Unknown Mission'},
+    );
+    _selectedMission = matchingMission['name']!;
   }
 
   @override
@@ -2460,7 +2538,8 @@ class _StaffFormState extends State<_StaffForm> {
                     prefixIcon: Icon(Icons.church),
                   ),
                   items: AppConstants.missions
-                      .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                      .map((m) => DropdownMenuItem(
+                          value: m['name'], child: Text(m['name']!)))
                       .toList(),
                   onChanged: (value) =>
                       setState(() => _selectedMission = value!),

@@ -18,7 +18,8 @@ class TreasurerDashboard extends StatefulWidget {
   State<TreasurerDashboard> createState() => _TreasurerDashboardState();
 }
 
-class _TreasurerDashboardState extends State<TreasurerDashboard> {
+class _TreasurerDashboardState extends State<TreasurerDashboard>
+    with TickerProviderStateMixin {
   final FinancialReportService _reportService = FinancialReportService();
   final ChurchService _churchService = ChurchService();
 
@@ -28,10 +29,37 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
       DateTime(DateTime.now().year, DateTime.now().month, 1);
   bool _isLoading = true;
 
+  // Floating Action Menu variables
+  bool _isMenuOpen = false;
+  late AnimationController _animationController;
+  late Animation<double> _rotateAnimation;
+  late Animation<double> _scaleAnimation;
+
   @override
   void initState() {
     super.initState();
+
+    // Initialize animation controller
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _rotateAnimation = Tween<double>(begin: 0.0, end: 0.25).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -54,7 +82,8 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('No church assigned to your account. Please contact your administrator.'),
+              content: Text(
+                  'No church assigned to your account. Please contact your administrator.'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -73,7 +102,8 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Church not found. Please contact your administrator.'),
+              content:
+                  Text('Church not found. Please contact your administrator.'),
               backgroundColor: Colors.red,
             ),
           );
@@ -123,7 +153,28 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
     }
   }
 
+  void _toggleMenu() {
+    setState(() {
+      _isMenuOpen = !_isMenuOpen;
+      if (_isMenuOpen) {
+        _animationController.forward();
+      } else {
+        _animationController.reverse();
+      }
+    });
+  }
+
+  void _closeMenu() {
+    if (_isMenuOpen) {
+      setState(() {
+        _isMenuOpen = false;
+        _animationController.reverse();
+      });
+    }
+  }
+
   Future<void> _createOrEditReport() async {
+    _closeMenu(); // Close menu first
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
 
@@ -139,6 +190,7 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
           churchId: _userChurch!.id,
           districtId: _userChurch!.districtId,
           regionId: _userChurch!.regionId,
+          missionId: _userChurch!.missionId,
           month: _selectedMonth,
           year: _selectedMonth.year,
           tithe: 0,
@@ -168,6 +220,7 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
   }
 
   void _exportReport() {
+    _closeMenu(); // Close menu first
     if (_userChurch == null) return;
 
     Navigator.push(
@@ -181,23 +234,85 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
     );
   }
 
+  void _quickViewSummary() {
+    _closeMenu(); // Close menu first
+    // Show a quick summary dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.summarize, color: AppColors.primaryLight),
+            const SizedBox(width: 12),
+            const Text('Quick Summary'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Month: ${DateFormat('MMMM yyyy').format(_selectedMonth)}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            if (currentMonthReport != null) ...[
+              Text('Status: ${currentMonthReport!.status.toUpperCase()}'),
+              Text(
+                  'Total: RM ${currentMonthReport!.totalFinancial.toStringAsFixed(2)}'),
+              Text('Tithe: RM ${currentMonthReport!.tithe.toStringAsFixed(2)}'),
+              Text(
+                  'Offerings: RM ${currentMonthReport!.offerings.toStringAsFixed(2)}'),
+              Text(
+                  'Special: RM ${currentMonthReport!.specialOfferings.toStringAsFixed(2)}'),
+            ] else ...[
+              const Text('Status: No report submitted'),
+              const Text('Total: RM 0.00'),
+            ],
+            const SizedBox(height: 16),
+            Text('Total Reports: ${_reports.length}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        child: CustomScrollView(
-          slivers: [
-            _buildAppBar(),
-            _buildMonthSelector(),
-            _buildFinancialSummary(),
-            _buildReportsList(),
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
-          ],
-        ),
+      body: Stack(
+        children: [
+          RefreshIndicator(
+            onRefresh: _loadData,
+            child: CustomScrollView(
+              slivers: [
+                _buildAppBar(),
+                _buildMonthSelector(),
+                _buildFinancialSummary(),
+                _buildReportsList(),
+                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              ],
+            ),
+          ),
+          // Invisible barrier to close menu when tapped outside
+          if (_isMenuOpen)
+            GestureDetector(
+              onTap: _closeMenu,
+              child: Container(
+                color: Colors.transparent,
+              ),
+            ),
+        ],
       ),
-      floatingActionButton: _buildFloatingActionButton(),
+      floatingActionButton: _buildFloatingActionMenu(),
     );
   }
 
@@ -252,14 +367,24 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
                                 color: Colors.white,
                               ),
                             ),
-                            Text(
-                              _userChurch?.churchName ??
-                                  'Loading church data...',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.white70,
+                            if (_isLoading)
+                              const SizedBox(
+                                height: 14,
+                                width: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white70),
+                                ),
+                              )
+                            else
+                              Text(
+                                _userChurch?.churchName ?? 'No church assigned',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white70,
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -366,7 +491,7 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
           children: [
             // Grand Total Card
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
@@ -379,47 +504,93 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primaryLight.withValues(alpha: 0.3),
+                    color: AppColors.primaryLight.withValues(alpha: 0.4),
                     blurRadius: 20,
-                    offset: const Offset(0, 8),
+                    offset: const Offset(0, 10),
                   ),
                 ],
               ),
               child: Column(
                 children: [
-                  Text(
-                    report == null ? 'No Report Data' : 'Total Collection',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.white70,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.payments_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        report == null ? 'No Report Data' : 'Total Collection',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                   Text(
                     'RM ${total.toStringAsFixed(2)}',
                     style: const TextStyle(
-                      fontSize: 36,
+                      fontSize: 42,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
+                      letterSpacing: -1,
                     ),
                   ),
+                  if (report != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      DateFormat('MMMM yyyy').format(report.month),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
                   if (report != null)
                     Padding(
-                      padding: const EdgeInsets.only(top: 8),
+                      padding: const EdgeInsets.only(top: 12),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                            horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: _getStatusColor(report.status),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          report.status.toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            width: 1,
                           ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _getStatusIcon(report.status),
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              report.status.toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -497,17 +668,28 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
       ),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 8),
+          // Icon with circular background
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 12),
+          // Amount
           Text(
             'RM ${amount.toStringAsFixed(2)}',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: color,
+              color: Colors.grey[800],
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
+          // Title
           Text(
             title,
             style: TextStyle(
@@ -515,12 +697,24 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
               color: Colors.grey[600],
             ),
           ),
+          const SizedBox(height: 8),
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: percentage / 100,
+              backgroundColor: Colors.grey[200],
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+              minHeight: 6,
+            ),
+          ),
           const SizedBox(height: 4),
+          // Percentage text
           Text(
-            '${percentage.toStringAsFixed(0)}%',
+            '${percentage.toStringAsFixed(1)}%',
             style: TextStyle(
               fontSize: 10,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: color,
             ),
           ),
@@ -589,97 +783,190 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => _showReportDetails(report),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Icon based on status
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(report.status).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      _getStatusIcon(report.status),
-                      color: _getStatusColor(report.status),
-                      size: 24,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        DateFormat('MMMM yyyy').format(report.month),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Updated: ${DateFormat('MMM d, yyyy').format(report.updatedAt ?? report.createdAt)}',
-                        style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          _buildMiniStat('Tithe', report.tithe, Colors.blue),
-                          const SizedBox(width: 8),
-                          _buildMiniStat(
-                              'Offerings', report.offerings, Colors.green),
-                          const SizedBox(width: 8),
-                          _buildMiniStat('Special', report.specialOfferings,
-                              Colors.orange),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+      child: Column(
+        children: [
+          // Main card content
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+              onTap: () => _editReport(report),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
                   children: [
-                    Text(
-                      'RM ${report.totalFinancial.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryLight,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
+                    // Icon based on status
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                      width: 50,
+                      height: 50,
                       decoration: BoxDecoration(
-                        color: _getStatusColor(report.status).withValues(alpha: 0.1),
+                        color: _getStatusColor(report.status)
+                            .withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Text(
-                        report.status.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                      child: Center(
+                        child: Icon(
+                          _getStatusIcon(report.status),
                           color: _getStatusColor(report.status),
+                          size: 24,
                         ),
                       ),
                     ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            DateFormat('MMMM yyyy').format(report.month),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Updated: ${DateFormat('MMM d, yyyy').format(report.updatedAt ?? report.createdAt)}',
+                            style: TextStyle(
+                                fontSize: 13, color: Colors.grey.shade600),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: _buildMiniStat(
+                                    'Tithe', report.tithe, Colors.blue),
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: _buildMiniStat(
+                                    'Offer', report.offerings, Colors.green),
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: _buildMiniStat('Special',
+                                    report.specialOfferings, Colors.orange),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'RM ${report.totalFinancial.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryLight,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(report.status)
+                                .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            report.status.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: _getStatusColor(report.status),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
+                ),
+              ),
+            ),
+          ),
+          // Action buttons
+          Container(
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(color: Colors.grey.shade200),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(16),
+                      ),
+                      onTap: () => _editReport(report),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.edit_outlined,
+                                size: 18, color: AppColors.primaryLight),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Edit',
+                              style: TextStyle(
+                                color: AppColors.primaryLight,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: Colors.grey.shade200,
+                ),
+                Expanded(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: const BorderRadius.only(
+                        bottomRight: Radius.circular(16),
+                      ),
+                      onTap: () => _deleteReport(report),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.delete_outline,
+                                size: 18, color: Colors.red.shade400),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Delete',
+                              style: TextStyle(
+                                color: Colors.red.shade400,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -720,7 +1007,7 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
     }
   }
 
-  void _showReportDetails(FinancialReport report) {
+  void _editReport(FinancialReport report) {
     if (_userChurch == null) return;
 
     Navigator.push(
@@ -732,14 +1019,146 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
           isNewReport: false,
         ),
       ),
-    );
+    ).then((_) => _loadData()); // Reload data after editing
   }
 
-  Widget _buildFloatingActionButton() {
-    return FloatingActionButton(
-      onPressed: _createOrEditReport,
-      backgroundColor: AppColors.primaryLight,
-      child: const Icon(Icons.add),
+  Future<void> _deleteReport(FinancialReport report) async {
+    // Confirm deletion
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700),
+            const SizedBox(width: 12),
+            const Text('Delete Report'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete the report for ${DateFormat('MMMM yyyy').format(report.month)}?\n\nThis action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _reportService.deleteReport(report.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Text(
+                    'Report for ${DateFormat('MMM yyyy').format(report.month)} deleted'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+        _loadData(); // Reload the list
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting report: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildFloatingActionMenu() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // Menu items (shown when menu is open)
+        if (_isMenuOpen) ...[
+          // Quick Summary button
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: FloatingActionButton(
+                heroTag: 'summary',
+                onPressed: _quickViewSummary,
+                backgroundColor: Colors.blue,
+                mini: true,
+                tooltip: 'Quick Summary',
+                child: const Icon(Icons.summarize),
+              ),
+            ),
+          ),
+          // Export Report button
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: FloatingActionButton(
+                heroTag: 'export',
+                onPressed: _exportReport,
+                backgroundColor: Colors.green,
+                mini: true,
+                tooltip: 'Export Reports',
+                child: const Icon(Icons.file_download),
+              ),
+            ),
+          ),
+          // Create/Edit Report button
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: FloatingActionButton(
+                heroTag: 'report',
+                onPressed: _createOrEditReport,
+                backgroundColor: Colors.orange,
+                mini: true,
+                tooltip: 'Create/Edit Report',
+                child: const Icon(Icons.edit),
+              ),
+            ),
+          ),
+        ],
+        // Main FAB
+        FloatingActionButton(
+          onPressed: _toggleMenu,
+          backgroundColor: AppColors.primaryLight,
+          tooltip: _isMenuOpen ? 'Close Menu' : 'Open Menu',
+          child: AnimatedBuilder(
+            animation: _rotateAnimation,
+            builder: (context, child) {
+              return Transform.rotate(
+                angle: _rotateAnimation.value * 2 * 3.14159,
+                child: Icon(_isMenuOpen ? Icons.close : Icons.add),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

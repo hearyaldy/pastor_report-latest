@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/models/borang_b_model.dart';
-import 'package:pastor_report/services/borang_b_storage_service.dart';
+import 'package:pastor_report/services/borang_b_firestore_service.dart';
 import 'package:pastor_report/services/borang_b_backup_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/constants.dart';
@@ -16,9 +16,11 @@ class BorangBListScreen extends StatefulWidget {
 }
 
 class _BorangBListScreenState extends State<BorangBListScreen> {
-  final BorangBStorageService _storageService = BorangBStorageService.instance;
+  final BorangBFirestoreService _firestoreService =
+      BorangBFirestoreService.instance;
   List<BorangBData> _reports = [];
   bool _isLoading = true;
+  bool _hasAccess = false;
 
   @override
   void initState() {
@@ -30,12 +32,40 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
     setState(() => _isLoading = true);
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final userId = authProvider.user?.uid ?? '';
+    final user = authProvider.user;
+    final userId = user?.uid ?? '';
+
+    // Check if user has permission to access all reports
+    final bool hasAccess =
+        user != null && (user.isSuperAdmin || user.isMinisterialSecretary);
 
     if (userId.isNotEmpty) {
-      final reports = await _storageService.getAllReports();
+      List<BorangBData> reports = [];
+
+      if (hasAccess) {
+        // Load all reports for Superadmin and MinisterialSecretary
+        try {
+          // For demonstration, we'll use a mission filter if available
+          // In a real app, you might want to provide filtering options in the UI
+          final missionId = user.mission;
+
+          if (missionId != null && missionId.isNotEmpty) {
+            reports = await _firestoreService.getReportsByMission(missionId);
+          } else {
+            // Load all reports (this would require an additional method in the service)
+            reports = await _firestoreService.getReportsByUser(userId);
+          }
+        } catch (e) {
+          debugPrint('❌ Error loading all reports: $e');
+        }
+      } else {
+        // Regular users can only see their own reports
+        reports = await _firestoreService.getReportsByUser(userId);
+      }
+
       setState(() {
-        _reports = reports.where((r) => r.userId == userId).toList()
+        _hasAccess = hasAccess;
+        _reports = reports
           ..sort((a, b) => b.month.compareTo(a.month)); // Most recent first
       });
     }
@@ -66,7 +96,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
     );
 
     if (confirmed == true) {
-      final success = await _storageService.deleteReport(report.id);
+      final success = await _firestoreService.deleteReport(report.id);
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Report deleted successfully')),
@@ -436,7 +466,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
       const SnackBar(content: Text('Restoring from cloud...')),
     );
 
-    final success = await BorangBBackupService.instance.restoreFromCloud(userId);
+    final success =
+        await BorangBBackupService.instance.restoreFromCloud(userId);
 
     messenger.clearSnackBars();
     messenger.showSnackBar(
@@ -482,7 +513,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
       const SnackBar(content: Text('Exporting to file...')),
     );
 
-    final success = await BorangBBackupService.instance.exportToFile(userId);
+    final file = await BorangBBackupService.instance.exportToFile(userId);
+    final success = file != null;
 
     messenger.clearSnackBars();
     messenger.showSnackBar(
@@ -571,9 +603,12 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
     // Calculate totals
     final totalBaptisms = _reports.fold<int>(0, (sum, r) => sum + r.baptisms);
     final totalMembers = _reports.isNotEmpty ? _reports.first.membersEnd : 0;
-    final totalVisitations = _reports.fold<int>(0, (sum, r) => sum + r.totalVisitations);
-    final totalFinancial = _reports.fold<double>(0, (sum, r) => sum + r.totalFinancial);
-    final totalLiterature = _reports.fold<int>(0, (sum, r) => sum + r.totalLiterature);
+    final totalVisitations =
+        _reports.fold<int>(0, (sum, r) => sum + r.totalVisitations);
+    final totalFinancial =
+        _reports.fold<double>(0, (sum, r) => sum + r.totalFinancial);
+    final totalLiterature =
+        _reports.fold<int>(0, (sum, r) => sum + r.totalLiterature);
 
     return Card(
       elevation: 3,
@@ -607,7 +642,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.white.withAlpha(50),
                     borderRadius: BorderRadius.circular(20),
@@ -673,7 +709,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                   Flexible(
                     child: Row(
                       children: [
-                        const Icon(Icons.attach_money, color: Colors.white, size: 24),
+                        const Icon(Icons.attach_money,
+                            color: Colors.white, size: 24),
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(
@@ -926,7 +963,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.attach_money, color: Colors.teal, size: 20),
+                          Icon(Icons.attach_money,
+                              color: Colors.teal, size: 20),
                           SizedBox(width: 8),
                           Flexible(
                             child: Text(
@@ -990,7 +1028,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
     );
   }
 
-  Widget _buildStatItem(IconData icon, String label, String value, Color color) {
+  Widget _buildStatItem(
+      IconData icon, String label, String value, Color color) {
     return Column(
       children: [
         Icon(icon, color: color, size: 24),

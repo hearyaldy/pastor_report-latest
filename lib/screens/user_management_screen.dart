@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pastor_report/services/user_management_service.dart';
+import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/utils/constants.dart';
 
@@ -44,10 +45,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       }).toList();
     }
 
-    // Apply mission filter
+    // Apply mission filter (compare both ID and name since users might have either)
     if (_selectedMissionFilter != null && _selectedMissionFilter!.isNotEmpty) {
       filtered = filtered.where((user) {
-        return user.mission == _selectedMissionFilter;
+        if (user.mission == null) return false;
+        // Check if mission matches directly OR if the mission name matches
+        return user.mission == _selectedMissionFilter ||
+            MissionService().getMissionNameById(user.mission) ==
+                MissionService().getMissionNameById(_selectedMissionFilter);
       }).toList();
     }
 
@@ -163,12 +168,19 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         if (!snapshot.hasData) return const SizedBox.shrink();
 
         final allUsers = snapshot.data!;
-        final missions = allUsers
+        // Get unique mission IDs and normalize them
+        final missionIds = allUsers
             .map((u) => u.mission)
             .where((m) => m != null && m.isNotEmpty)
             .toSet()
-            .toList()
-          ..sort();
+            .toList();
+
+        // Sort missions by name
+        final missions = missionIds..sort((a, b) {
+          final nameA = MissionService().getMissionNameById(a);
+          final nameB = MissionService().getMissionNameById(b);
+          return nameA.compareTo(nameB);
+        });
 
         return DropdownButtonFormField<String>(
           value: _selectedMissionFilter,
@@ -190,7 +202,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             const DropdownMenuItem(value: null, child: Text('All Missions')),
             ...missions.map((m) => DropdownMenuItem(
                   value: m,
-                  child: Text(m!, overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    MissionService().getMissionNameById(m),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 )),
           ],
           onChanged: (value) {
@@ -322,18 +337,21 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: roleColor.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              _getRoleDescription(role),
-              style: TextStyle(
-                fontSize: 12,
-                color: roleColor,
-                fontWeight: FontWeight.w500,
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: roleColor.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                _getRoleDescription(role),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: roleColor,
+                  fontWeight: FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ),
@@ -451,7 +469,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               ),
                               if (user.mission != null)
                                 _buildChip(
-                                  user.mission!,
+                                  MissionService().getMissionNameById(user.mission),
                                   Icons.business,
                                   Colors.blue.shade100,
                                   Colors.blue.shade700,
@@ -461,22 +479,45 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         ],
                       ),
                     ),
-                    // Role management button
-                    IconButton(
-                      icon: Icon(
-                        Icons.manage_accounts,
-                        color: _currentUser?.userRole
-                                    .canManageRole(user.userRole) ==
-                                true
-                            ? AppColors.primaryLight
-                            : Colors.grey,
-                      ),
-                      onPressed:
-                          _currentUser?.userRole.canManageRole(user.userRole) ==
+                    // Action buttons
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Role management button
+                        IconButton(
+                          icon: Icon(
+                            Icons.manage_accounts,
+                            color: _currentUser?.userRole
+                                        .canManageRole(user.userRole) ==
+                                    true
+                                ? AppColors.primaryLight
+                                : Colors.grey,
+                          ),
+                          onPressed: _currentUser?.userRole
+                                      .canManageRole(user.userRole) ==
                                   true
                               ? () => _showChangeRoleDialog(user)
                               : null,
-                      tooltip: 'Manage Role',
+                          tooltip: 'Manage Role',
+                        ),
+                        // Delete button
+                        IconButton(
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: _currentUser?.userRole
+                                        .canManageRole(user.userRole) ==
+                                    true
+                                ? Colors.red.shade400
+                                : Colors.grey,
+                          ),
+                          onPressed: _currentUser?.userRole
+                                      .canManageRole(user.userRole) ==
+                                  true
+                              ? () => _confirmDeleteUser(user)
+                              : null,
+                          tooltip: 'Delete User',
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -497,6 +538,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         return Icons.admin_panel_settings;
       case UserRole.missionAdmin:
         return Icons.business;
+      case UserRole.ministerialSecretary:
+        return Icons.book;
       case UserRole.editor:
         return Icons.edit_note;
       case UserRole.churchTreasurer:
@@ -515,6 +558,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         return Colors.red.shade700;
       case UserRole.missionAdmin:
         return Colors.blue.shade700;
+      case UserRole.ministerialSecretary:
+        return Colors.teal.shade700;
       case UserRole.editor:
         return Colors.green.shade700;
       case UserRole.churchTreasurer:
@@ -636,7 +681,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   _buildDetailRow(Icons.badge, 'User ID', user.uid),
                   if (user.mission != null) ...[
                     const SizedBox(height: 16),
-                    _buildDetailRow(Icons.business, 'Mission', user.mission!),
+                    _buildDetailRow(Icons.business, 'Mission',
+                        MissionService().getMissionNameById(user.mission)),
                   ],
                   if (user.district != null) ...[
                     const SizedBox(height: 16),
@@ -883,6 +929,142 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     }
   }
 
+  // Confirm and delete user
+  Future<void> _confirmDeleteUser(UserModel user) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded,
+                color: Colors.red.shade400, size: 28),
+            const SizedBox(width: 12),
+            const Text('Delete User'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Are you sure you want to delete this user?'),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    user.displayName,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    user.email,
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  ),
+                  Text(
+                    user.role ?? 'User',
+                    style: TextStyle(
+                      color: _getRoleColor(user.userRole),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'This action cannot be undone. The user will be removed from the system.',
+              style: TextStyle(
+                color: Colors.red.shade700,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await userService.deleteUser(user.uid);
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.white),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                          '${user.displayName} has been deleted from user database'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '⚠️ Note: Firebase Auth account remains. Delete manually from Firebase Console > Authentication',
+                  style: TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 6),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+
+        // Refresh the user list
+        setState(() {});
+      } catch (e) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Error deleting user: $e')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   // Helper method to build role selection tile for the bottom sheet
   Widget _buildRoleSelectionTile({
     required UserRole role,
@@ -957,6 +1139,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         return 'Manage users and missions';
       case UserRole.missionAdmin:
         return 'Manage own mission';
+      case UserRole.ministerialSecretary:
+        return 'View and manage Borang B reports';
       case UserRole.editor:
         return 'Edit department URLs';
       case UserRole.churchTreasurer:

@@ -68,35 +68,89 @@ class MissionService {
     });
   }
 
-  // Get departments for a mission by mission name
+  // Get departments for a mission by mission name or ID
   Stream<List<Department>> getDepartmentsStreamByMissionName(
-      String missionName) {
-    return _firestore
-        .collection(_missionsCollection)
-        .where('name', isEqualTo: missionName)
-        .limit(1)
-        .snapshots()
-        .asyncMap((snapshot) async {
-      if (snapshot.docs.isEmpty) {
-        return [];
-      }
+      String missionIdentifier) async* {
+    print('🎧 getDepartmentsStreamByMissionName: "$missionIdentifier"');
 
-      final missionId = snapshot.docs.first.id;
-      final departmentsSnapshot = await _firestore
+    String missionId;
+    String missionName;
+
+    // Check if this looks like a Firestore ID (long random string without spaces)
+    if (missionIdentifier.length > 15 && !missionIdentifier.contains(' ')) {
+      // Try to use it as a document ID first
+      try {
+        final directCheck = await _firestore
+            .collection(_missionsCollection)
+            .doc(missionIdentifier)
+            .get();
+
+        if (directCheck.exists) {
+          print('✅ Found mission directly by ID: $missionIdentifier');
+          missionId = missionIdentifier;
+          missionName = directCheck.data()?['name'] ?? missionIdentifier;
+        } else {
+          // Fall back to name-based lookup
+          print('⚠️ Not a valid document ID, trying as name: $missionIdentifier');
+          final snapshot = await _firestore
+              .collection(_missionsCollection)
+              .where('name', isEqualTo: missionIdentifier)
+              .limit(1)
+              .get();
+
+          if (snapshot.docs.isEmpty) {
+            print('❌ No mission found: $missionIdentifier');
+            yield [];
+            return;
+          }
+
+          missionId = snapshot.docs.first.id;
+          missionName = missionIdentifier;
+        }
+      } catch (e) {
+        print('❌ Error checking mission: $e');
+        yield [];
+        return;
+      }
+    } else {
+      // It's a mission name, look it up
+      print('🔍 Looking up mission by name: $missionIdentifier');
+      final snapshot = await _firestore
           .collection(_missionsCollection)
-          .doc(missionId)
-          .collection(_departmentsCollection)
-          .orderBy('name')
+          .where('name', isEqualTo: missionIdentifier)
+          .limit(1)
           .get();
 
-      return departmentsSnapshot.docs.map((doc) {
+      if (snapshot.docs.isEmpty) {
+        print('❌ No mission found with name: $missionIdentifier');
+        yield [];
+        return;
+      }
+
+      missionId = snapshot.docs.first.id;
+      missionName = missionIdentifier;
+    }
+
+    print('✅ Using mission ID: $missionId, name: $missionName');
+
+    // Now stream the departments from the subcollection
+    await for (final departmentsSnapshot in _firestore
+        .collection(_missionsCollection)
+        .doc(missionId)
+        .collection(_departmentsCollection)
+        .orderBy('name')
+        .snapshots()) {
+
+      final departments = departmentsSnapshot.docs.map((doc) {
         final data = doc.data();
-        data['id'] = doc.id; // Add id to the map
-        // Add mission name to department data for compatibility with existing code
+        data['id'] = doc.id;
         data['mission'] = missionName;
         return Department.fromMap(data);
       }).toList();
-    });
+
+      print('📊 Loaded ${departments.length} departments for $missionName');
+      yield departments;
+    }
   }
 
   // Get all missions with one-time fetch
@@ -112,6 +166,86 @@ class MissionService {
       }).toList();
     } catch (e) {
       throw 'Failed to fetch missions: $e';
+    }
+  }
+
+  // Convert mission ID to name using a multi-step approach
+  String getMissionNameById(String? missionId) {
+    if (missionId == null || missionId.isEmpty) {
+      return "Unknown Mission";
+    }
+
+    // For debug purposes
+    print('MissionService: Trying to resolve mission ID: "$missionId"');
+
+    // STEP 1: Try to find the mission by ID in the constants (these are the string IDs like "sabah-mission")
+    for (var mission in AppConstants.missions) {
+      if (mission['id'] == missionId) {
+        print(
+            'MissionService: Found in constants by ID match: ${mission['name']}');
+        return mission['name'] ?? "Unknown Mission";
+      }
+
+      // Also check if this is a Firestore document ID stored in the constants
+      if (mission['firestore_id'] == missionId) {
+        print(
+            'MissionService: Found in constants by Firestore ID match: ${mission['name']}');
+        return mission['name'] ?? "Unknown Mission";
+      }
+    }
+
+    // STEP 2: Check if this is already a mission name
+    for (var mission in AppConstants.missions) {
+      if (mission['name'] == missionId) {
+        print('MissionService: This is already a mission name: $missionId');
+        return missionId;
+      }
+    }
+
+    // STEP 3: For Firestore document IDs (like "4LFC9isp22H7Og1FHBm6")
+    // Check our hardcoded mapping for common document IDs
+    // This information comes from Firestore documents with fields:
+    // - code: "SAB"
+    // - name: "Sabah Mission"
+    // - description: "Mission for Sabah Mission"
+    // - createdAt: timestamp
+    final knownDocumentIds = getKnownDocumentIdMappings();
+
+    // Check if the ID is in our known document IDs map
+    if (knownDocumentIds.containsKey(missionId)) {
+      final missionInfo = knownDocumentIds[missionId]!;
+      final name = missionInfo['name'] ?? "Unknown Mission";
+      print('MissionService: Found in known document IDs: $missionId -> $name');
+      return name;
+    }
+
+    // STEP 4: If all else fails, fetch from Firestore asynchronously
+    // We can't make this method async because it would change the return type
+    getMissionByID(missionId).then((mission) {
+      if (mission != null) {
+        print('Mission name resolved asynchronously: ${mission.name}');
+        // Add this to known document IDs for future use
+        print(
+            'Consider adding this mapping: \'$missionId\': \'${mission.name}\',');
+      }
+    }).catchError((e) {
+      print('Error resolving mission name: $e');
+    });
+
+    print(
+        'MissionService: Could not resolve immediately, returning original ID: $missionId');
+    return missionId;
+  } // Get a mission by ID
+
+  Future<Mission?> getMissionByID(String id) async {
+    try {
+      final doc =
+          await _firestore.collection(_missionsCollection).doc(id).get();
+      if (!doc.exists) return null;
+      return Mission.fromMap(doc.data()!, doc.id);
+    } catch (e) {
+      print('Error fetching mission by ID: $e');
+      return null;
     }
   }
 
@@ -195,6 +329,46 @@ class MissionService {
       await batch.commit();
     } catch (e) {
       throw 'Failed to delete mission: $e';
+    }
+  }
+
+  // Utility method to find mission ID from mission name
+  // This helps with backward compatibility where mission name was used in place of ID
+  Future<String?> getMissionIdFromName(String missionName) async {
+    try {
+      final snapshot = await _firestore
+          .collection(_missionsCollection)
+          .where('name', isEqualTo: missionName)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        print('MissionService: No mission found with name "$missionName"');
+        return null;
+      }
+
+      return snapshot.docs.first.id;
+    } catch (e) {
+      print('MissionService: Error getting mission ID from name: $e');
+      return null;
+    }
+  }
+
+  // Utility method to find mission name from mission ID
+  Future<String?> getMissionNameFromId(String missionId) async {
+    try {
+      final doc =
+          await _firestore.collection(_missionsCollection).doc(missionId).get();
+
+      if (!doc.exists) {
+        print('MissionService: No mission found with ID "$missionId"');
+        return null;
+      }
+
+      return doc.data()?['name'] as String?;
+    } catch (e) {
+      print('MissionService: Error getting mission name from ID: $e');
+      return null;
     }
   }
 
@@ -288,7 +462,7 @@ class MissionService {
       }
 
       // Get list of missions from constants
-      final List<String> missionNames = AppConstants.missions;
+      final List<Map<String, String>> missions = AppConstants.missions;
 
       // Base departments that will be assigned to each mission
       final baseDepartments = [
@@ -377,12 +551,12 @@ class MissionService {
       final batch = _firestore.batch();
 
       // Create missions
-      for (var missionName in missionNames) {
+      for (var mission in missions) {
         final missionDocRef = _firestore.collection(_missionsCollection).doc();
         batch.set(missionDocRef, {
-          'name': missionName,
-          'code': missionName.substring(0, 3).toUpperCase(),
-          'description': 'Mission for $missionName',
+          'name': mission['name'],
+          'code': mission['name']!.substring(0, 3).toUpperCase(),
+          'description': 'Mission for ${mission['name']}',
           'createdAt': FieldValue.serverTimestamp(),
         });
       }
@@ -532,5 +706,47 @@ class MissionService {
     }
 
     print('Successfully deleted all missions');
+  }
+
+  // Maps Firestore document IDs to mission information
+  // This helps resolve document IDs to mission names without database calls
+  Map<String, Map<String, String>> getKnownDocumentIdMappings() {
+    // Create a mapping for known Firestore document IDs
+    // These mappings match the actual Firestore data
+    final Map<String, Map<String, String>> documentIdMappings = {
+      // Sabah Mission
+      '4LFC9isp22H7Og1FHBm6': {
+        'name': 'Sabah Mission',
+        'code': 'SAB',
+      },
+      // North Sabah Mission
+      'M89PoDdB5sNCoDl8qTNS': {
+        'name': 'North Sabah Mission',
+        'code': 'NSM',
+      },
+      // Peninsular Mission (NOT "West Malaysia Mission")
+      'bwi23rsOpWJLnKcn20WC': {
+        'name': 'Peninsular Mission',
+        'code': 'PEN',
+      },
+      // Sarawak Mission
+      'mpfQa7qEaj0fzuo4xhDN': {
+        'name': 'Sarawak Mission',
+        'code': 'SAK',
+      },
+    };
+
+    // Also process any additional mappings from AppConstants.missions
+    for (var mission in AppConstants.missions) {
+      if (mission.containsKey('firestore_id') && mission.containsKey('name')) {
+        final firestoreId = mission['firestore_id']!;
+        documentIdMappings[firestoreId] = {
+          'name': mission['name']!,
+          'code': mission['code'] ?? '',
+        };
+      }
+    }
+
+    return documentIdMappings;
   }
 }

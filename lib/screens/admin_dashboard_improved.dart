@@ -69,8 +69,12 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
 
   Future<void> _loadDepartmentStats() async {
     try {
-      final departments = await _departmentService.getDepartments();
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final userMission = authProvider.user?.mission;
+
+      final departments = await _departmentService.getDepartments(mission: userMission);
       _totalDepartments = departments.length;
+      debugPrint('📊 Loaded ${departments.length} departments for mission: $userMission');
     } catch (e) {
       debugPrint('Error loading department stats: $e');
     }
@@ -78,8 +82,25 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
 
   Future<void> _loadChurchStats() async {
     try {
-      final churches = await _churchService.getAllChurches();
-      _totalChurches = churches.length;
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final userMission = authProvider.user?.mission;
+
+      if (userMission != null && userMission.isNotEmpty) {
+        // Get churches for the specific mission by getting all districts first
+        final districts = await _districtService.getDistrictsByMission(userMission);
+        int totalChurches = 0;
+        for (var district in districts) {
+          final churches = await _churchService.getChurchesByDistrict(district.id);
+          totalChurches += churches.length;
+        }
+        _totalChurches = totalChurches;
+        debugPrint('📊 Loaded $totalChurches churches for mission: $userMission');
+      } else {
+        // Super admin - get all churches
+        final churches = await _churchService.getAllChurches();
+        _totalChurches = churches.length;
+        debugPrint('📊 Loaded ${churches.length} churches (all missions)');
+      }
     } catch (e) {
       debugPrint('Error loading church stats: $e');
     }
@@ -87,8 +108,20 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
 
   Future<void> _loadDistrictStats() async {
     try {
-      final districts = await _districtService.getAllDistricts();
-      _totalDistricts = districts.length;
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final userMission = authProvider.user?.mission;
+
+      if (userMission != null && userMission.isNotEmpty) {
+        // Get districts for the specific mission
+        final districts = await _districtService.getDistrictsByMission(userMission);
+        _totalDistricts = districts.length;
+        debugPrint('📊 Loaded ${districts.length} districts for mission: $userMission');
+      } else {
+        // Super admin - get all districts
+        final districts = await _districtService.getAllDistricts();
+        _totalDistricts = districts.length;
+        debugPrint('📊 Loaded ${districts.length} districts (all missions)');
+      }
     } catch (e) {
       debugPrint('Error loading district stats: $e');
     }

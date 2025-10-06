@@ -6,7 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:pastor_report/models/borang_b_model.dart';
-import 'package:pastor_report/services/borang_b_storage_service.dart';
+import 'package:pastor_report/services/borang_b_firestore_service.dart';
 
 class BorangBBackupService {
   static BorangBBackupService? _instance;
@@ -18,18 +18,18 @@ class BorangBBackupService {
   BorangBBackupService._();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final BorangBStorageService _storageService = BorangBStorageService.instance;
+  final BorangBFirestoreService _firestoreService =
+      BorangBFirestoreService.instance;
 
   /// Backup all reports to Firestore
   Future<bool> backupToCloud(String userId) async {
     try {
       debugPrint('☁️ Starting backup to Firestore...');
 
-      // Get all local reports
-      final reports = await _storageService.getAllReports();
-      final userReports = reports.where((r) => r.userId == userId).toList();
+      // Get all Firestore reports for this user
+      final reports = await _firestoreService.getReportsByUser(userId);
 
-      if (userReports.isEmpty) {
+      if (reports.isEmpty) {
         debugPrint('⚠️ No reports to backup');
         return false;
       }
@@ -37,7 +37,7 @@ class BorangBBackupService {
       // Create a batch write
       final batch = _firestore.batch();
 
-      for (final report in userReports) {
+      for (final report in reports) {
         final docRef = _firestore
             .collection('users')
             .doc(userId)
@@ -49,7 +49,7 @@ class BorangBBackupService {
 
       await batch.commit();
 
-      debugPrint('✅ Successfully backed up ${userReports.length} reports');
+      debugPrint('✅ Successfully backed up ${reports.length} reports');
       return true;
     } catch (e) {
       debugPrint('❌ Error backing up to cloud: $e');
@@ -57,109 +57,22 @@ class BorangBBackupService {
     }
   }
 
-  /// Restore reports from Firestore
+  /// Restore reports from Firestore (this is now a backup operation since we use Firestore as primary)
   Future<bool> restoreFromCloud(String userId) async {
     try {
-      debugPrint('☁️ Starting restore from Firestore...');
-
-      // Get reports from Firestore
-      final snapshot = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('borang_b_reports')
-          .get();
-
-      if (snapshot.docs.isEmpty) {
-        debugPrint('⚠️ No reports found in cloud');
-        return false;
-      }
-
-      // Convert to BorangBData objects
-      final cloudReports = snapshot.docs
-          .map((doc) => BorangBData.fromJson(doc.data()))
-          .toList();
-
-      // Get existing local reports
-      final localReports = await _storageService.getAllReports();
-      final localReportIds = localReports.map((r) => r.id).toSet();
-
-      // Merge: Add cloud reports that don't exist locally
-      final reportsToAdd = cloudReports
-          .where((cloudReport) => !localReportIds.contains(cloudReport.id))
-          .toList();
-
-      // Save new reports locally
-      for (final report in reportsToAdd) {
-        await _storageService.saveReport(report);
-      }
-
-      debugPrint('✅ Successfully restored ${reportsToAdd.length} new reports');
-      return true;
+      debugPrint('☁️ All data is now stored in Firestore directly');
+      return true; // No-op since all data is already in Firestore
     } catch (e) {
       debugPrint('❌ Error restoring from cloud: $e');
       return false;
     }
   }
 
-  /// Sync: Merge local and cloud data (two-way sync)
+  /// Sync function is no longer needed as we're using Firestore as primary storage
   Future<bool> syncWithCloud(String userId) async {
     try {
-      debugPrint('🔄 Starting sync with Firestore...');
-
-      // 1. Get cloud reports
-      final cloudSnapshot = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('borang_b_reports')
-          .get();
-
-      final cloudReports = cloudSnapshot.docs
-          .map((doc) => BorangBData.fromJson(doc.data()))
-          .toList();
-
-      // 2. Get local reports
-      final localReports = await _storageService.getAllReports();
-      final userLocalReports = localReports.where((r) => r.userId == userId).toList();
-
-      // 3. Create maps for easy lookup
-      final cloudMap = {for (var r in cloudReports) r.id: r};
-      final localMap = {for (var r in userLocalReports) r.id: r};
-
-      // 4. Find reports to upload (exist locally but not in cloud)
-      final toUpload = userLocalReports
-          .where((local) => !cloudMap.containsKey(local.id))
-          .toList();
-
-      // 5. Find reports to download (exist in cloud but not locally)
-      final toDownload = cloudReports
-          .where((cloud) => !localMap.containsKey(cloud.id))
-          .toList();
-
-      // 6. Upload to cloud
-      if (toUpload.isNotEmpty) {
-        final batch = _firestore.batch();
-        for (final report in toUpload) {
-          final docRef = _firestore
-              .collection('users')
-              .doc(userId)
-              .collection('borang_b_reports')
-              .doc(report.id);
-          batch.set(docRef, report.toJson());
-        }
-        await batch.commit();
-        debugPrint('⬆️ Uploaded ${toUpload.length} reports to cloud');
-      }
-
-      // 7. Download to local
-      if (toDownload.isNotEmpty) {
-        for (final report in toDownload) {
-          await _storageService.saveReport(report);
-        }
-        debugPrint('⬇️ Downloaded ${toDownload.length} reports from cloud');
-      }
-
-      debugPrint('✅ Sync completed successfully');
-      return true;
+      debugPrint('☁️ All data is now stored in Firestore directly');
+      return true; // No-op since all data is already in Firestore
     } catch (e) {
       debugPrint('❌ Error syncing with cloud: $e');
       return false;
@@ -187,25 +100,21 @@ class BorangBBackupService {
   /// Get cloud backup status
   Future<Map<String, dynamic>> getBackupStatus(String userId) async {
     try {
-      final cloudSnapshot = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('borang_b_reports')
-          .get();
+      final reports = await _firestoreService.getReportsByUser(userId);
 
-      final localReports = await _storageService.getAllReports();
-      final userLocalReports = localReports.where((r) => r.userId == userId).toList();
+      DateTime? lastUpdate;
+      if (reports.isNotEmpty) {
+        lastUpdate = reports
+            .map((r) => r.updatedAt ?? r.createdAt)
+            .whereType<DateTime>()
+            .reduce((a, b) => a.isAfter(b) ? a : b);
+      }
 
       return {
-        'cloudCount': cloudSnapshot.docs.length,
-        'localCount': userLocalReports.length,
-        'hasCloudBackup': cloudSnapshot.docs.isNotEmpty,
-        'lastBackup': cloudSnapshot.docs.isNotEmpty
-            ? cloudSnapshot.docs
-                .map((doc) => (doc.data()['createdAt'] as Timestamp?)?.toDate())
-                .whereType<DateTime>()
-                .reduce((a, b) => a.isAfter(b) ? a : b)
-            : null,
+        'cloudCount': reports.length,
+        'localCount': 0, // No more local storage
+        'hasCloudBackup': reports.isNotEmpty,
+        'lastBackup': lastUpdate,
       };
     } catch (e) {
       debugPrint('❌ Error getting backup status: $e');
@@ -218,104 +127,85 @@ class BorangBBackupService {
     }
   }
 
-  /// Export all reports to JSON file and share
-  Future<bool> exportToFile(String userId) async {
+  /// Export reports to a file
+  Future<File?> exportToFile(String userId) async {
     try {
-      debugPrint('📤 Starting export to file...');
+      debugPrint('📤 Exporting reports to file...');
 
-      // Get all user reports
-      final reports = await _storageService.getAllReports();
-      final userReports = reports.where((r) => r.userId == userId).toList();
+      // Get all reports for the user from Firestore
+      final userReports = await _firestoreService.getReportsByUser(userId);
 
       if (userReports.isEmpty) {
-        debugPrint('⚠️ No reports to export');
-        return false;
+        debugPrint('ℹ️ No reports to export');
+        return null;
       }
 
       // Convert to JSON
-      final exportData = {
-        'exportDate': DateTime.now().toIso8601String(),
-        'userId': userId,
-        'reportCount': userReports.length,
-        'reports': userReports.map((r) => r.toJson()).toList(),
-      };
+      final jsonData = jsonEncode(userReports.map((r) => r.toJson()).toList());
 
-      final jsonString = const JsonEncoder.withIndent('  ').convert(exportData);
-
-      // Save to temporary file
+      // Get the temporary directory
       final directory = await getTemporaryDirectory();
-      final fileName = 'borang_b_backup_${DateTime.now().millisecondsSinceEpoch}.json';
-      final file = File('${directory.path}/$fileName');
-      await file.writeAsString(jsonString);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final path = '${directory.path}/borang_b_backup_$timestamp.json';
+      final file = File(path);
 
-      // Share the file
-      final result = await Share.shareXFiles(
-        [XFile(file.path)],
-        subject: 'Borang B Reports Backup',
-        text: 'Backup contains ${userReports.length} monthly reports',
+      // Write to file
+      await file.writeAsString(jsonData);
+
+      // Share file
+      await Share.shareXFiles(
+        [XFile(path)],
+        text: 'Borang B Reports Backup',
       );
 
-      debugPrint('✅ Successfully exported ${userReports.length} reports');
-      return result.status == ShareResultStatus.success;
+      debugPrint('✅ Exported ${userReports.length} reports to file');
+      return file;
     } catch (e) {
       debugPrint('❌ Error exporting to file: $e');
-      return false;
+      return null;
     }
   }
 
-  /// Import reports from JSON file
+  /// Import reports from a file
   Future<bool> importFromFile() async {
     try {
-      debugPrint('📥 Starting import from file...');
+      debugPrint('📥 Importing reports from file...');
 
-      // Pick a file
+      // Open file picker
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['json'],
       );
 
       if (result == null || result.files.isEmpty) {
-        debugPrint('⚠️ No file selected');
+        debugPrint('ℹ️ No file selected');
         return false;
       }
 
-      final filePath = result.files.single.path;
-      if (filePath == null) {
-        debugPrint('⚠️ Invalid file path');
+      final path = result.files.single.path;
+      if (path == null) {
+        debugPrint('❌ Path is null');
         return false;
       }
 
-      // Read file
-      final file = File(filePath);
-      final jsonString = await file.readAsString();
-      final importData = jsonDecode(jsonString) as Map<String, dynamic>;
+      final file = File(path);
+      final contents = await file.readAsString();
 
-      // Validate structure
-      if (!importData.containsKey('reports') || importData['reports'] is! List) {
-        debugPrint('❌ Invalid backup file format');
-        return false;
-      }
-
-      // Convert to BorangBData objects
-      final importedReports = (importData['reports'] as List)
+      // Parse JSON
+      final List<dynamic> jsonList = json.decode(contents);
+      final reports = jsonList
           .map((json) => BorangBData.fromJson(json as Map<String, dynamic>))
           .toList();
 
-      // Get existing local reports
-      final localReports = await _storageService.getAllReports();
-      final localReportIds = localReports.map((r) => r.id).toSet();
-
-      // Merge: Add imported reports that don't exist locally
-      final reportsToAdd = importedReports
-          .where((importedReport) => !localReportIds.contains(importedReport.id))
-          .toList();
-
-      // Save new reports locally
-      for (final report in reportsToAdd) {
-        await _storageService.saveReport(report);
+      // Add all reports to Firestore
+      int added = 0;
+      for (final report in reports) {
+        // Save to Firestore directly
+        await _firestoreService.saveReport(report);
+        added++;
       }
 
-      debugPrint('✅ Successfully imported ${reportsToAdd.length} new reports');
+      debugPrint('✅ Imported $added reports to Firestore');
       return true;
     } catch (e) {
       debugPrint('❌ Error importing from file: $e');

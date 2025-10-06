@@ -168,6 +168,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
     return false;
   }
 
+  @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.user;

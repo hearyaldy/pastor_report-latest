@@ -2,10 +2,21 @@
 
 /// Model for Borang B - Monthly Ministerial Report
 /// This is separate from activities (Borang A) and contains ministry statistics
+enum ReportStatus {
+  draft,
+  submitted,
+}
+
 class BorangBData {
   final String id;
   final DateTime month; // Month and year this report is for
   final String userId; // Pastor's ID
+  final String userName; // Pastor's name
+  final String? missionId; // Mission ID
+  final String? districtId; // District ID (optional)
+  final String? churchId; // Church ID (optional)
+  final ReportStatus status; // Report status (draft or submitted)
+  final DateTime? submittedAt; // When the report was submitted
 
   // Church Statistics
   final int membersBeginning; // Members at beginning of month
@@ -57,6 +68,12 @@ class BorangBData {
     required this.id,
     required this.month,
     required this.userId,
+    required this.userName,
+    this.missionId,
+    this.districtId,
+    this.churchId,
+    this.status = ReportStatus.draft,
+    this.submittedAt,
     this.membersBeginning = 0,
     this.membersReceived = 0,
     this.membersTransferredIn = 0,
@@ -94,6 +111,18 @@ class BorangBData {
       id: json['id'] as String,
       month: DateTime.parse(json['month'] as String),
       userId: json['userId'] as String,
+      userName: json['userName'] as String? ?? '',
+      missionId: json['missionId'] as String?,
+      districtId: json['districtId'] as String?,
+      churchId: json['churchId'] as String?,
+      status: json['status'] != null
+          ? ReportStatus.values.firstWhere(
+              (e) => e.toString() == 'ReportStatus.${json['status']}',
+              orElse: () => ReportStatus.draft)
+          : ReportStatus.draft,
+      submittedAt: json['submittedAt'] != null
+          ? DateTime.parse(json['submittedAt'] as String)
+          : null,
       membersBeginning: json['membersBeginning'] as int? ?? 0,
       membersReceived: json['membersReceived'] as int? ?? 0,
       membersTransferredIn: json['membersTransferredIn'] as int? ?? 0,
@@ -134,6 +163,12 @@ class BorangBData {
       'id': id,
       'month': month.toIso8601String(),
       'userId': userId,
+      'userName': userName,
+      if (missionId != null) 'missionId': missionId,
+      if (districtId != null) 'districtId': districtId,
+      if (churchId != null) 'churchId': churchId,
+      'status': status.toString().split('.').last,
+      if (submittedAt != null) 'submittedAt': submittedAt!.toIso8601String(),
       'membersBeginning': membersBeginning,
       'membersReceived': membersReceived,
       'membersTransferredIn': membersTransferredIn,
@@ -171,6 +206,12 @@ class BorangBData {
     String? id,
     DateTime? month,
     String? userId,
+    String? userName,
+    String? missionId,
+    String? districtId,
+    String? churchId,
+    ReportStatus? status,
+    DateTime? submittedAt,
     int? membersBeginning,
     int? membersReceived,
     int? membersTransferredIn,
@@ -205,10 +246,17 @@ class BorangBData {
       id: id ?? this.id,
       month: month ?? this.month,
       userId: userId ?? this.userId,
+      userName: userName ?? this.userName,
+      missionId: missionId ?? this.missionId,
+      districtId: districtId ?? this.districtId,
+      churchId: churchId ?? this.churchId,
+      status: status ?? this.status,
+      submittedAt: submittedAt ?? this.submittedAt,
       membersBeginning: membersBeginning ?? this.membersBeginning,
       membersReceived: membersReceived ?? this.membersReceived,
       membersTransferredIn: membersTransferredIn ?? this.membersTransferredIn,
-      membersTransferredOut: membersTransferredOut ?? this.membersTransferredOut,
+      membersTransferredOut:
+          membersTransferredOut ?? this.membersTransferredOut,
       membersDropped: membersDropped ?? this.membersDropped,
       membersDeceased: membersDeceased ?? this.membersDeceased,
       membersEnd: membersEnd ?? this.membersEnd,
@@ -239,14 +287,17 @@ class BorangBData {
 
   /// Calculate total members movement
   int get totalMembersGained => membersReceived + membersTransferredIn;
-  int get totalMembersLost => membersTransferredOut + membersDropped + membersDeceased;
+  int get totalMembersLost =>
+      membersTransferredOut + membersDropped + membersDeceased;
   int get netMembershipChange => totalMembersGained - totalMembersLost;
 
   /// Calculate total visitations
-  int get totalVisitations => homeVisitations + hospitalVisitations + prisonVisitations;
+  int get totalVisitations =>
+      homeVisitations + hospitalVisitations + prisonVisitations;
 
   /// Calculate total literature
-  int get totalLiterature => booksDistributed + magazinesDistributed + tractsDistributed;
+  int get totalLiterature =>
+      booksDistributed + magazinesDistributed + tractsDistributed;
 
   /// Calculate total financial
   double get totalFinancial => tithe + offerings;

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pastor_report/models/church_model.dart';
+import 'package:pastor_report/services/mission_service.dart';
 
 class ChurchService {
   static final ChurchService instance = ChurchService._internal();
@@ -270,18 +271,37 @@ class ChurchService {
   }
 
   // Get all churches for a mission
-  Future<List<Church>> getChurchesByMission(String missionId) async {
+  Future<List<Church>> getChurchesByMission(String missionIdentifier) async {
     try {
+      print('ChurchService: Getting churches for mission: $missionIdentifier');
+
+      // Try to resolve the mission name/ID
+      final resolvedName =
+          await MissionService.instance.getMissionNameFromId(missionIdentifier);
+      final missionIds = <String>[missionIdentifier];
+
+      // Add the resolved name if it's different
+      if (resolvedName != null && resolvedName != missionIdentifier) {
+        missionIds.add(resolvedName);
+        print(
+            'ChurchService: Resolved mission ID to name: $missionIdentifier -> $resolvedName');
+      }
+
+      // Use whereIn to search for churches with either the ID or name
       final querySnapshot = await _firestore
           .collection(_collectionName)
-          .where('missionId', isEqualTo: missionId)
+          .where('missionId', whereIn: missionIds)
           .orderBy('churchName')
           .get();
 
-      return querySnapshot.docs
-          .map((doc) => Church.fromJson(doc.data()))
-          .toList();
+      final results =
+          querySnapshot.docs.map((doc) => Church.fromJson(doc.data())).toList();
+
+      print(
+          'ChurchService: Found ${results.length} churches for mission: $missionIdentifier');
+      return results;
     } catch (e) {
+      print('ChurchService: Error getting churches by mission: $e');
       throw Exception('Failed to get churches by mission: $e');
     }
   }

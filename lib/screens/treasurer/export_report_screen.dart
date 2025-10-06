@@ -78,7 +78,8 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
       // Add title
       sheet.merge(CellIndex.indexByString("A1"), CellIndex.indexByString("E1"));
       final titleCell = sheet.cell(CellIndex.indexByString("A1"));
-      titleCell.value = TextCellValue('${widget.church.churchName} - Financial Report');
+      titleCell.value =
+          TextCellValue('${widget.church.churchName} - Financial Report');
       titleCell.cellStyle = CellStyle(
         bold: true,
         fontSize: 16,
@@ -88,7 +89,8 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
       // Add report month
       sheet.merge(CellIndex.indexByString("A2"), CellIndex.indexByString("E2"));
       final monthCell = sheet.cell(CellIndex.indexByString("A2"));
-      monthCell.value = TextCellValue(DateFormat('MMMM yyyy').format(_report!.month));
+      monthCell.value =
+          TextCellValue(DateFormat('MMMM yyyy').format(_report!.month));
       monthCell.cellStyle = CellStyle(
         horizontalAlign: HorizontalAlign.Center,
       );
@@ -159,8 +161,8 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
 
       final submissionDateCell = sheet.cell(
           CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: submissionRow));
-      submissionDateCell.value =
-          TextCellValue(DateFormat('dd MMM yyyy, HH:mm').format(_report!.submittedAt));
+      submissionDateCell.value = TextCellValue(
+          DateFormat('dd MMM yyyy, HH:mm').format(_report!.submittedAt));
 
       // Auto-size columns
       for (var i = 0; i < 5; i++) {
@@ -584,7 +586,7 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            border: painting.Border.all(color: color.withOpacity(0.5)),
+            border: painting.Border.all(color: color.withValues(alpha: 0.5)),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(

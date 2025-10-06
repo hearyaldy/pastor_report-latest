@@ -7,6 +7,8 @@ import 'package:pastor_report/services/financial_report_service.dart';
 import 'package:pastor_report/utils/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
+import 'package:pastor_report/screens/treasurer/fam_form.dart';
+import 'package:pastor_report/services/fam_service.dart';
 
 class FinancialReportForm extends StatefulWidget {
   final FinancialReport report;
@@ -14,11 +16,11 @@ class FinancialReportForm extends StatefulWidget {
   final bool isNewReport;
 
   const FinancialReportForm({
-    Key? key,
+    super.key,
     required this.report,
     required this.church,
     required this.isNewReport,
-  }) : super(key: key);
+  });
 
   @override
   State<FinancialReportForm> createState() => _FinancialReportFormState();
@@ -206,6 +208,39 @@ class _FinancialReportFormState extends State<FinancialReportForm> {
     }
   }
 
+  Future<void> _navigateToFAM() async {
+    try {
+      final famService = FAMService();
+      final existingFAM =
+          await famService.getFAMDataByReportId(widget.report.id);
+
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FAMForm(
+            report: widget.report,
+            famData: existingFAM,
+          ),
+        ),
+      );
+
+      if (result == true && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('FAM data updated successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error accessing FAM: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -351,6 +386,27 @@ class _FinancialReportFormState extends State<FinancialReportForm> {
                               validator: null,
                             ),
                             const SizedBox(height: 32),
+                            // FAM Button
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: _navigateToFAM,
+                                icon: const Icon(Icons.account_balance_wallet),
+                                label: const Text(
+                                    'MANAGE FINANCIAL ACTIVITIES (FAM)'),
+                                style: OutlinedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
+                                  side:
+                                      BorderSide(color: AppColors.primaryLight),
+                                  foregroundColor: AppColors.primaryLight,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(

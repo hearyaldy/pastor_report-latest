@@ -66,7 +66,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
 
     try {
-      _regions = await RegionService.instance.getRegionsByMission(missionId);
+      // Get mission name from ID
+      final selectedMission = _missions.firstWhere((m) => m.id == missionId);
+
+      // Try using the RegionService directly with mission ID first
+      List<Region> regionsById =
+          await RegionService.instance.getRegionsByMission(missionId);
+
+      // If we get regions, use them directly
+      if (regionsById.isNotEmpty) {
+        print('Found ${regionsById.length} regions using mission ID');
+        _regions = regionsById;
+      } else {
+        // Fallback: fetch ALL regions and filter by mission name
+        final allRegions = await RegionService.instance.getAllRegions();
+
+        // Filter regions by mission name or mission ID
+        _regions = allRegions
+            .where((r) =>
+                r.missionId == missionId ||
+                r.missionId == selectedMission.name ||
+                r.missionId.toLowerCase() == selectedMission.name.toLowerCase())
+            .toList();
+        print('Found ${_regions.length} regions matching mission name or ID');
+      }
+
       setState(() {});
     } catch (e) {
       print('Error loading regions: $e');
@@ -350,8 +374,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                   if (user != null &&
                       user.userRole == UserRole.churchTreasurer) {
-                    infoText =
-                        'As a Church Treasurer, you will be able to:\n'
+                    infoText = 'As a Church Treasurer, you will be able to:\n'
                         '• Submit monthly tithe and offering reports\n'
                         '• View financial statistics for your church\n'
                         '• Edit and export your church\'s reports\n'

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:pastor_report/models/borang_b_model.dart';
 import 'package:pastor_report/services/borang_b_service.dart';
+import 'package:pastor_report/services/borang_b_firestore_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/constants.dart';
 
@@ -50,6 +51,138 @@ class _BorangBPreviewScreenState extends State<BorangBPreviewScreen> {
     if (format != null) {
       _exportReport(data, month, format);
     }
+  }
+
+  Future<void> _showShareOptions(BorangBData data, DateTime month) async {
+    final format = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Share Report'),
+        content: const Text('Choose format to share:'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(context, 'csv'),
+            icon: const Icon(Icons.table_chart),
+            label: const Text('CSV'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(context, 'text'),
+            icon: const Icon(Icons.text_snippet),
+            label: const Text('Text Summary'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue.shade700,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (format != null) {
+      _shareReport(data, month, format);
+    }
+  }
+
+  Future<void> _shareReport(BorangBData data, DateTime month, String format) async {
+    setState(() => _isExporting = true);
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final user = authProvider.user;
+
+      if (user == null) {
+        throw Exception('User not found');
+      }
+
+      if (format == 'csv') {
+        final csv = BorangBFirestoreService.instance.exportToCSV([data]);
+        await Share.share(
+          csv,
+          subject: 'Borang B - ${DateFormat('MMMM yyyy').format(month)}',
+        );
+      } else {
+        // Text summary
+        final summary = _generateTextSummary(data, month, user);
+        await Share.share(
+          summary,
+          subject: 'Borang B - ${DateFormat('MMMM yyyy').format(month)}',
+        );
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Report shared successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sharing: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+
+  String _generateTextSummary(BorangBData data, DateTime month, user) {
+    return '''
+BORANG B - MONTHLY PASTORAL REPORT
+${DateFormat('MMMM yyyy').format(month)}
+
+Pastor: ${user.displayName ?? 'N/A'}
+Mission: ${user.mission ?? 'N/A'}
+District: ${user.district ?? 'N/A'}
+
+CHURCH MEMBERSHIP STATISTICS
+- Members at Beginning: ${data.membersBeginning}
+- Members Received: ${data.membersReceived}
+- Transferred In: ${data.membersTransferredIn}
+- Transferred Out: ${data.membersTransferredOut}
+- Dropped/Removed: ${data.membersDropped}
+- Deceased: ${data.membersDeceased}
+- Members at End: ${data.membersEnd}
+
+BAPTISMS & PROFESSIONS
+- Baptisms: ${data.baptisms}
+- Professions of Faith: ${data.professionOfFaith}
+
+CHURCH SERVICES
+- Sabbath Services: ${data.sabbathServices}
+- Prayer Meetings: ${data.prayerMeetings}
+- Bible Studies: ${data.bibleStudies}
+- Evangelistic Meetings: ${data.evangelisticMeetings}
+
+VISITATIONS
+- Home Visitations: ${data.homeVisitations}
+- Hospital Visitations: ${data.hospitalVisitations}
+- Prison Visitations: ${data.prisonVisitations}
+
+SPECIAL EVENTS
+- Weddings: ${data.weddings}
+- Funerals: ${data.funerals}
+- Baby Dedications: ${data.dedications}
+
+LITERATURE DISTRIBUTION
+- Books Distributed: ${data.booksDistributed}
+- Magazines Distributed: ${data.magazinesDistributed}
+- Tracts Distributed: ${data.tractsDistributed}
+
+TITHES & OFFERINGS
+- Tithe: RM ${data.tithe.toStringAsFixed(2)}
+- Offerings: RM ${data.offerings.toStringAsFixed(2)}
+- Total: RM ${(data.tithe + data.offerings).toStringAsFixed(2)}
+
+${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}\n' : ''}${data.challenges.isNotEmpty ? '\nCHALLENGES FACED\n${data.challenges}\n' : ''}${data.remarks.isNotEmpty ? '\nREMARKS\n${data.remarks}' : ''}
+''';
   }
 
   Future<void> _exportReport(BorangBData data, DateTime month, String format) async {
@@ -116,6 +249,11 @@ class _BorangBPreviewScreenState extends State<BorangBPreviewScreen> {
         backgroundColor: AppColors.primaryLight,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: _isExporting ? null : () => _showShareOptions(data, month),
+            tooltip: 'Share',
+          ),
           IconButton(
             icon: const Icon(Icons.download),
             onPressed: _isExporting ? null : () => _showExportOptions(data, month),
@@ -252,20 +390,34 @@ class _BorangBPreviewScreenState extends State<BorangBPreviewScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isExporting ? null : () => _showExportOptions(data, month),
-        backgroundColor: AppColors.primaryLight,
-        icon: _isExporting
-            ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : const Icon(Icons.download),
-        label: Text(_isExporting ? 'Exporting...' : 'Export Report'),
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton.extended(
+            onPressed: _isExporting ? null : () => _showShareOptions(data, month),
+            backgroundColor: Colors.blue.shade700,
+            heroTag: 'share',
+            icon: const Icon(Icons.share),
+            label: const Text('Share'),
+          ),
+          const SizedBox(width: 16),
+          FloatingActionButton.extended(
+            onPressed: _isExporting ? null : () => _showExportOptions(data, month),
+            backgroundColor: AppColors.primaryLight,
+            heroTag: 'export',
+            icon: _isExporting
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Icon(Icons.download),
+            label: Text(_isExporting ? 'Exporting...' : 'Export'),
+          ),
+        ],
       ),
     );
   }

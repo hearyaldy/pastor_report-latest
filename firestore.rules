@@ -32,6 +32,18 @@ service cloud.firestore {
       return isAuthenticated() &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.mission == missionName;
     }
+    
+    // Helper function to check if user is a Ministerial Secretary
+    function isMinisterialSecretary() {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ministerialSecretary';
+    }
+    
+    // Helper function to check if user is a Super Admin
+    function isSuperAdmin() {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superAdmin';
+    }
 
     // Users collection
     match /users/{userId} {
@@ -118,20 +130,36 @@ service cloud.firestore {
 
     // Regions collection (organizational structure)
     match /regions/{regionId} {
-      // Allow anyone to read regions (needed for registration page)
+      // Allow anyone to read regions (needed for registration and onboarding)
       allow read: if true;
 
-      // Only admins can create, update, or delete regions
-      allow create, update, delete: if isAdmin();
+      // Authenticated users can create regions during onboarding
+      allow create: if isAuthenticated() &&
+                       request.resource.data.createdBy == request.auth.uid;
+
+      // Users can update regions they created, admins can update any
+      allow update: if isAuthenticated() &&
+                       (resource.data.createdBy == request.auth.uid || isAdmin());
+
+      // Only admins can delete regions
+      allow delete: if isAdmin();
     }
 
     // Districts collection (organizational structure)
     match /districts/{districtId} {
-      // Allow anyone to read districts (needed for registration page)
+      // Allow anyone to read districts (needed for registration and onboarding)
       allow read: if true;
 
-      // Only admins can create, update, or delete districts
-      allow create, update, delete: if isAdmin();
+      // Authenticated users can create districts during onboarding
+      allow create: if isAuthenticated() &&
+                       request.resource.data.createdBy == request.auth.uid;
+
+      // Users can update districts they created, admins can update any
+      allow update: if isAuthenticated() &&
+                       (resource.data.createdBy == request.auth.uid || isAdmin());
+
+      // Only admins can delete districts
+      allow delete: if isAdmin();
     }
 
     // Churches collection
@@ -164,6 +192,30 @@ service cloud.firestore {
 
       // Only admins can delete financial reports
       allow delete: if isAdmin();
+    }
+
+    // Borang B Reports (Monthly Ministerial Reports)
+    match /borang_b_reports/{reportId} {
+      // Users can read their own reports
+      // Superadmin and MinisterialSecretary can read all reports
+      allow read: if isAuthenticated() &&
+                     (resource.data.userId == request.auth.uid ||
+                      isSuperAdmin() ||
+                      isMinisterialSecretary());
+
+      // Authenticated users can create their own reports
+      allow create: if isAuthenticated() &&
+                      request.resource.data.userId == request.auth.uid;
+
+      // Users can update their own reports
+      // Superadmin and MinisterialSecretary can update any report
+      allow update: if isAuthenticated() &&
+                      (resource.data.userId == request.auth.uid ||
+                       isSuperAdmin() ||
+                       isMinisterialSecretary());
+
+      // Only Superadmin and MinisterialSecretary can delete reports
+      allow delete: if isSuperAdmin() || isMinisterialSecretary();
     }
   }
 }

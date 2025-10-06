@@ -27,28 +27,38 @@ class _MainScreenState extends State<MainScreen> {
         authProvider.isAuthenticated && (authProvider.user?.isAdmin ?? false);
     final isChurchTreasurer = authProvider.isAuthenticated &&
         (authProvider.user?.userRole == UserRole.churchTreasurer);
-    final showAdminTab = isAdmin || isChurchTreasurer;
 
+    // Always create a list with fixed positions, but use empty containers for hidden tabs
     return [
+      // 0: Dashboard (always visible)
       Stack(
         children: [
-          const ImprovedDashboardScreen(),
+          // Church Treasurers see Treasurer Dashboard as home, others see regular dashboard
+          isChurchTreasurer && !isAdmin
+              ? const TreasurerDashboard()
+              : const ImprovedDashboardScreen(),
           if (_showDebugInfo && authProvider.isAuthenticated)
             _buildDebugOverlay(authProvider),
         ],
       ),
-      Stack(
-        children: [
-          const MyMissionScreen(),
-          if (_showDebugInfo && authProvider.isAuthenticated)
-            _buildDebugOverlay(authProvider),
-        ],
-      ),
+      // 1: My Mission (hidden for non-admin church treasurers)
+      isChurchTreasurer && !isAdmin
+          ? Container() // Empty placeholder for church treasurers
+          : Stack(
+              children: [
+                const MyMissionScreen(),
+                if (_showDebugInfo && authProvider.isAuthenticated)
+                  _buildDebugOverlay(authProvider),
+              ],
+            ),
+      // 2: Profile (always visible)
       const ProfileScreen(),
-      if (showAdminTab)
-        isChurchTreasurer && !isAdmin
-            ? const TreasurerDashboard() // Show Treasurer Dashboard for church treasurers
-            : const ImprovedAdminDashboard(), // Show Admin Dashboard for admins
+      // 3: Admin Dashboard (visible for admins) or Treasurer Dashboard (visible for treasurers)
+      isAdmin
+          ? const ImprovedAdminDashboard()
+          : isChurchTreasurer
+              ? const TreasurerDashboard()
+              : Container(), // Empty placeholder for regular users
     ];
   }
 
@@ -70,7 +80,8 @@ class _MainScreenState extends State<MainScreen> {
                 style: const TextStyle(
                     color: Colors.white, fontWeight: FontWeight.bold)),
             const Divider(color: Colors.white30),
-            Text('Mission: ${authProvider.user?.mission ?? "Not set"}',
+            Text(
+                'Mission: ${_getMissionNameFromId(authProvider.user?.mission)}',
                 style: const TextStyle(color: Colors.white)),
             Text('District: ${authProvider.user?.district ?? "Not set"}',
                 style: const TextStyle(color: Colors.white)),
@@ -91,12 +102,59 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  // Helper method to convert mission ID to name
+  String _getMissionNameFromId(String? missionId) {
+    if (missionId == null || missionId.isEmpty) {
+      return "Not set";
+    }
+
+    // Try to find the mission by ID in the constants
+    for (var mission in AppConstants.missions) {
+      if (mission['id'] == missionId) {
+        return mission['name'] ?? "Unknown Mission";
+      }
+    }
+
+    // If not found by ID, maybe it's already the name
+    for (var mission in AppConstants.missions) {
+      if (mission['name'] == missionId) {
+        return missionId;
+      }
+    }
+
+    return missionId; // Return the ID if name not found
+  }
+
   void _onTabTapped(int index) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final isAdmin =
+        authProvider.isAuthenticated && (authProvider.user?.isAdmin ?? false);
+    final isChurchTreasurer = authProvider.isAuthenticated &&
+        (authProvider.user?.userRole == UserRole.churchTreasurer);
+
     // Check if trying to access profile without login
     if (index == 2) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
       if (!authProvider.isAuthenticated) {
         _showLoginPrompt();
+        return;
+      }
+    }
+
+    // Skip My Mission tab for church treasurers who are not admins
+    if (index == 1 && isChurchTreasurer && !isAdmin) {
+      // Don't update the index, essentially ignoring the tap
+      return;
+    }
+
+    // Check if trying to access admin/treasury tab
+    if (index == 3) {
+      if (!authProvider.isAuthenticated) {
+        _showLoginPrompt();
+        return;
+      }
+
+      // Only allow access if user is admin or church treasurer
+      if (!isAdmin && !isChurchTreasurer) {
         return;
       }
     }
@@ -177,40 +235,31 @@ class _MainScreenState extends State<MainScreen> {
               activeIcon: Icon(Icons.dashboard),
               label: 'Dashboard',
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.business_outlined),
-              activeIcon: Icon(Icons.business),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.business_outlined),
+              activeIcon: const Icon(Icons.business),
               label: 'My Mission',
+              // This item will still be shown but tapping it won't do anything for church treasurers
             ),
             const BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
               label: 'Profile',
             ),
-            if (Provider.of<AuthProvider>(context).isAuthenticated &&
-                ((Provider.of<AuthProvider>(context).user?.isAdmin ?? false) ||
-                    (Provider.of<AuthProvider>(context).user?.userRole ==
-                        UserRole.churchTreasurer)))
-              BottomNavigationBarItem(
-                icon: Provider.of<AuthProvider>(context).user?.userRole ==
-                            UserRole.churchTreasurer &&
-                        !(Provider.of<AuthProvider>(context).user?.isAdmin ??
-                            false)
-                    ? const Icon(Icons.account_balance_wallet_outlined)
-                    : const Icon(Icons.admin_panel_settings_outlined),
-                activeIcon: Provider.of<AuthProvider>(context).user?.userRole ==
-                            UserRole.churchTreasurer &&
-                        !(Provider.of<AuthProvider>(context).user?.isAdmin ??
-                            false)
-                    ? const Icon(Icons.account_balance_wallet)
-                    : const Icon(Icons.admin_panel_settings),
-                label: Provider.of<AuthProvider>(context).user?.userRole ==
-                            UserRole.churchTreasurer &&
-                        !(Provider.of<AuthProvider>(context).user?.isAdmin ??
-                            false)
-                    ? 'Treasury'
-                    : 'Admin',
-              ),
+            BottomNavigationBarItem(
+              icon: Provider.of<AuthProvider>(context).user?.userRole ==
+                      UserRole.churchTreasurer
+                  ? const Icon(Icons.account_balance_wallet_outlined)
+                  : const Icon(Icons.admin_panel_settings_outlined),
+              activeIcon: Provider.of<AuthProvider>(context).user?.userRole ==
+                      UserRole.churchTreasurer
+                  ? const Icon(Icons.account_balance_wallet)
+                  : const Icon(Icons.admin_panel_settings),
+              label: Provider.of<AuthProvider>(context).user?.userRole ==
+                      UserRole.churchTreasurer
+                  ? 'Treasury'
+                  : 'Admin',
+            ),
           ],
         ),
       ),

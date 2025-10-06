@@ -25,16 +25,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _districtController = TextEditingController();
-  final _regionController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
   String? _selectedMission;
   String? _selectedRegion;
   String? _selectedDistrict;
-  String? _selectedRole;
   String? _selectedChurch;
+  String? _selectedRole;
 
   List<Mission> _missions = [];
   List<Region> _regions = [];
@@ -53,8 +51,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _districtController.dispose();
-    _regionController.dispose();
     super.dispose();
   }
 
@@ -94,25 +90,30 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     });
 
     try {
-      // Debug: fetch ALL regions first to see what exists
-      final allRegions = await RegionService.instance.getAllRegions();
-      print('DEBUG: Total regions in database: ${allRegions.length}');
-      for (var region in allRegions) {
-        print('  - ${region.name} (missionId: ${region.missionId})');
-      }
+      // Try using the RegionService directly with mission ID first
+      List<Region> regionsById =
+          await RegionService.instance.getRegionsByMission(missionId);
 
-      // Try querying by missionId
-      _regions = await RegionService.instance.getRegionsByMission(missionId);
-      print('Loaded ${_regions.length} regions for missionId=$missionId');
+      // If we get regions, use them directly
+      if (regionsById.isNotEmpty) {
+        print('Found ${regionsById.length} regions using mission ID');
+        _regions = regionsById;
+      } else {
+        // Fallback: fetch ALL regions and filter by mission name
+        final allRegions = await RegionService.instance.getAllRegions();
+        print('DEBUG: Total regions in database: ${allRegions.length}');
+        print(
+            'DEBUG: Looking for missionId=$missionId OR missionName=${selectedMission.name}');
 
-      // If no results, try filtering manually by mission name
-      if (_regions.isEmpty && allRegions.isNotEmpty) {
-        print('No regions found by missionId, trying to match by mission name...');
-        _regions = allRegions.where((r) =>
-          r.missionId == selectedMission.name ||
-          r.missionId.toLowerCase() == selectedMission.name.toLowerCase()
-        ).toList();
-        print('Found ${_regions.length} regions by mission name');
+        // Filter regions by mission name or mission ID
+        _regions = allRegions
+            .where((r) =>
+                r.missionId == missionId ||
+                r.missionId == selectedMission.name ||
+                r.missionId.toLowerCase() == selectedMission.name.toLowerCase())
+            .toList();
+        print(
+            'Found ${_regions.length} regions matching mission name "${selectedMission.name}" or ID');
       }
 
       setState(() {});
@@ -194,16 +195,18 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         password: _passwordController.text.trim(),
         displayName: _nameController.text.trim(),
         mission: _selectedMission,
-        district: _selectedDistrict,
-        region: _selectedRegion,
-        role: _selectedRole,
-        churchId: _selectedChurch,
+        // Other fields will be filled during onboarding
       );
 
       if (!mounted) return;
 
       if (success) {
-        Navigator.pop(context, true);
+        // Navigate to home screen since user already provided all required info during registration
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppConstants.routeHome,
+          (route) => false, // Remove all previous routes
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -311,9 +314,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     setState(() {
                       _selectedMission = newValue;
                     });
-                    if (newValue != null) {
-                      _loadRegions(newValue);
-                    }
                   },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -322,69 +322,61 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
 
-                // Region Dropdown
-                DropdownButtonFormField<String>(
-                  value: _selectedRegion,
-                  decoration: const InputDecoration(
-                    labelText: 'Region',
-                    hintText: 'Select your region',
-                    prefixIcon: Icon(Icons.map_outlined),
+                // Information about onboarding
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
                   ),
-                  items: _regions.map((Region region) {
-                    return DropdownMenuItem<String>(
-                      value: region.id,
-                      child: Text(region.name),
-                    );
-                  }).toList(),
-                  onChanged: _regions.isEmpty
-                      ? null
-                      : (String? newValue) {
-                          setState(() {
-                            _selectedRegion = newValue;
-                          });
-                          if (newValue != null) {
-                            _loadDistricts(newValue);
-                          }
-                        },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please select your region';
-                    }
-                    return null;
-                  },
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.blue),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'After registration, you will complete your profile by adding your region, district, and role information.',
+                          style: TextStyle(color: Colors.blue),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16),
 
-                // District Dropdown
+                // Role Field
                 DropdownButtonFormField<String>(
-                  value: _selectedDistrict,
                   decoration: const InputDecoration(
-                    labelText: 'District',
-                    hintText: 'Select your district',
-                    prefixIcon: Icon(Icons.location_city_outlined),
+                    labelText: 'Role',
+                    hintText: 'Select your role',
+                    prefixIcon: Icon(Icons.badge_outlined),
                   ),
-                  items: _districts.map((District district) {
+                  items: AppConstants.roles.map((String role) {
                     return DropdownMenuItem<String>(
-                      value: district.id,
-                      child: Text(district.name),
+                      value: role,
+                      child: Text(role),
                     );
                   }).toList(),
-                  onChanged: _districts.isEmpty
-                      ? null
-                      : (String? newValue) {
-                          setState(() {
-                            _selectedDistrict = newValue;
-                          });
-                          if (newValue != null &&
-                              _selectedRole == 'Church Treasurer') {
-                            _loadChurches(newValue);
-                          }
-                        },
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedRole = newValue;
+                      // Clear church selection when role changes
+                      if (newValue != 'Church Treasurer') {
+                        _selectedChurch = null;
+                        _churches = [];
+                      } else if (newValue == 'Church Treasurer' &&
+                          _selectedDistrict != null) {
+                        // Load churches if district is already selected
+                        _loadChurches(_selectedDistrict!);
+                      }
+                    });
+                  },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please select your district';
+                      return 'Please select a role';
                     }
                     return null;
                   },
@@ -423,34 +415,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   ),
                 if (_selectedRole == 'Church Treasurer')
                   const SizedBox(height: 16),
-
-                // Role Dropdown
-                DropdownButtonFormField<String>(
-                  value: _selectedRole,
-                  decoration: const InputDecoration(
-                    labelText: 'Role',
-                    hintText: 'Select your role',
-                    prefixIcon: Icon(Icons.badge_outlined),
-                  ),
-                  items: AppConstants.roles.map((String role) {
-                    return DropdownMenuItem<String>(
-                      value: role,
-                      child: Text(role),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedRole = newValue;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please select a role';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
 
                 // Password Field
                 TextFormField(

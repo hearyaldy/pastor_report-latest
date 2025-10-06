@@ -6,9 +6,12 @@ import 'package:pastor_report/services/financial_report_service.dart';
 import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/services/church_service.dart';
 import 'package:pastor_report/services/staff_service.dart';
+import 'package:pastor_report/services/mission_service.dart';
+import 'package:pastor_report/services/optimized_data_service.dart';
 import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/models/district_model.dart';
 import 'package:pastor_report/models/church_model.dart';
+import 'package:pastor_report/models/mission_model.dart';
 import 'package:pastor_report/utils/constants.dart';
 
 enum ViewLevel { mission, district, church }
@@ -43,37 +46,177 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
   String? _selectedDistrictId;
   String? _selectedChurchId;
 
+  // Mission selector for super admin
+  String? _overrideMissionId; // Super admin can override to view other missions
+
+  // Helper method to convert mission ID to name using MissionService
+  String _getMissionNameFromId(String? missionId) {
+    return MissionService().getMissionNameById(missionId);
+  }
+
   @override
   void initState() {
     super.initState();
+    // Default view level will be set after loading user data in _loadMissionData
     _loadMissionData();
   }
 
   Future<void> _loadMissionData() async {
+    // Prevent multiple simultaneous data loads
+    if (_isLoading) {
+      debugPrint('⚠️ Data loading already in progress, skipping');
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final user = authProvider.user;
 
-      if (user != null && user.mission != null) {
-        debugPrint(
-            '📊 Loading data for mission: ${user.mission}, View: $_viewLevel');
+      if (user != null) {
+        // Use override mission if set (for super admin), otherwise use user's mission
+        final activeMissionId = _overrideMissionId ?? user.mission;
 
-        // Load all districts and churches for filtering
-        _allDistricts =
-            await _districtService.getDistrictsByMission(user.mission!);
-        _allChurches = [];
-        for (var district in _allDistricts) {
-          final churches =
-              await _churchService.getChurchesByDistrict(district.id);
-          _allChurches.addAll(churches);
+        if (activeMissionId == null) {
+          setState(() => _isLoading = false);
+          return;
+        }
+
+        // Set default view level based on user permissions and assignments
+        if (!user.isSuperAdmin &&
+            !user.canManageMissions() &&
+            !user.canManageDepartments()) {
+          // Regular users default to church view if they have a church assigned, otherwise district view
+          if (user.churchId != null && user.churchId!.isNotEmpty) {
+            _viewLevel = ViewLevel.church;
+          } else if (_viewLevel == ViewLevel.mission) {
+            _viewLevel = ViewLevel.district;
+          }
+        }
+
+        final missionName = _getMissionNameFromId(activeMissionId);
+        debugPrint(
+            '📊 Loading data for mission: $missionName ($activeMissionId), View: $_viewLevel, User: ${user.displayName} (${user.userRole.displayName})');
+
+        // Load districts and churches based on user permissions and assignments
+        if (user.isSuperAdmin) {
+          // Super admin sees all districts and churches in the mission
+          _allDistricts =
+              await _districtService.getDistrictsByMission(activeMissionId);
+          debugPrint(
+              '📍 Found ${_allDistricts.length} districts for mission $activeMissionId');
+
+          _allChurches = [];
+          for (var district in _allDistricts) {
+            final churches =
+                await _churchService.getChurchesByDistrict(district.id);
+            _allChurches.addAll(churches);
+          }
+          debugPrint('⛪ Found ${_allChurches.length} churches total');
+        } else {
+          // Regular users see data based on their assignments
+          if (user.churchId != null && user.churchId!.isNotEmpty) {
+            // Check if user is a pastor - pastors should see all churches in their district
+            final bool isPastor = user.roleTitle != null &&
+                (user.roleTitle!.contains('Pastor') ||
+                    user.roleTitle!.contains('pastor'));
+
+            if (isPastor) {
+              // Pastors can see all churches in their district
+              final userChurch =
+                  await _churchService.getChurchById(user.churchId!);
+              if (userChurch != null && userChurch.districtId != null) {
+                final churchDistrict = await _districtService
+                    .getDistrictById(userChurch.districtId!);
+                if (churchDistrict != null) {
+                  _allDistricts = [churchDistrict];
+                  _allChurches = await _churchService
+                      .getChurchesByDistrict(userChurch.districtId!);
+                  debugPrint(
+                      '👨‍🏫 Pastor ${user.displayName} assigned to district: ${churchDistrict.name} (${_allChurches.length} churches)');
+
+                  // For pastors, don't auto-select a specific church - let them choose
+                  // Auto-select district for district view
+                  if (_viewLevel == ViewLevel.district) {
+                    _selectedDistrictId = churchDistrict.id;
+                  }
+                } else {
+                  _allDistricts = [];
+                  _allChurches = [];
+                  debugPrint('⚠️ Pastor church district not found');
+                }
+              } else {
+                _allDistricts = [];
+                _allChurches = [];
+                debugPrint('⚠️ Pastor church not found or has no district');
+              }
+            } else {
+              // Non-pastor users with specific church assignment (e.g., church treasurers)
+              final userChurch =
+                  await _churchService.getChurchById(user.churchId!);
+              if (userChurch != null && userChurch.districtId != null) {
+                // Get the district for this church
+                final churchDistrict = await _districtService
+                    .getDistrictById(userChurch.districtId!);
+                if (churchDistrict != null) {
+                  _allDistricts = [churchDistrict];
+                  _allChurches = [userChurch];
+                  debugPrint(
+                      '📍 User assigned to church: ${userChurch.churchName} in district: ${churchDistrict.name}');
+
+                  // Auto-select user's church for church view
+                  if (_viewLevel == ViewLevel.church) {
+                    _selectedChurchId = user.churchId;
+                  }
+                  // Also set district for district view
+                  if (_viewLevel == ViewLevel.district) {
+                    _selectedDistrictId = churchDistrict.id;
+                  }
+                } else {
+                  _allDistricts = [];
+                  _allChurches = [];
+                  debugPrint('⚠️ Church district not found');
+                }
+              } else {
+                _allDistricts = [];
+                _allChurches = [];
+                debugPrint('⚠️ User church not found or has no district');
+              }
+            }
+          } else if (user.district != null && user.district!.isNotEmpty) {
+            // User has district assigned but no specific church
+            final userDistrict =
+                await _districtService.getDistrictById(user.district!);
+            if (userDistrict != null) {
+              _allDistricts = [userDistrict];
+              _allChurches =
+                  await _churchService.getChurchesByDistrict(user.district!);
+              debugPrint(
+                  '📍 User assigned to district: ${userDistrict.name} (${userDistrict.id})');
+              debugPrint(
+                  '⛪ Found ${_allChurches.length} churches in user\'s district');
+
+              // Auto-select user's district for district view
+              if (_viewLevel == ViewLevel.district) {
+                _selectedDistrictId = user.district;
+              }
+            } else {
+              _allDistricts = [];
+              _allChurches = [];
+              debugPrint('⚠️ User district not found');
+            }
+          } else {
+            _allDistricts = [];
+            _allChurches = [];
+            debugPrint('⚠️ User has no district or church assigned');
+          }
         }
 
         // Load data based on view level
         switch (_viewLevel) {
           case ViewLevel.mission:
-            await _loadMissionLevelData(user.mission!);
+            await _loadMissionLevelData(activeMissionId);
             break;
           case ViewLevel.district:
             await _loadDistrictLevelData();
@@ -121,10 +264,13 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
 
     // Load financial data
     try {
+      debugPrint(
+          '🔍 Querying financial data for missionId: $missionId, month: $_selectedMonth');
       _financialData = await _financialService.getMissionAggregateByMonth(
         missionId,
         _selectedMonth,
       );
+      debugPrint('✅ Financial data loaded: $_financialData');
     } catch (e) {
       debugPrint('⚠️ Could not load financial data: $e');
       _financialData = {
@@ -262,6 +408,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             _buildModernAppBar(user!),
+            if (user.isSuperAdmin) _buildMissionSelector(),
             _buildViewSelector(user),
             _buildMonthSelectorSliver(),
             if (_viewLevel == ViewLevel.district ||
@@ -426,7 +573,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              user.mission ?? 'Unknown Mission',
+                              _getMissionNameFromId(user.mission),
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
@@ -459,9 +606,25 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
   }
 
   Widget _buildViewSelector(UserModel user) {
-    // Determine available views based on user role
+    // Determine available views based on user role and assignments
     final bool isMissionAdmin =
         user.canManageMissions() || user.canManageDepartments();
+    final bool isSuperAdmin = user.isSuperAdmin;
+    final bool hasSpecificChurch =
+        user.churchId != null && user.churchId!.isNotEmpty;
+    final bool hasDistrict = user.district != null && user.district!.isNotEmpty;
+    final bool isPastor = user.roleTitle != null &&
+        (user.roleTitle!.contains('Pastor') ||
+            user.roleTitle!.contains('pastor'));
+
+    // Regular users (not super admin or mission admin) can only see district and church views
+    final bool canViewMission = isSuperAdmin || isMissionAdmin;
+    // District view is available for all users who have district access or higher
+    final bool canViewDistrict =
+        canViewMission || hasDistrict || hasSpecificChurch;
+    // Church view is available for all users who have district or church access
+    final bool canViewChurch =
+        canViewMission || hasDistrict || hasSpecificChurch;
 
     return SliverToBoxAdapter(
       child: Container(
@@ -473,7 +636,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
           ),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
               'View Level',
@@ -484,54 +647,137 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            SegmentedButton<ViewLevel>(
-              segments: [
-                if (isMissionAdmin)
-                  const ButtonSegment<ViewLevel>(
-                    value: ViewLevel.mission,
-                    label: Text('Mission'),
-                    icon: Icon(Icons.business, size: 18),
-                  ),
-                const ButtonSegment<ViewLevel>(
-                  value: ViewLevel.district,
-                  label: Text('District'),
-                  icon: Icon(Icons.location_city, size: 18),
-                ),
-                const ButtonSegment<ViewLevel>(
-                  value: ViewLevel.church,
-                  label: Text('Church'),
-                  icon: Icon(Icons.church, size: 18),
-                ),
-              ],
-              selected: {_viewLevel},
-              onSelectionChanged: (Set<ViewLevel> selected) {
-                setState(() {
-                  _viewLevel = selected.first;
-                  // Reset selections when changing view
-                  if (_viewLevel == ViewLevel.mission) {
-                    _selectedDistrictId = null;
-                    _selectedChurchId = null;
-                  } else if (_viewLevel == ViewLevel.district) {
-                    _selectedChurchId = null;
-                  }
-                });
-                _loadMissionData();
-              },
-              style: ButtonStyle(
-                backgroundColor:
-                    WidgetStateProperty.resolveWith<Color>((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return AppColors.primaryLight;
-                  }
-                  return Colors.grey[100]!;
-                }),
-                foregroundColor:
-                    WidgetStateProperty.resolveWith<Color>((states) {
-                  if (states.contains(WidgetState.selected)) {
+            Center(
+              child: SegmentedButton<ViewLevel>(
+                segments: [
+                  if (canViewMission)
+                    const ButtonSegment<ViewLevel>(
+                      value: ViewLevel.mission,
+                      label: Text('Mission'),
+                      icon: Icon(Icons.business, size: 18),
+                    ),
+                  if (canViewDistrict)
+                    ButtonSegment<ViewLevel>(
+                      value: ViewLevel.district,
+                      label: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('District'),
+                          if (hasSpecificChurch && isPastor)
+                            Container(
+                              margin: const EdgeInsets.only(left: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 4, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryLight
+                                    .withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Summary',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  color: AppColors.primaryLight,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      icon: const Icon(Icons.location_city, size: 18),
+                      tooltip: hasSpecificChurch && isPastor
+                          ? 'View district summary for your assigned district'
+                          : 'Select district to view',
+                    ),
+                  if (canViewChurch)
+                    const ButtonSegment<ViewLevel>(
+                      value: ViewLevel.church,
+                      label: Text('Church'),
+                      icon: Icon(Icons.church, size: 18),
+                    ),
+                ],
+                selected: {_viewLevel},
+                onSelectionChanged: (Set<ViewLevel> selected) {
+                  setState(() {
+                    _viewLevel = selected.first;
+                    // Reset selections when changing view
+                    if (_viewLevel == ViewLevel.mission) {
+                      _selectedDistrictId = null;
+                      _selectedChurchId = null;
+                    } else if (_viewLevel == ViewLevel.district) {
+                      _selectedChurchId = null;
+                      // For regular users, auto-select their district
+                      if (!canViewMission && user.district != null) {
+                        _selectedDistrictId = user.district;
+                      } else if (!canViewMission && hasSpecificChurch) {
+                        // For pastors with church assignment, auto-select their church's district
+                        final bool isPastor = user.roleTitle != null &&
+                            (user.roleTitle!.contains('Pastor') ||
+                                user.roleTitle!.contains('pastor'));
+                        if (isPastor && _allDistricts.isNotEmpty) {
+                          _selectedDistrictId = _allDistricts.first.id;
+                          debugPrint(
+                              '👨‍🏫 Auto-selected pastor district: ${_allDistricts.first.name} (${_allDistricts.first.id})');
+                        }
+                      }
+                    } else if (_viewLevel == ViewLevel.church) {
+                      // For users with specific church, auto-select their church
+                      if (hasSpecificChurch) {
+                        _selectedChurchId = user.churchId;
+                        debugPrint(
+                            '📍 Auto-selected specific church: ${user.churchId}');
+                      } else if (hasDistrict && _allChurches.isNotEmpty) {
+                        // For users with district access, auto-select the first church
+                        _selectedChurchId = _allChurches.first.id;
+                        debugPrint(
+                            '📍 Auto-selected first church in district: ${_allChurches.first.id} (${_allChurches.first.churchName})');
+                      } else {
+                        _selectedChurchId = null;
+                        debugPrint(
+                            '⚠️ No church auto-selected for church view');
+                      }
+                    }
+                  });
+                  _loadMissionData();
+                },
+                style: ButtonStyle(
+                  backgroundColor:
+                      WidgetStateProperty.resolveWith<Color>((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return AppColors.primaryLight;
+                    }
+                    // Make unselected buttons more prominent to show they're selectable
                     return Colors.white;
-                  }
-                  return Colors.grey[700]!;
-                }),
+                  }),
+                  foregroundColor:
+                      WidgetStateProperty.resolveWith<Color>((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return Colors.white;
+                    }
+                    return AppColors
+                        .primaryLight; // Use primary color for unselected text to show it's selectable
+                  }),
+                  side: WidgetStateProperty.resolveWith<BorderSide>((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return BorderSide.none;
+                    }
+                    return BorderSide(
+                        color: AppColors.primaryLight.withValues(alpha: 0.3),
+                        width: 1);
+                  }),
+                  elevation: WidgetStateProperty.resolveWith<double>((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return 2.0;
+                    }
+                    return 0.0;
+                  }),
+                  shadowColor: WidgetStateProperty.resolveWith<Color>((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return AppColors.primaryLight.withValues(alpha: 0.3);
+                    }
+                    return Colors.transparent;
+                  }),
+                ),
               ),
             ),
           ],
@@ -541,6 +787,29 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
   }
 
   Widget _buildFilterSelector() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
+    final bool isSuperAdmin = user?.isSuperAdmin ?? false;
+    final bool isMissionAdmin = (user?.canManageMissions() ?? false) ||
+        (user?.canManageDepartments() ?? false);
+    final bool hasSpecificChurch =
+        user?.churchId != null && user!.churchId!.isNotEmpty;
+    final bool hasDistrict =
+        user?.district != null && user!.district!.isNotEmpty;
+
+    // Church dropdown should be enabled for:
+    // - Super admins (can select any church)
+    // - Mission admins (can select any church)
+    // - District users without specific church (can select churches in their district)
+    // - Pastors with church assignment (can select churches in their district)
+    final bool isPastor = user?.roleTitle != null &&
+        (user!.roleTitle!.contains('Pastor') ||
+            user.roleTitle!.contains('pastor'));
+    final bool canSelectChurch = isSuperAdmin ||
+        isMissionAdmin ||
+        (hasDistrict && !hasSpecificChurch) ||
+        (hasSpecificChurch && isPastor);
+
     return SliverToBoxAdapter(
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -590,12 +859,20 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                           ),
                         );
                       }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedDistrictId = value;
-                        });
-                        _loadMissionData();
-                      },
+                      onChanged: isSuperAdmin || isMissionAdmin
+                          ? (value) {
+                              setState(() {
+                                _selectedDistrictId = value;
+                              });
+                              _loadMissionData();
+                            }
+                          : null, // Disable for regular users
+                      disabledHint: _allDistricts.isNotEmpty
+                          ? Text(
+                              '${_allDistricts.first.name} (${_allDistricts.first.code})',
+                              overflow: TextOverflow.ellipsis,
+                            )
+                          : const Text('No district assigned'),
                     ),
                   ),
                 ],
@@ -615,7 +892,12 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedChurchId,
+                      value: _selectedChurchId != null &&
+                              _allChurches.any((c) => c.id == _selectedChurchId)
+                          ? _selectedChurchId
+                          : (_allChurches.isNotEmpty
+                              ? _allChurches.first.id
+                              : null),
                       isExpanded: true,
                       decoration: InputDecoration(
                         filled: true,
@@ -651,12 +933,28 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                           ),
                         );
                       }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedChurchId = value;
-                        });
-                        _loadMissionData();
-                      },
+                      onChanged: canSelectChurch
+                          ? (value) {
+                              setState(() {
+                                _selectedChurchId = value;
+                              });
+                              _loadMissionData();
+                            }
+                          : null, // Disable only for non-pastor users with specific church assignment
+                      disabledHint: (hasSpecificChurch && !isPastor) &&
+                              _allChurches.isNotEmpty
+                          ? Text(
+                              '${_allChurches.first.churchName} (${_allDistricts.isNotEmpty ? _allDistricts.first.name : "Unknown"})',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            )
+                          : (_allChurches.isNotEmpty
+                              ? Text(
+                                  'Select a church (${_allChurches.length} available)',
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                )
+                              : const Text('No churches available')),
                     ),
                   ),
                 ],
@@ -1051,6 +1349,156 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMissionSelector() {
+    return SliverToBoxAdapter(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.blue.shade50,
+          border: Border(
+            bottom: BorderSide(color: Colors.blue.shade200, width: 2),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.admin_panel_settings,
+                    color: Colors.blue.shade700, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Super Admin: Select Mission',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue.shade700,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            FutureBuilder<List<Mission>>(
+              future: OptimizedDataService.instance.getMissions(),
+              builder: (context, snapshot) {
+                debugPrint(
+                    '🔍 Mission Selector - ConnectionState: ${snapshot.connectionState}');
+                debugPrint(
+                    '🔍 Mission Selector - hasData: ${snapshot.hasData}');
+                debugPrint(
+                    '🔍 Mission Selector - hasError: ${snapshot.hasError}');
+                if (snapshot.hasError) {
+                  debugPrint('❌ Mission Selector Error: ${snapshot.error}');
+                }
+                if (snapshot.hasData) {
+                  debugPrint(
+                      '📋 Mission Selector - Found ${snapshot.data!.length} missions');
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Error loading missions: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'No missions available',
+                      style: TextStyle(color: Colors.orange),
+                    ),
+                  );
+                }
+
+                final missions = snapshot.data!;
+                final authProvider =
+                    Provider.of<AuthProvider>(context, listen: false);
+                final user = authProvider.user;
+
+                return DropdownButtonFormField<String>(
+                  value: _overrideMissionId ?? user?.mission,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.blue.shade300),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
+                    prefixIcon:
+                        Icon(Icons.business, color: AppColors.primaryLight),
+                  ),
+                  items: missions.map((mission) {
+                    return DropdownMenuItem(
+                      value: mission.id,
+                      child: Text(
+                        '${mission.name} (${mission.code})',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _overrideMissionId = value;
+                      // Reset view to mission level when changing missions
+                      _viewLevel = ViewLevel.mission;
+                      _selectedDistrictId = null;
+                      _selectedChurchId = null;
+                    });
+                    _loadMissionData();
+                  },
+                );
+              },
+            ),
+            if (_overrideMissionId != null) ...[
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _overrideMissionId = null;
+                  });
+                  _loadMissionData();
+                },
+                icon: const Icon(Icons.clear, size: 16),
+                label: const Text('Reset to My Mission'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade600,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

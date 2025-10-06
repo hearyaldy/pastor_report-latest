@@ -130,11 +130,21 @@ class AuthService {
     required String uid,
     String? displayName,
     bool? isAdmin,
+    String? region,
+    String? district,
+    String? churchId,
+    UserRole? userRole,
+    String? roleTitle,
   }) async {
     try {
       Map<String, dynamic> updates = {};
       if (displayName != null) updates['displayName'] = displayName;
       if (isAdmin != null) updates['isAdmin'] = isAdmin;
+      if (region != null) updates['region'] = region;
+      if (district != null) updates['district'] = district;
+      if (churchId != null) updates['churchId'] = churchId;
+      if (userRole != null) updates['userRole'] = userRole.toString().split('.').last;
+      if (roleTitle != null) updates['roleTitle'] = roleTitle;
 
       if (updates.isNotEmpty) {
         await _firestore.collection('users').doc(uid).update(updates);
@@ -145,6 +155,42 @@ class AuthService {
       }
     } catch (e) {
       throw 'Failed to update profile';
+    }
+  }
+
+  // Complete onboarding profile
+  Future<void> completeOnboarding({
+    required String uid,
+    required String region,
+    required String district,
+    String? churchId,
+    List<String>? churchIds,
+    UserRole? userRole,
+    String? roleTitle,
+  }) async {
+    try {
+      Map<String, dynamic> updates = {
+        'region': region,
+        'district': district,
+        'onboardingCompleted': true,
+      };
+
+      // Support both single churchId (backward compatibility) and multiple churchIds
+      if (churchIds != null && churchIds.isNotEmpty) {
+        updates['churchIds'] = churchIds;
+        // For backward compatibility, also set churchId to the first one
+        updates['churchId'] = churchIds.first;
+      } else if (churchId != null) {
+        updates['churchId'] = churchId;
+        updates['churchIds'] = [churchId];
+      }
+
+      if (userRole != null) updates['userRole'] = userRole.toString().split('.').last;
+      if (roleTitle != null) updates['roleTitle'] = roleTitle;
+
+      await _firestore.collection('users').doc(uid).update(updates);
+    } catch (e) {
+      throw 'Failed to complete onboarding: $e';
     }
   }
 

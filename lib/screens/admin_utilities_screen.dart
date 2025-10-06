@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/providers/mission_provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
@@ -316,6 +317,314 @@ class AdminUtilitiesScreen extends StatelessWidget {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Error during update: $e'),
+                            backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 5),
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+              ),
+              const _SectionHeader(title: 'Diagnostics'),
+              _ActionCard(
+                title: 'Check Missions Collection',
+                description:
+                    'Display all missions from Firestore to debug mission selector issues.',
+                icon: Icons.bug_report,
+                color: Colors.purple,
+                onTap: () async {
+                  final firestore = FirebaseFirestore.instance;
+
+                  try {
+                    final missionsSnapshot =
+                        await firestore.collection('missions').get();
+
+                    if (context.mounted) {
+                      final missions = missionsSnapshot.docs.map((doc) {
+                        final data = doc.data();
+                        return 'ID: ${doc.id}\n'
+                            'Name: ${data['name']}\n'
+                            'Code: ${data['code']}\n'
+                            'Description: ${data['description']}\n';
+                      }).join('\n---\n');
+
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text(
+                              'Missions (${missionsSnapshot.docs.length})'),
+                          content: SingleChildScrollView(
+                            child: Text(missions.isEmpty
+                                ? 'No missions found'
+                                : missions),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('CLOSE'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+              _ActionCard(
+                title: 'Fix User Mission IDs',
+                description:
+                    'Convert user mission names to Firestore IDs. This ensures consistency across the app.',
+                icon: Icons.person_search,
+                color: Colors.orange,
+                onTap: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Fix User Missions'),
+                      content: const Text(
+                          'This will convert mission names in user profiles to Firestore IDs.\n\n'
+                          'For example: "Sabah Mission" → "4LFC9isp22H7Og1FHBm6"\n\n'
+                          'This ensures all users have consistent mission IDs.\n\n'
+                          'Do you want to continue?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('CANCEL'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                          ),
+                          child: const Text('FIX USERS'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true && context.mounted) {
+                    try {
+                      _showLoadingDialog(context, 'Fixing user missions...');
+
+                      final firestore = FirebaseFirestore.instance;
+
+                      // Get all missions to create a name->ID map
+                      final missionsSnapshot =
+                          await firestore.collection('missions').get();
+                      final missionNameToId = <String, String>{};
+                      for (var doc in missionsSnapshot.docs) {
+                        final name = doc.data()['name'] as String?;
+                        if (name != null) {
+                          missionNameToId[name] = doc.id;
+                        }
+                      }
+
+                      // Get all users
+                      final usersSnapshot =
+                          await firestore.collection('users').get();
+
+                      int updated = 0;
+                      int skipped = 0;
+                      int failed = 0;
+
+                      for (var userDoc in usersSnapshot.docs) {
+                        try {
+                          final userData = userDoc.data();
+                          final currentMission = userData['mission'] as String?;
+
+                          if (currentMission == null || currentMission.isEmpty) {
+                            skipped++;
+                            continue;
+                          }
+
+                          // Check if it's already a Firestore ID (long random string)
+                          if (currentMission.length > 15 &&
+                              !currentMission.contains(' ')) {
+                            skipped++;
+                            continue;
+                          }
+
+                          // It's a mission name, convert to ID
+                          final missionId = missionNameToId[currentMission];
+                          if (missionId != null) {
+                            await firestore
+                                .collection('users')
+                                .doc(userDoc.id)
+                                .update({'mission': missionId});
+                            updated++;
+                            print(
+                                '✅ Updated user ${userDoc.id}: "$currentMission" → "$missionId"');
+                          } else {
+                            failed++;
+                            print(
+                                '❌ No mission ID found for name: $currentMission');
+                          }
+                        } catch (e) {
+                          failed++;
+                          print('❌ Error updating user ${userDoc.id}: $e');
+                        }
+                      }
+
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close loading dialog
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                'Fixed $updated users. Skipped: $skipped, Failed: $failed'),
+                            backgroundColor: Colors.green,
+                            duration: const Duration(seconds: 5),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close loading dialog
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error: $e'),
+                            backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 5),
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+              ),
+              const _SectionHeader(title: 'Financial Reports'),
+              _ActionCard(
+                title: 'Fix Financial Reports Mission IDs',
+                description:
+                    'Update existing financial reports to include mission ID. This fixes the issue where Mission Page doesn\'t show all church reports.',
+                icon: Icons.healing,
+                color: Colors.teal,
+                onTap: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Fix Financial Reports'),
+                      content: const Text(
+                          'This will update all financial reports that are missing mission ID. '
+                          'The mission ID will be populated from each church\'s data.\n\n'
+                          'This is safe and will not affect your existing data.\n\n'
+                          'Do you want to continue?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('CANCEL'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                          ),
+                          child: const Text('FIX REPORTS'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true && context.mounted) {
+                    try {
+                      // Show loading indicator
+                      _showLoadingDialog(context,
+                          'Fixing financial reports...\nThis may take a moment.');
+
+                      final firestore = FirebaseFirestore.instance;
+
+                      // Get all reports (we'll fix both null and incorrect values)
+                      final reportsSnapshot = await firestore
+                          .collection('financial_reports')
+                          .get();
+
+                      int updated = 0;
+                      int failed = 0;
+                      int skipped = 0;
+
+                      for (var reportDoc in reportsSnapshot.docs) {
+                        try {
+                          final reportData = reportDoc.data();
+                          final churchId = reportData['churchId'] as String?;
+                          final currentMissionId = reportData['missionId'] as String?;
+
+                          if (churchId == null) {
+                            failed++;
+                            continue;
+                          }
+
+                          // Get the church to find its correct missionId
+                          final churchDoc = await firestore
+                              .collection('churches')
+                              .doc(churchId)
+                              .get();
+
+                          if (!churchDoc.exists) {
+                            failed++;
+                            continue;
+                          }
+
+                          final churchData = churchDoc.data()!;
+                          final correctMissionId = churchData['missionId'] as String?;
+
+                          if (correctMissionId == null) {
+                            failed++;
+                            continue;
+                          }
+
+                          // Check if needs update (null OR incorrect value)
+                          if (currentMissionId != correctMissionId) {
+                            // Update the report with correct missionId
+                            await firestore
+                                .collection('financial_reports')
+                                .doc(reportDoc.id)
+                                .update({
+                              'missionId': correctMissionId,
+                              'updatedAt': FieldValue.serverTimestamp(),
+                            });
+                            updated++;
+                          } else {
+                            skipped++;
+                          }
+                        } catch (e) {
+                          failed++;
+                        }
+                      }
+
+                      // Hide loading and show success
+                      if (context.mounted) {
+                        Navigator.pop(context); // Remove loading dialog
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Financial reports fixed!\n'
+                              'Total processed: ${reportsSnapshot.docs.length}\n'
+                              'Updated: $updated\n'
+                              'Already correct: $skipped\n'
+                              'Failed: $failed\n\n'
+                              'Mission pages should now show all reports correctly.',
+                            ),
+                            backgroundColor: Colors.green,
+                            duration: const Duration(seconds: 6),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      // Hide loading and show error
+                      if (context.mounted) {
+                        Navigator.pop(context); // Remove loading dialog
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error fixing reports: $e'),
                             backgroundColor: Colors.red,
                             duration: const Duration(seconds: 5),
                           ),

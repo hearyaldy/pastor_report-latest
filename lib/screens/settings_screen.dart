@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/providers/theme_provider.dart';
+import 'package:pastor_report/providers/auth_provider.dart';
+import 'package:pastor_report/models/user_model.dart';
+import 'package:pastor_report/screens/comprehensive_onboarding_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -212,6 +215,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 16),
 
+            // Admin Settings Card - Only visible to Super Admins
+            Consumer<AuthProvider>(
+              builder: (context, authProvider, _) {
+                // Show Admin Settings only for Super Admins
+                if (authProvider.user?.userRole == UserRole.superAdmin) {
+                  return Column(
+                    children: [
+                      Card(
+                        elevation: 2,
+                        margin: const EdgeInsets.only(bottom: 16.0),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Admin Settings',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const Divider(),
+                              ListTile(
+                                leading: Icon(Icons.admin_panel_settings,
+                                    color: AppColors.primaryLight),
+                                title: const Text('Manage Organizational Hierarchy'),
+                                subtitle: const Text(
+                                    'Manage regions, districts, and churches'),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const ComprehensiveOnboardingScreen(),
+                                    ),
+                                  );
+                                },
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  );
+                }
+                return const SizedBox
+                    .shrink(); // Don't show for non-super admins
+              },
+            ),
+
             // About Card
             Card(
               elevation: 2,
@@ -230,8 +287,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const Divider(),
                     ListTile(
-                      leading:
-                          Icon(Icons.info_outline, color: AppColors.primaryLight),
+                      leading: Icon(Icons.info_outline,
+                          color: AppColors.primaryLight),
                       title: const Text('App Information'),
                       subtitle: const Text('Learn about PastorPro'),
                       trailing: const Icon(Icons.chevron_right),
@@ -241,8 +298,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       contentPadding: EdgeInsets.zero,
                     ),
                     ListTile(
-                      leading:
-                          Icon(Icons.new_releases, color: AppColors.primaryLight),
+                      leading: Icon(Icons.new_releases,
+                          color: AppColors.primaryLight),
                       title: const Text('App Version'),
                       subtitle: const Text(AppConstants.appVersion),
                       contentPadding: EdgeInsets.zero,

@@ -163,10 +163,20 @@ class UserManagementService {
     }
   }
 
-  // Delete user (Admin only - deletes from Firestore, not Firebase Auth)
+  // Delete user (Admin only)
+  // NOTE: This only deletes the Firestore document.
+  // Firebase Auth accounts cannot be deleted from client-side code for security reasons.
+  // You need to:
+  // 1. Use Firebase Admin SDK (server-side) to delete auth accounts, OR
+  // 2. Install Firebase Extension "Delete User Data" to automatically clean up auth on Firestore delete, OR
+  // 3. Manually delete from Firebase Console > Authentication
   Future<void> deleteUser(String uid) async {
     try {
+      // Delete user document from Firestore
       await _firestore.collection('users').doc(uid).delete();
+
+      // Note: Firebase Auth account will remain. Admin must delete manually from:
+      // Firebase Console > Authentication > Users
     } catch (e) {
       throw 'Failed to delete user: $e';
     }

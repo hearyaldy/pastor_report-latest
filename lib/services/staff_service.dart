@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pastor_report/models/staff_model.dart';
+import 'package:pastor_report/services/mission_service.dart';
 import 'package:uuid/uuid.dart';
 
 class StaffService {
@@ -23,13 +25,51 @@ class StaffService {
   }
 
   /// Stream staff by mission
-  Stream<List<Staff>> streamStaffByMission(String mission) {
-    return _staffCollection
-        .where('mission', isEqualTo: mission)
-        .orderBy('name')
-        .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Staff.fromFirestore(doc)).toList());
+  Stream<List<Staff>> streamStaffByMission(String missionIdentifier) {
+    print('StaffService: Streaming staff for mission: $missionIdentifier');
+
+    // We need to create an async wrapper to handle the asynchronous mission resolution
+    final controller = StreamController<List<Staff>>();
+
+    // Handle the mission resolution and query setup asynchronously
+    () async {
+      // Try to resolve the mission name first
+      final resolvedName =
+          await MissionService.instance.getMissionNameFromId(missionIdentifier);
+      final possibleMissions = <String>[missionIdentifier];
+
+      if (resolvedName != null && resolvedName != missionIdentifier) {
+        possibleMissions.add(resolvedName);
+        print(
+            'StaffService: Resolved mission ID to name: $missionIdentifier -> $resolvedName');
+      }
+
+      // Setup the query with both original ID and resolved name
+      final stream = _staffCollection
+          .where('mission', whereIn: possibleMissions)
+          .orderBy('name')
+          .snapshots()
+          .map((snapshot) {
+        final result =
+            snapshot.docs.map((doc) => Staff.fromFirestore(doc)).toList();
+        print(
+            'StaffService: Found ${result.length} staff members for mission: $missionIdentifier');
+        return result;
+      });
+
+      // Forward all data from the query to our controller
+      final subscription = stream.listen(
+        (data) => controller.add(data),
+        onError: (error) => controller.addError(error),
+        onDone: () => controller.close(),
+      );
+
+      // Make sure we clean up when the controller is done
+      controller.onCancel = () => subscription.cancel();
+    }();
+
+    // Return the stream from our controller
+    return controller.stream;
   }
 
   /// Stream staff by multiple missions (for users with access to multiple missions)
@@ -38,12 +78,111 @@ class StaffService {
       return Stream.value([]);
     }
 
+    print('StaffService: Streaming staff for multiple missions: $missions');
+
+    // We need to create an async wrapper to handle the asynchronous mission resolution
+    final controller = StreamController<List<Staff>>();
+
+    // Handle the mission resolution and query setup asynchronously
+    () async {
+      // Try to resolve all mission names
+      final possibleMissions = <String>[];
+
+      // Add all original mission IDs
+      possibleMissions.addAll(missions);
+
+      // Try to resolve each mission name
+      for (final missionId in missions) {
+        final resolvedName =
+            await MissionService.instance.getMissionNameFromId(missionId);
+        if (resolvedName != null && !possibleMissions.contains(resolvedName)) {
+          possibleMissions.add(resolvedName);
+          print(
+              'StaffService: Resolved mission ID to name: $missionId -> $resolvedName');
+        }
+      }
+
+      // Setup the query with both original IDs and resolved names
+      // Note: Firestore 'whereIn' has a limit of 10 items, so we might need to split queries
+      // if we have too many missions after resolution
+      if (possibleMissions.length <= 10) {
+        // Single query if within limit
+        final stream = _staffCollection
+            .where('mission', whereIn: possibleMissions)
+            .orderBy('name')
+            .snapshots()
+            .map((snapshot) {
+          final result =
+              snapshot.docs.map((doc) => Staff.fromFirestore(doc)).toList();
+          print(
+              'StaffService: Found ${result.length} staff members for missions: $missions');
+          return result;
+        });
+
+        // Forward all data from the query to our controller
+        final subscription = stream.listen(
+          (data) => controller.add(data),
+          onError: (error) => controller.addError(error),
+          onDone: () => controller.close(),
+        );
+
+        // Make sure we clean up when the controller is done
+        controller.onCancel = () => subscription.cancel();
+      } else {
+        // Multiple queries needed if exceeds limit
+        print(
+            'StaffService: Too many mission combinations (${possibleMissions.length}), splitting queries');
+
+        // Track all unique staff to avoid duplicates from multiple queries
+        final allStaff = <String, Staff>{};
+
+        // Split into chunks of 10
+        for (var i = 0; i < possibleMissions.length; i += 10) {
+          final end = (i + 10 < possibleMissions.length)
+              ? i + 10
+              : possibleMissions.length;
+          final chunk = possibleMissions.sublist(i, end);
+
+          // Get staff for this chunk of missions
+          final querySnapshot = await _staffCollection
+              .where('mission', whereIn: chunk)
+              .orderBy('name')
+              .get();
+
+          // Add to our results, avoiding duplicates
+          for (final doc in querySnapshot.docs) {
+            final staff = Staff.fromFirestore(doc);
+            allStaff[staff.id] = staff;
+          }
+        }
+
+        // Emit the combined result once
+        controller.add(allStaff.values.toList());
+
+        // Close the controller as we've handled everything synchronously
+        controller.close();
+      }
+    }();
+
+    // Return the stream from our controller
+    return controller.stream;
+  }
+
+  /// Stream staff by district
+  Stream<List<Staff>> streamStaffByDistrict(String districtId) {
+    print('StaffService: Streaming staff for district: $districtId');
     return _staffCollection
-        .where('mission', whereIn: missions)
+        .where('district', isEqualTo: districtId)
         .orderBy('name')
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Staff.fromFirestore(doc)).toList());
+        .map((snapshot) {
+      final staff = snapshot.docs.map((doc) {
+        return Staff.fromFirestore(doc);
+      }).toList();
+      print(
+          'StaffService: Found ${staff.length} staff members for district: $districtId');
+      return staff;
+    });
   }
 
   /// Get all staff (Future)

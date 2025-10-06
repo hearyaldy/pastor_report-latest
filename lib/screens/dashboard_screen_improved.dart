@@ -15,9 +15,10 @@ import 'package:pastor_report/services/todo_storage_service.dart';
 import 'package:pastor_report/services/appointment_storage_service.dart';
 import 'package:pastor_report/services/event_service.dart';
 import 'package:pastor_report/services/activity_storage_service.dart';
-import 'package:pastor_report/services/borang_b_storage_service.dart';
+import 'package:pastor_report/services/borang_b_firestore_service.dart';
 import 'package:pastor_report/services/church_storage_service.dart';
 import 'package:pastor_report/services/staff_service.dart';
+import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/services.dart';
@@ -56,9 +57,19 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
     super.dispose();
   }
 
-  Stream<List<Department>> _getDepartmentsStream(String missionName) {
+  Stream<List<Department>> _getDepartmentsStream(String missionIdOrName) {
+    // Accept either mission ID or mission name
+    print('Dashboard: Fetching departments for mission: $missionIdOrName');
+
+    // Special case handling for known problematic IDs
+    if (missionIdOrName == '4LFC9isp22H7Og1FHBm6') {
+      print(
+          'Dashboard: Using special handling for known ID: $missionIdOrName -> Sabah Mission');
+      // For this specific ID, we know it should be "Sabah Mission"
+    }
+
     return OptimizedDataService.instance
-        .streamDepartmentsByMissionName(missionName);
+        .streamDepartmentsByMissionId(missionIdOrName);
   }
 
   @override
@@ -501,7 +512,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
               ),
             ),
           ),
-          // Borang B Card
+          // Borang B Card - Visible to regular users for creating their own reports
+          // Super admins and ministerial secretaries can access all reports via the list screen
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: SizedBox(
@@ -1200,8 +1212,12 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   }
 
   Widget _buildBorangBCard() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userId = authProvider.user?.uid ?? '';
+
     return FutureBuilder<BorangBData?>(
-      future: BorangBStorageService.instance.getReportByMonth(
+      future: BorangBFirestoreService.instance.getReportByUserAndMonth(
+        userId,
         DateTime.now().year,
         DateTime.now().month,
       ),
@@ -1372,28 +1388,106 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   }
 
   Widget _buildDepartmentsSection(UserModel? user) {
+    final missionName = user?.mission != null
+        ? MissionService().getMissionNameById(user!.mission)
+        : 'All Missions';
+
     return SliverToBoxAdapter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+          // Modern header with gradient background
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.primaryLight,
+                  AppColors.primaryLight.withValues(alpha: 0.8),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryLight.withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Departments',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
+                // Icon
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.dashboard,
+                    color: Colors.white,
+                    size: 28,
                   ),
                 ),
+                const SizedBox(width: 16),
+                // Text
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Departments',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.business,
+                            size: 14,
+                            color: Colors.white70,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              missionName,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.white70,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                // View All button
                 if (user != null)
-                  TextButton(
-                    onPressed: () =>
-                        Navigator.pushNamed(context, '/departments'),
-                    child: const Text('View All'),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: TextButton.icon(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/departments'),
+                      icon: const Icon(Icons.arrow_forward,
+                          color: Colors.white, size: 18),
+                      label: const Text(
+                        'View All',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -1405,10 +1499,19 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   }
 
   Widget _buildDepartmentsGrid(UserModel? user) {
-    final missionName = user?.mission ?? 'Southern Asia-Pacific Division';
+    String? missionId = user?.mission;
+    // Get the mission ID from user, or use a default if not available
+    String missionIdOrDefault = missionId ?? 'sabah-mission'; // Default ID
+
+    // Get the human-readable mission name for display
+    String missionName =
+        MissionService().getMissionNameById(missionIdOrDefault);
+
+    print(
+        'Loading departments for mission: $missionName (ID: $missionIdOrDefault)');
 
     return StreamBuilder<List<Department>>(
-      stream: _getDepartmentsStream(missionName),
+      stream: _getDepartmentsStream(missionIdOrDefault),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Padding(
@@ -1474,88 +1577,131 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
 
   Widget _buildDepartmentCard(
       Department department, List<Department> allDepartments) {
-    // Use department's custom color if available, otherwise use default gradient
-    List<Color> colors;
-
-    if (department.color != null) {
-      // Create a gradient from the department's color
-      final baseColor = department.color!;
-      colors = [
-        baseColor,
-        Color.fromARGB(
-          baseColor.alpha,
-          (baseColor.red * 0.7).toInt().clamp(0, 255),
-          (baseColor.green * 0.7).toInt().clamp(0, 255),
-          (baseColor.blue * 0.7).toInt().clamp(0, 255),
-        ),
-      ];
-    } else {
-      // Fallback: Generate a unique color based on department name
-      final colorIndex = department.name.hashCode % 6;
-      final cardColors = [
-        [Colors.indigo[400]!, Colors.indigo[600]!],
-        [Colors.teal[400]!, Colors.teal[600]!],
-        [Colors.purple[400]!, Colors.purple[600]!],
-        [Colors.pink[400]!, Colors.pink[600]!],
-        [Colors.cyan[400]!, Colors.cyan[600]!],
-        [Colors.deepOrange[400]!, Colors.deepOrange[600]!],
-      ];
-      colors = cardColors[colorIndex];
-    }
+    // Brighten the card color
+    final cardColor = _brightenColor(department.color ?? Colors.grey.shade100);
 
     return GestureDetector(
       onTap: () => _handleDepartmentTap(department, allDepartments),
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: colors,
-          ),
+          color: cardColor,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.white,
+            width: 3,
+          ),
           boxShadow: [
             BoxShadow(
-              color: colors[0].withValues(alpha: 0.3),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => _handleDepartmentTap(department, allDepartments),
+            child: Stack(
+              children: [
+                // Inactive badge at top-right corner
+                if (!department.isActive)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.pause_circle,
+                              size: 12, color: Colors.white),
+                          SizedBox(width: 4),
+                          Text(
+                            'Inactive',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                // Content
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Icon
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          department.icon,
+                          size: 24,
+                          color: _getIconColor(department.color),
+                        ),
+                      ),
+                      const Spacer(),
+                      // Name
+                      Text(
+                        department.name,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
-                child: Icon(
-                  department.icon,
-                  size: 36,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                department.name,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                  height: 1.3,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  /// Keep bright colors vibrant - no brightening needed for CMYK colors
+  Color _brightenColor(Color color) {
+    return color; // Return original bright color without modification
+  }
+
+  Color _getIconColor(Color? bgColor) {
+    if (bgColor == null) return AppColors.primaryLight;
+    final luminance = bgColor.computeLuminance();
+    return luminance > 0.7 ? AppColors.primaryDark : AppColors.primaryLight;
   }
 
   Widget _buildRecentActivitiesSection() {
@@ -1771,6 +1917,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         return Colors.red;
       case UserRole.missionAdmin:
         return Colors.blue;
+      case UserRole.ministerialSecretary:
+        return Colors.teal;
       case UserRole.editor:
         return Colors.orange;
       case UserRole.churchTreasurer:
@@ -1788,6 +1936,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         return Icons.admin_panel_settings;
       case UserRole.missionAdmin:
         return Icons.business;
+      case UserRole.ministerialSecretary:
+        return Icons.book;
       case UserRole.editor:
         return Icons.edit;
       case UserRole.churchTreasurer:
@@ -1798,6 +1948,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   }
 
   // Quick Add Activity Bottom Sheet
+  // Unused method - kept for reference
+  // ignore: unused_element
   void _showQuickAddActivityBottomSheet() {
     final activityController = TextEditingController();
     final mileageController = TextEditingController(text: '0');
@@ -2065,6 +2217,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   }
 
   // Quick Add Todo Bottom Sheet
+  // Unused method - kept for reference
+  // ignore: unused_element
   void _showQuickAddTodoBottomSheet() {
     final todoController = TextEditingController();
     int selectedPriority = 1; // 0: Low, 1: Medium, 2: High

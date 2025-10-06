@@ -39,12 +39,20 @@ class AppConstants {
   static const String keyUserEmail = 'user_email';
   static const String keyThemeMode = 'theme_mode';
 
-  // Mission Options
-  static const List<String> missions = [
-    'Sabah Mission',
-    'North Sabah Mission',
-    'Sarawak Mission',
-    'Peninsular Mission',
+  // Mission Options - Use IDs consistently
+  // NOTE: This is for reference only - actual data should be loaded from Firestore
+  // Each mission has both the string ID format (e.g. 'sabah-mission') and
+  // the Firestore document ID format (e.g. '4LFC9isp22H7Og1FHBm6')
+  static const List<Map<String, String>> missions = [
+    {
+      'id': 'sabah-mission',
+      'name': 'Sabah Mission',
+      'code': 'SAB',
+      'firestore_id': '4LFC9isp22H7Og1FHBm6'
+    },
+    {'id': 'north-sabah-mission', 'name': 'North Sabah Mission'},
+    {'id': 'sarawak-mission', 'name': 'Sarawak Mission'},
+    {'id': 'peninsular-mission', 'name': 'Peninsular Mission'},
   ];
 
   // Role Options

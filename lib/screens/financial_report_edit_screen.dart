@@ -13,11 +13,11 @@ class FinancialReportEditScreen extends StatefulWidget {
   final Function onUpdate;
 
   const FinancialReportEditScreen({
-    Key? key,
+    super.key,
     required this.report,
     required this.church,
     required this.onUpdate,
-  }) : super(key: key);
+  });
 
   @override
   State<FinancialReportEditScreen> createState() =>

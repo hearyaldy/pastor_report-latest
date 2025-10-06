@@ -59,6 +59,36 @@ class Mission {
     };
   }
 
+  /// Serialize to a cache-friendly map (without FieldValue instances)
+  Map<String, dynamic> toCacheMap() {
+    return {
+      'id': id,
+      'name': name,
+      'code': code,
+      'description': description,
+      'logoUrl': logoUrl,
+      'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+    };
+  }
+
+  /// Create from cache map
+  factory Mission.fromCacheMap(Map<String, dynamic> map) {
+    return Mission(
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      code: map['code'],
+      description: map['description'],
+      logoUrl: map['logoUrl'],
+      createdAt: map['createdAt'] != null
+          ? DateTime.parse(map['createdAt'])
+          : null,
+      updatedAt: map['updatedAt'] != null
+          ? DateTime.parse(map['updatedAt'])
+          : null,
+    );
+  }
+
   // Create a copy of this Mission with optional updated fields
   Mission copyWith({
     String? name,

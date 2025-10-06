@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/models/department_model.dart';
-import 'package:pastor_report/services/optimized_data_service.dart';
+import 'package:pastor_report/services/department_service.dart';
+import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/screens/inapp_webview_screen.dart';
 import 'package:pastor_report/utils/constants.dart';
 
@@ -14,12 +15,18 @@ class DepartmentsListScreen extends StatefulWidget {
 }
 
 class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
-  final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  bool _showInactive = false;
 
-  // Stream departments with caching
-  Stream<List<Department>> _getDepartmentsStream(String missionName) {
-    return OptimizedDataService.instance.streamDepartmentsByMissionName(missionName);
+  /// Keep bright colors vibrant - no brightening needed for CMYK colors
+  Color _brightenColor(Color color) {
+    return color; // Return original bright color without modification
+  }
+
+  Color _getIconColor(Color? bgColor) {
+    if (bgColor == null) return AppColors.primaryLight;
+    final luminance = bgColor.computeLuminance();
+    return luminance > 0.7 ? AppColors.primaryDark : AppColors.primaryLight;
   }
 
   // Handle department tap - check auth first
@@ -98,151 +105,190 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userMission = authProvider.user?.mission;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('All Departments'),
-        backgroundColor: AppColors.primaryLight,
-        foregroundColor: Colors.white,
-      ),
-      body: Column(
-        children: [
-          // Search Bar
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search departments...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          setState(() {});
+        },
+        child: CustomScrollView(
+          slivers: [
+            _buildModernAppBar(userMission),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildSearchBar(),
+                    const SizedBox(height: 12),
+                    _buildToggleBar(),
+                  ],
                 ),
-                filled: true,
-                fillColor: Colors.grey.shade100,
               ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
             ),
-          ),
+            _buildDepartmentGrid(userMission),
+          ],
+        ),
+      ),
+    );
+  }
 
-          // Departments List
-          Expanded(
-            child: Consumer<AuthProvider>(
-              builder: (context, authProvider, child) {
-                final userMission = authProvider.user?.mission;
+  Widget _buildModernAppBar(String? userMission) {
+    final missionName = userMission != null
+        ? MissionService().getMissionNameById(userMission)
+        : 'All Missions';
 
-                // If no mission assigned, show message
-                if (userMission == null || userMission.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.dashboard, size: 64, color: Colors.grey),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'No mission assigned to your account',
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Please contact an administrator',
-                          style: const TextStyle(color: Colors.grey),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+    return SliverAppBar(
+      expandedHeight: 180,
+      floating: false,
+      pinned: true,
+      backgroundColor: AppColors.primaryLight,
+      flexibleSpace: FlexibleSpaceBar(
+        titlePadding: const EdgeInsets.only(left: 16, bottom: 16, right: 16),
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'All Departments',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.business,
+                  color: Colors.white70,
+                  size: 14,
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    missionName,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      fontWeight: FontWeight.normal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.primaryLight,
+                    AppColors.primaryDark,
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              right: -30,
+              top: 20,
+              child: Icon(
+                Icons.dashboard,
+                size: 150,
+                color: Colors.white.withValues(alpha: 0.1),
+              ),
+            ),
+            Positioned(
+              top: 60,
+              right: 16,
+              child: StreamBuilder<List<Department>>(
+                stream: DepartmentService().getDepartmentsStream(mission: userMission),
+                builder: (context, snapshot) {
+                  final count = snapshot.data?.length ?? 0;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      '$count Dept${count != 1 ? 's' : ''}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   );
-                }
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-                // Stream departments from Firestore
-                return StreamBuilder<List<Department>>(
-                  stream: _getDepartmentsStream(userMission),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                            const SizedBox(height: 16),
-                            Text('Error: ${snapshot.error}'),
-                          ],
-                        ),
-                      );
-                    }
+  Widget _buildSearchBar() {
+    return TextField(
+      decoration: InputDecoration(
+        hintText: 'Search departments...',
+        prefixIcon: Icon(Icons.search, color: AppColors.primaryLight),
+        filled: true,
+        fillColor: Colors.grey.shade100,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.primaryLight, width: 2),
+        ),
+      ),
+      onChanged: (value) {
+        setState(() {
+          _searchQuery = value.toLowerCase();
+        });
+      },
+    );
+  }
 
-                    if (!snapshot.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    final departmentList = snapshot.data!;
-                    if (departmentList.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.dashboard, size: 64, color: Colors.grey),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No departments found for "$userMission" mission',
-                              style: const TextStyle(fontSize: 18, color: Colors.grey),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    // Apply search filter
-                    final filteredDepartments = _searchQuery.isEmpty
-                        ? departmentList
-                        : departmentList
-                            .where((dept) => dept.name
-                                .toLowerCase()
-                                .contains(_searchQuery.toLowerCase()))
-                            .toList();
-
-                    if (filteredDepartments.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.search_off, size: 64, color: Colors.grey),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No results found for "$_searchQuery"',
-                              style: const TextStyle(fontSize: 18, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    // Display departments in a grid
-                    return GridView.builder(
-                      padding: const EdgeInsets.all(16),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 1.1,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                      ),
-                      itemCount: filteredDepartments.length,
-                      itemBuilder: (context, index) {
-                        final department = filteredDepartments[index];
-                        return _DepartmentCard(
-                          department: department,
-                          onTap: () => _handleDepartmentTap(department, departmentList),
-                        );
-                      },
-                    );
-                  },
-                );
-              },
+  Widget _buildToggleBar() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildToggleButton(
+              'Active Only',
+              !_showInactive,
+              () => setState(() => _showInactive = false),
+            ),
+          ),
+          Expanded(
+            child: _buildToggleButton(
+              'Show All',
+              _showInactive,
+              () => setState(() => _showInactive = true),
             ),
           ),
         ],
@@ -250,178 +296,210 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-}
-
-class _DepartmentCard extends StatelessWidget {
-  final Department department;
-  final VoidCallback onTap;
-
-  const _DepartmentCard({
-    required this.department,
-    required this.onTap,
-  });
-
-  String _getLastUpdatedText() {
-    if (department.lastUpdated == null) return 'Never updated';
-
-    final now = DateTime.now();
-    final difference = now.difference(department.lastUpdated!);
-
-    if (difference.inDays > 30) {
-      return '${(difference.inDays / 30).floor()} months ago';
-    } else if (difference.inDays > 0) {
-      return '${difference.inDays} days ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} hours ago';
-    } else {
-      return 'Recently updated';
-    }
-  }
-
-  Color _getStatusColor() {
-    if (!department.isActive) {
-      return Colors.red.shade700;
-    }
-    return Colors.green.shade600;
-  }
-
-  String _getStatusText() {
-    if (!department.isActive) {
-      return 'INACTIVE';
-    }
-    return 'ACTIVE';
-  }
-
-  IconData _getStatusIcon() {
-    if (!department.isActive) {
-      return Icons.cancel;
-    }
-    return Icons.check_circle;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cardColor = department.color ?? AppColors.cardBackground;
-    final statusColor = _getStatusColor();
-
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+  Widget _buildToggleButton(String text, bool isSelected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryLight : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.grey.shade700,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
       ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                cardColor,
-                cardColor.withValues(alpha: 0.7),
-              ],
+    );
+  }
+
+  Widget _buildDepartmentGrid(String? userMission) {
+    return StreamBuilder<List<Department>>(
+      stream: DepartmentService().getDepartmentsStream(mission: userMission),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return SliverFillRemaining(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text('Error: ${snapshot.error}'),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final allDepartments = snapshot.data ?? [];
+
+        // Filter departments
+        var filteredDepartments = allDepartments.where((dept) {
+          final matchesSearch = _searchQuery.isEmpty ||
+              dept.name.toLowerCase().contains(_searchQuery);
+          final matchesActiveFilter = _showInactive || dept.isActive;
+          return matchesSearch && matchesActiveFilter;
+        }).toList();
+
+        if (filteredDepartments.isEmpty) {
+          return SliverFillRemaining(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _searchQuery.isNotEmpty ? Icons.search_off : Icons.dashboard,
+                    size: 64,
+                    color: Colors.grey,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _searchQuery.isNotEmpty
+                        ? 'No results found for "$_searchQuery"'
+                        : 'No departments found',
+                    style: const TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return SliverPadding(
+          padding: const EdgeInsets.all(16),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 1.1,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final dept = filteredDepartments[index];
+                return _buildDepartmentCard(dept, allDepartments);
+              },
+              childCount: filteredDepartments.length,
             ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Top Row: Icon and Status Badge
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        );
+      },
+    );
+  }
+
+  Widget _buildDepartmentCard(Department dept, List<Department> allDepartments) {
+    final cardColor = _brightenColor(dept.color ?? Colors.grey.shade100);
+
+    return GestureDetector(
+      onTap: () => _handleDepartmentTap(dept, allDepartments),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.white,
+            width: 3,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // Inactive badge
+            if (!dept.isActive)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.pause_circle, size: 12, color: Colors.white),
+                      SizedBox(width: 4),
+                      Text(
+                        'Inactive',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Icon Container
+                  // Icon
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryLight.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      department.icon,
-                      color: AppColors.primaryLight,
-                      size: 24,
-                    ),
-                  ),
-                  // Status Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: statusColor,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _getStatusIcon(),
-                          size: 12,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _getStatusText(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                          ),
+                      color: Colors.white.withValues(alpha: 0.9),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              // Department Name
-              Flexible(
-                child: Text(
-                  department.name,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    height: 1.2,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(height: 4),
-              // Last Updated Info
-              Row(
-                children: [
-                  Icon(
-                    Icons.update,
-                    size: 10,
-                    color: Colors.black54,
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      _getLastUpdatedText(),
-                      style: const TextStyle(
-                        fontSize: 9,
-                        color: Colors.black54,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    child: Icon(
+                      dept.icon,
+                      size: 24,
+                      color: _getIconColor(dept.color),
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  // Name
+                  Text(
+                    dept.name,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

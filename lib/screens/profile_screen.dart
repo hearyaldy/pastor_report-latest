@@ -594,7 +594,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     _isEditing = true;
                                     _displayNameController.text =
                                         user.displayName;
-                                    _selectedMission = user.mission;
+
+                                    // Find mission by name or ID
+                                    if (user.mission != null) {
+                                      // First try to find the mission directly by ID
+                                      if (_missions
+                                          .any((m) => m.id == user.mission)) {
+                                        _selectedMission = user.mission;
+                                        print(
+                                            'Mission found by ID: ${user.mission} -> ${_missions.firstWhere((m) => m.id == user.mission).name}');
+                                      } else {
+                                        // If not found, look for a mission with matching name
+                                        try {
+                                          final matchingMission =
+                                              _missions.firstWhere(
+                                            (m) => m.name == user.mission,
+                                          );
+                                          _selectedMission = matchingMission.id;
+                                          print(
+                                              'Mission found by name: ${user.mission} -> ${matchingMission.id}');
+                                        } catch (e) {
+                                          // Try from constants
+                                          bool found = false;
+                                          for (var mission
+                                              in AppConstants.missions) {
+                                            if (mission['id'] == user.mission) {
+                                              _selectedMission = user.mission;
+                                              print(
+                                                  'Mission found in constants by ID: ${user.mission} -> ${mission['name']}');
+                                              found = true;
+                                              break;
+                                            }
+                                            if (mission['name'] ==
+                                                user.mission) {
+                                              for (var m in _missions) {
+                                                if (m.name == mission['name']) {
+                                                  _selectedMission = m.id;
+                                                  found = true;
+                                                  print(
+                                                      'Mission found in constants by name: ${user.mission} -> ${m.id}');
+                                                  break;
+                                                }
+                                              }
+                                              if (found) break;
+                                            }
+                                          }
+
+                                          // If still not found, default to first or null
+                                          if (!found) {
+                                            print(
+                                                'Mission not found anywhere: ${user.mission}');
+                                            _selectedMission =
+                                                _missions.isNotEmpty
+                                                    ? _missions.first.id
+                                                    : null;
+                                          }
+                                        }
+                                      }
+                                    }
 
                                     // Set role only if it exists in available roles
                                     if (roleExists) {
@@ -613,7 +670,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     // If user has a region, select it
                                     if (user.region != null &&
                                         user.region!.isNotEmpty) {
-                                      // Find region by ID
+                                      // Try finding region by ID first
+                                      bool foundRegion = false;
                                       for (var region in _regions) {
                                         if (region.id == user.region) {
                                           setState(() {
@@ -621,16 +679,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           });
                                           // Load districts for this region
                                           await _loadDistricts(region.id);
+                                          foundRegion = true;
                                           break;
+                                        }
+                                      }
+
+                                      // If not found by ID, try finding by name
+                                      if (!foundRegion) {
+                                        for (var region in _regions) {
+                                          if (region.name == user.region) {
+                                            setState(() {
+                                              _selectedRegion = region.id;
+                                            });
+                                            // Load districts for this region
+                                            await _loadDistricts(region.id);
+                                            break;
+                                          }
                                         }
                                       }
 
                                       // If user has a district, select it
                                       if (user.district != null &&
                                           user.district!.isNotEmpty) {
-                                        setState(() {
-                                          _selectedDistrict = user.district;
-                                        });
+                                        // Try finding district by ID first
+                                        bool foundDistrict = false;
+                                        for (var district
+                                            in _filteredDistricts) {
+                                          if (district.id == user.district) {
+                                            setState(() {
+                                              _selectedDistrict = district.id;
+                                            });
+                                            foundDistrict = true;
+                                            break;
+                                          }
+                                        }
+
+                                        // If not found by ID, try finding by name
+                                        if (!foundDistrict &&
+                                            _filteredDistricts.isNotEmpty) {
+                                          for (var district
+                                              in _filteredDistricts) {
+                                            if (district.name ==
+                                                user.district) {
+                                              setState(() {
+                                                _selectedDistrict = district.id;
+                                              });
+                                              break;
+                                            }
+                                          }
+                                        }
                                       }
                                     }
                                   }
@@ -814,7 +911,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       leading: const Icon(Icons.church_outlined,
                           color: AppTheme.primary),
                       title: const Text('Mission'),
-                      subtitle: Text(user.mission!),
+                      subtitle: Text(
+                          MissionService().getMissionNameById(user.mission)),
                     ),
                   ),
 
@@ -987,6 +1085,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return AppTheme.error;
       case UserRole.missionAdmin:
         return Colors.blue;
+      case UserRole.ministerialSecretary:
+        return Colors.teal;
       case UserRole.editor:
         return Colors.orange;
       case UserRole.churchTreasurer:
@@ -1004,6 +1104,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Icons.admin_panel_settings;
       case UserRole.missionAdmin:
         return Icons.business;
+      case UserRole.ministerialSecretary:
+        return Icons.book;
       case UserRole.editor:
         return Icons.edit;
       case UserRole.churchTreasurer:

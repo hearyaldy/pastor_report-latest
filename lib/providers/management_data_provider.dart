@@ -24,8 +24,8 @@ class ManagementDataProvider with ChangeNotifier {
   List<Church>? _churches;
   List<District>? _districts;
   List<Region>? _regions;
-  Map<String, List<FinancialReport>> _reportsByMonth = {};
-  Map<String, int> _churchCountsByDistrict = {};
+  final Map<String, List<FinancialReport>> _reportsByMonth = {};
+  final Map<String, int> _churchCountsByDistrict = {};
 
   // Cache timestamps
   DateTime? _churchesLastFetch;
@@ -63,7 +63,8 @@ class ManagementDataProvider with ChangeNotifier {
     try {
       _churches = await _churchService.getAllChurches();
       _churchesLastFetch = DateTime.now();
-      debugPrint('📊 ManagementDataProvider: Loaded ${_churches!.length} churches from database');
+      debugPrint(
+          '📊 ManagementDataProvider: Loaded ${_churches!.length} churches from database');
     } catch (e) {
       debugPrint('❌ Error loading churches: $e');
       _churches ??= [];
@@ -90,7 +91,8 @@ class ManagementDataProvider with ChangeNotifier {
     try {
       _districts = await _districtService.getAllDistricts();
       _districtsLastFetch = DateTime.now();
-      debugPrint('📊 ManagementDataProvider: Loaded ${_districts!.length} districts from database');
+      debugPrint(
+          '📊 ManagementDataProvider: Loaded ${_districts!.length} districts from database');
     } catch (e) {
       debugPrint('❌ Error loading districts: $e');
       _districts ??= [];
@@ -117,7 +119,8 @@ class ManagementDataProvider with ChangeNotifier {
     try {
       _regions = await _regionService.getAllRegions();
       _regionsLastFetch = DateTime.now();
-      debugPrint('📊 ManagementDataProvider: Loaded ${_regions!.length} regions from database');
+      debugPrint(
+          '📊 ManagementDataProvider: Loaded ${_regions!.length} regions from database');
     } catch (e) {
       debugPrint('❌ Error loading regions: $e');
       _regions ??= [];
@@ -159,7 +162,8 @@ class ManagementDataProvider with ChangeNotifier {
 
     _churchCountsByDistrict.clear();
     for (var district in _districts!) {
-      final count = _churches?.where((c) => c.districtId == district.id).length ?? 0;
+      final count =
+          _churches?.where((c) => c.districtId == district.id).length ?? 0;
       _churchCountsByDistrict[district.id] = count;
     }
 
@@ -167,7 +171,8 @@ class ManagementDataProvider with ChangeNotifier {
   }
 
   /// Get financial reports for a month with caching
-  Future<List<FinancialReport>> getReportsForMonth(DateTime month, {bool forceRefresh = false}) async {
+  Future<List<FinancialReport>> getReportsForMonth(DateTime month,
+      {bool forceRefresh = false}) async {
     final monthKey = '${month.year}-${month.month}';
 
     if (!forceRefresh && _reportsByMonth.containsKey(monthKey)) {
@@ -179,14 +184,16 @@ class ManagementDataProvider with ChangeNotifier {
       final reports = <FinancialReport>[];
 
       for (var church in churches) {
-        final report = await _reportService.getReportByChurchAndMonth(church.id, month);
+        final report =
+            await _reportService.getReportByChurchAndMonth(church.id, month);
         if (report != null) {
           reports.add(report);
         }
       }
 
       _reportsByMonth[monthKey] = reports;
-      debugPrint('📊 ManagementDataProvider: Loaded ${reports.length} reports for $monthKey');
+      debugPrint(
+          '📊 ManagementDataProvider: Loaded ${reports.length} reports for $monthKey');
       return reports;
     } catch (e) {
       debugPrint('❌ Error loading reports: $e');

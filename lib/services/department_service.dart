@@ -89,9 +89,11 @@ class DepartmentService {
   }
 
   // Add new department directly to a mission by ID
-  Future<void> addDepartmentToMissionById(String missionId, Department department) async {
+  Future<void> addDepartmentToMissionById(
+      String missionId, Department department) async {
     try {
-      print('DepartmentService: Adding department ${department.name} directly to mission ID: $missionId');
+      print(
+          'DepartmentService: Adding department ${department.name} directly to mission ID: $missionId');
       await _missionService.addDepartmentToMission(missionId, department);
       print('DepartmentService: Department added successfully');
     } catch (e) {
@@ -103,8 +105,10 @@ class DepartmentService {
   // Add new department
   Future<void> addDepartment(Department department) async {
     try {
-      print('DepartmentService: Adding department ${department.name} with mission: ${department.mission}');
-      print('DepartmentService: Using mission structure: $_useNewMissionStructure');
+      print(
+          'DepartmentService: Adding department ${department.name} with mission: ${department.mission}');
+      print(
+          'DepartmentService: Using mission structure: $_useNewMissionStructure');
 
       if (_useNewMissionStructure &&
           department.mission != null &&
@@ -120,7 +124,8 @@ class DepartmentService {
           print('DepartmentService: Department added successfully to mission');
           return;
         } else {
-          print('DepartmentService: Mission not found! Will fallback to legacy structure');
+          print(
+              'DepartmentService: Mission not found! Will fallback to legacy structure');
         }
       }
 
@@ -146,12 +151,26 @@ class DepartmentService {
       if (_useNewMissionStructure &&
           department.mission != null &&
           department.mission!.isNotEmpty) {
-        // Find mission ID by name
-        final mission =
-            await _missionService.getMissionByName(department.mission!);
-        if (mission != null) {
-          await _missionService.updateDepartmentInMission(
-              mission.id, department);
+        // Check if mission is already an ID (starts with alphanumeric and no spaces)
+        String? missionId;
+        if (!department.mission!.contains(' ')) {
+          // Likely already an ID, verify it exists
+          final missionDoc = await _firestore.collection('missions').doc(department.mission!).get();
+          if (missionDoc.exists) {
+            missionId = department.mission!;
+          }
+        }
+
+        // If not found as ID, try to find by name
+        if (missionId == null) {
+          final mission = await _missionService.getMissionByName(department.mission!);
+          if (mission != null) {
+            missionId = mission.id;
+          }
+        }
+
+        if (missionId != null) {
+          await _missionService.updateDepartmentInMission(missionId, department);
           return;
         }
       }
@@ -209,12 +228,12 @@ class DepartmentService {
           return; // Already seeded
         }
 
-        // Get list of missions from constants
-        final List<String> missions = [
-          'Sabah Mission',
-          'North Sabah Mission',
-          'Sarawak Mission',
-          'Peninsular Mission',
+        // Get list of missions with proper IDs
+        final List<Map<String, String>> missions = [
+          {'id': 'sabah-mission', 'name': 'Sabah Mission'},
+          {'id': 'north-sabah-mission', 'name': 'North Sabah Mission'},
+          {'id': 'sarawak-mission', 'name': 'Sarawak Mission'},
+          {'id': 'peninsular-mission', 'name': 'Peninsular Mission'},
         ];
 
         // Base departments that will be assigned to each mission
@@ -296,7 +315,10 @@ class DepartmentService {
             final docRef = _firestore.collection(_collection).doc();
             batch.set(docRef, {
               ...dept,
-              'mission': mission, // Add mission field to each department
+              'mission':
+                  mission['id'], // Use mission ID instead of the whole object
+              'missionName': mission[
+                  'name'], // Store mission name as well for backward compatibility
               'createdAt': FieldValue.serverTimestamp(),
             });
           }

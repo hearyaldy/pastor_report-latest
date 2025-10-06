@@ -36,7 +36,7 @@ class RegionService {
     }
   }
 
-  // Get all regions for a mission
+  // Get all regions for a mission (using either ID or name)
   Future<List<Region>> getRegionsByMission(String missionId) async {
     try {
       print('RegionService: Querying regions with missionId=$missionId');
@@ -48,17 +48,60 @@ class RegionService {
           .orderBy('name')
           .get();
 
-      print('RegionService: Found ${querySnapshot.docs.length} regions by missionId');
+      print(
+          'RegionService: Found ${querySnapshot.docs.length} regions by missionId');
 
       // If no results, try querying by 'mission' field (backward compatibility)
       if (querySnapshot.docs.isEmpty) {
-        print('RegionService: No results by missionId, trying mission field...');
+        print(
+            'RegionService: No results by missionId, trying mission field...');
         querySnapshot = await _firestore
             .collection(_collectionName)
             .where('mission', isEqualTo: missionId)
             .orderBy('name')
             .get();
-        print('RegionService: Found ${querySnapshot.docs.length} regions by mission field');
+        print(
+            'RegionService: Found ${querySnapshot.docs.length} regions by mission field');
+      }
+
+      // If we still have no results, try getting all regions and filtering manually
+      // This is a workaround for cases where missionId might be stored as the mission name
+      if (querySnapshot.docs.isEmpty) {
+        print(
+            'RegionService: Still no results, trying to get all regions and filter manually');
+
+        final allRegionsSnapshot =
+            await _firestore.collection(_collectionName).orderBy('name').get();
+
+        // Get mission by ID to get its name
+        final missionsSnapshot = await _firestore
+            .collection('missions')
+            .where(FieldPath.documentId, isEqualTo: missionId)
+            .limit(1)
+            .get();
+
+        if (missionsSnapshot.docs.isNotEmpty) {
+          final missionName = missionsSnapshot.docs.first.get('name');
+          print(
+              'RegionService: Found mission name: $missionName for ID: $missionId');
+
+          // Filter manually by mission name
+          final filteredDocs = allRegionsSnapshot.docs.where((doc) {
+            final data = doc.data();
+            final regionMissionId = data['missionId'] ?? data['mission'] ?? '';
+            return regionMissionId == missionName ||
+                regionMissionId.toString().toLowerCase() ==
+                    missionName.toString().toLowerCase();
+          }).toList();
+
+          print(
+              'RegionService: Found ${filteredDocs.length} regions by mission name');
+
+          // If we found regions, return them
+          if (filteredDocs.isNotEmpty) {
+            return filteredDocs.map((doc) => Region.fromSnapshot(doc)).toList();
+          }
+        }
       }
 
       for (var doc in querySnapshot.docs) {
@@ -119,10 +162,8 @@ class RegionService {
   // Get all regions (for super admin)
   Future<List<Region>> getAllRegions() async {
     try {
-      final querySnapshot = await _firestore
-          .collection(_collectionName)
-          .orderBy('name')
-          .get();
+      final querySnapshot =
+          await _firestore.collection(_collectionName).orderBy('name').get();
 
       return querySnapshot.docs.map((doc) => Region.fromSnapshot(doc)).toList();
     } catch (e) {
@@ -152,8 +193,7 @@ class RegionService {
       final snapshot = await query.get();
 
       if (excludeRegionId != null) {
-        return snapshot.docs
-            .any((doc) => doc.id != excludeRegionId);
+        return snapshot.docs.any((doc) => doc.id != excludeRegionId);
       }
 
       return snapshot.docs.isNotEmpty;
