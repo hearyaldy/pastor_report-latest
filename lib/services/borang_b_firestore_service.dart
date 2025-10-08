@@ -95,6 +95,23 @@ class BorangBFirestoreService {
     }
   }
 
+  /// Get all reports
+  Future<List<BorangBData>> getAllReports() async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_collection)
+          .orderBy('month', descending: true)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => BorangBData.fromJson(doc.data()))
+          .toList();
+    } catch (e) {
+      debugPrint('❌ Error getting all Borang B reports: $e');
+      return [];
+    }
+  }
+
   /// Get all reports by mission ID
   Future<List<BorangBData>> getReportsByMission(String missionId) async {
     try {

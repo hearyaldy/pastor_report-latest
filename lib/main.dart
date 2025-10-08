@@ -30,6 +30,7 @@ import 'package:pastor_report/screens/calendar_screen.dart';
 import 'package:pastor_report/screens/borang_b_screen.dart';
 import 'package:pastor_report/screens/borang_b_preview_screen.dart';
 import 'package:pastor_report/screens/borang_b_list_screen.dart';
+import 'package:pastor_report/screens/all_borang_b_reports_screen.dart';
 import 'package:pastor_report/screens/ministerial_secretary_dashboard.dart';
 import 'package:pastor_report/screens/my_ministry_screen.dart';
 import 'package:pastor_report/screens/staff_management_screen.dart';
@@ -135,6 +136,7 @@ class PastorReportApp extends StatelessWidget {
               '/borang-b': (context) => const BorangBScreen(),
               '/borang-b-preview': (context) => const BorangBPreviewScreen(),
               '/borang-b-list': (context) => const BorangBListScreen(),
+              '/all-borang-b-reports': (context) => const AllBorangBReportsScreen(),
               '/ministerial-secretary': (context) =>
                   const MinisterialSecretaryDashboard(),
               '/my-ministry': (context) => const MyMinistryScreen(),

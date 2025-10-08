@@ -94,7 +94,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           _buildQuickStats(user),
 
           // Quick Actions (Combined Activity + Todo)
-          _buildQuickActionsSection(),
+          _buildQuickActionsSection(user),
 
           // Upcoming Items Section (Todos + Appointments)
           _buildUpcomingSection(),
@@ -166,26 +166,28 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Welcome back,',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white.withValues(alpha: 0.9),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Welcome back,',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                user.displayName,
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                const SizedBox(height: 4),
+                                Text(
+                                  user.displayName,
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                         _buildRoleBadge(user),
@@ -387,7 +389,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   }
 
   // Quick Actions Section (Combined Activity + Todo)
-  Widget _buildQuickActionsSection() {
+  Widget _buildQuickActionsSection(UserModel? user) {
     return SliverToBoxAdapter(
       child: Column(
         children: [
@@ -514,13 +516,24 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           ),
           // Borang B Card - Visible to regular users for creating their own reports
           // Super admins and ministerial secretaries can access all reports via the list screen
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: SizedBox(
-              height: 120,
-              child: _buildBorangBCard(),
+          if (user != null) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: SizedBox(
+                height: 120,
+                child: _buildBorangBCard(),
+              ),
             ),
-          ),
+            // Ministerial Secretary: View All Reports Card
+            if (user.canAccessBorangBReports)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: SizedBox(
+                  height: 120,
+                  child: _buildAllBorangBReportsCard(),
+                ),
+              ),
+          ],
           // My Ministry Card
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -1294,6 +1307,76 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildAllBorangBReportsCard() {
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/all-borang-b-reports'),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.deepPurple[400]!,
+              Colors.deepPurple[600]!,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.deepPurple.withValues(alpha: 0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.library_books,
+                  color: Colors.white, size: 32),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'All Borang B Reports',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'View all submitted reports',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -75,6 +75,22 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
     }
   }
 
+  Widget _buildViewAllReportsCard() {
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ListTile(
+        leading: const Icon(Icons.article, color: AppColors.primaryLight),
+        title: const Text('View All Borang B Reports'),
+        subtitle: const Text('See a complete list of all submissions'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () {
+          Navigator.pushNamed(context, '/all-borang-b-reports');
+        },
+      ),
+    );
+  }
+
   void _changeMonth(int delta) {
     setState(() {
       _selectedMonth = DateTime(
@@ -171,6 +187,7 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
           slivers: [
             _buildAppBar(user),
             _buildMonthSelector(),
+            SliverToBoxAdapter(child: _buildViewAllReportsCard()),
             _buildStatisticsSection(),
             _buildSubmissionTracker(),
             _buildReportsList(),
