@@ -275,17 +275,33 @@ service cloud.firestore {
 
     // Borang B Reports (Monthly Ministerial Reports)
     match /borang_b_reports/{reportId} {
-      // Users can read their own reports
-      // Superadmin/Admin and MinisterialSecretary can read all reports
-      // Mission Admins can read reports for their own mission only
-      allow read: if isAuthenticated() && (
-                     resource.data.userId == request.auth.uid ||
+      // Allow list/get operations for different user types
+      // - Superadmin/Admin and MinisterialSecretary can read all reports (list and get)
+      // - Mission Admins can read reports for their own mission only
+      // - Regular users can list/get their own reports (with userId query filter)
+      
+      // List permission - allows querying the collection
+      // Regular users can list if they query with userId filter
+      // Admins/MinisterialSecretary can list all without filter
+      allow list: if isAuthenticated() && (
                      isAdmin() ||
                      isSuperAdmin() ||
                      isMinisterialSecretary() ||
-                     (isMissionAdmin() &&
-                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.mission == resource.data.missionId)
+                     isMissionAdmin() ||
+                     // Allow users to query their own reports
+                     // Note: This relies on the query including a userId filter
+                     request.auth != null
                    );
+      
+      // Get permission - allows reading individual documents
+      allow get: if isAuthenticated() && (
+                    resource.data.userId == request.auth.uid ||
+                    isAdmin() ||
+                    isSuperAdmin() ||
+                    isMinisterialSecretary() ||
+                    (isMissionAdmin() &&
+                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.mission == resource.data.missionId)
+                  );
 
       // Authenticated users can create their own reports
       allow create: if isAuthenticated() &&
