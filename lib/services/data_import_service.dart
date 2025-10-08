@@ -1,9 +1,14 @@
 import 'package:pastor_report/models/district_model.dart';
 import 'package:pastor_report/models/region_model.dart';
+import 'package:pastor_report/models/staff_model.dart';
 import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/services/region_service.dart';
 import 'package:pastor_report/services/staff_service.dart';
+import 'package:pastor_report/services/church_service.dart';
+import 'package:pastor_report/models/church_model.dart';
 import 'package:uuid/uuid.dart';
+import 'dart:convert';
+import 'package:flutter/services.dart';
 
 class DataImportService {
   static final DataImportService instance = DataImportService._internal();
@@ -13,6 +18,7 @@ class DataImportService {
   final RegionService _regionService = RegionService.instance;
   final DistrictService _districtService = DistrictService.instance;
   final StaffService _staffService = StaffService.instance;
+  final ChurchService _churchService = ChurchService.instance;
 
   // Region mapping - number to region name
   static const Map<int, String> regionNames = {
@@ -417,5 +423,771 @@ class DataImportService {
       'staffSkipped': staffSkipped,
       'totalStaff': staffData.length,
     };
+  }
+
+  /// Import NSM staff data from JSON file
+  /// This replaces all existing staff for North Sabah Mission
+  Future<Map<String, int>> importNSMStaffData() async {
+    const String missionId =
+        'M89PoDdB5sNCoDl8qTNS'; // North Sabah Mission Firestore ID
+    const String missionName = 'North Sabah Mission';
+
+    int staffCreated = 0;
+    int staffSkipped = 0;
+
+    try {
+      // Load the JSON data from assets
+      final String jsonString =
+          await rootBundle.loadString('assets/NSM STAFF.json');
+      final Map<String, dynamic> jsonData = json.decode(jsonString);
+
+      // Delete all existing staff for this mission
+      final existingStaff = await _staffService.getStaffByMission(missionId);
+      for (var staff in existingStaff) {
+        await _staffService.deleteStaff(staff.id);
+      }
+
+      // Import officers
+      if (jsonData.containsKey('officers')) {
+        final officers = jsonData['officers'] as List<dynamic>;
+        for (var officer in officers) {
+          final staff = Staff(
+            id: const Uuid().v4(),
+            name: officer['name'] as String,
+            role: officer['position']
+                as String, // Use position as role for display
+            email: officer['email'] as String,
+            phone: officer['phone'] as String,
+            mission: missionName,
+            department: 'Executive',
+            createdAt: DateTime.now(),
+            createdBy: 'system_import',
+          );
+          await _staffService.addStaff(staff);
+          staffCreated++;
+        }
+      }
+
+      // Import department directors
+      if (jsonData.containsKey('department_directors')) {
+        final directors = jsonData['department_directors'] as List<dynamic>;
+        for (var director in directors) {
+          final staff = Staff(
+            id: const Uuid().v4(),
+            name: director['name'] as String,
+            role: director['position'] as String,
+            email: director['email'] as String,
+            phone: director['phone'] as String,
+            mission: missionName,
+            department: 'Department Directors',
+            createdAt: DateTime.now(),
+            createdBy: 'system_import',
+          );
+          await _staffService.addStaff(staff);
+          staffCreated++;
+        }
+      }
+
+      // Import administrative assistants
+      if (jsonData.containsKey('administrative_assistants')) {
+        final assistants =
+            jsonData['administrative_assistants'] as List<dynamic>;
+        for (var assistant in assistants) {
+          final staff = Staff(
+            id: const Uuid().v4(),
+            name: assistant['name'] as String,
+            role: assistant['position'] as String,
+            email: assistant['email'] as String,
+            phone: assistant['phone'] as String,
+            mission: missionName,
+            department: 'Administrative',
+            createdAt: DateTime.now(),
+            createdBy: 'system_import',
+          );
+          await _staffService.addStaff(staff);
+          staffCreated++;
+        }
+      }
+
+      // Import finance office staff
+      if (jsonData.containsKey('finance_office')) {
+        final financeStaff = jsonData['finance_office'] as List<dynamic>;
+        for (var staffMember in financeStaff) {
+          final staff = Staff(
+            id: const Uuid().v4(),
+            name: staffMember['name'] as String,
+            role: staffMember['position'] as String,
+            email: staffMember['email'] as String,
+            phone: staffMember['phone'] as String,
+            mission: missionName,
+            department: 'Finance',
+            createdAt: DateTime.now(),
+            createdBy: 'system_import',
+          );
+          await _staffService.addStaff(staff);
+          staffCreated++;
+        }
+      }
+
+      // Import field pastors by region
+      if (jsonData.containsKey('field_pastors')) {
+        final fieldPastors = jsonData['field_pastors'] as Map<String, dynamic>;
+        for (var regionEntry in fieldPastors.entries) {
+          final regionName = regionEntry.key; // e.g., "REGION 1"
+          final pastors = regionEntry.value as List<dynamic>;
+
+          for (var pastor in pastors) {
+            final staff = Staff(
+              id: const Uuid().v4(),
+              name: pastor['name'] as String,
+              role: 'Field Pastor',
+              email: pastor['email'] as String,
+              phone: pastor['phone'] as String,
+              mission: missionName,
+              department: 'Field Ministry',
+              region: regionName,
+              district:
+                  pastor['assignment'] as String, // Use assignment as district
+              notes: 'Region: $regionName, Assignment: ${pastor['assignment']}',
+              createdAt: DateTime.now(),
+              createdBy: 'system_import',
+            );
+            await _staffService.addStaff(staff);
+            staffCreated++;
+          }
+        }
+      }
+
+      return {
+        'staffCreated': staffCreated,
+        'staffSkipped': staffSkipped,
+        'totalImported': staffCreated,
+      };
+    } catch (e) {
+      throw 'Failed to import NSM staff data: $e';
+    }
+  }
+
+  /// Import Sabah staff data from JSON file
+  /// This replaces all existing staff for Sabah Mission
+  Future<Map<String, int>> importSabahStaffData() async {
+    const String missionId =
+        '4LFC9isp22H7Og1FHBm6'; // Sabah Mission Firestore ID
+    const String missionName = 'Sabah Mission';
+
+    int staffCreated = 0;
+    int staffSkipped = 0;
+
+    try {
+      // Load the JSON data from assets
+      final String jsonString =
+          await rootBundle.loadString('assets/churches_SAB.json');
+      final Map<String, dynamic> jsonData = json.decode(jsonString);
+
+      // Delete all existing staff for this mission
+      final existingStaff = await _staffService.getStaffByMission(missionId);
+      for (var staff in existingStaff) {
+        await _staffService.deleteStaff(staff.id);
+      }
+
+      // Process regions and pastoral districts
+      if (jsonData.containsKey('regions')) {
+        final regions = jsonData['regions'] as Map<String, dynamic>;
+
+        for (var regionEntry in regions.entries) {
+          final regionData = regionEntry.value as Map<String, dynamic>;
+          final regionName = regionData['name'] as String;
+
+          if (regionData.containsKey('pastoral_districts')) {
+            final pastoralDistricts =
+                regionData['pastoral_districts'] as Map<String, dynamic>;
+
+            for (var districtEntry in pastoralDistricts.entries) {
+              final districtName = districtEntry.key;
+              final districtData = districtEntry.value as Map<String, dynamic>;
+
+              // Extract pastor information
+              final pastorName = districtData['pastor'] as String?;
+              final pastorPhone = districtData['phone'] as String?;
+              final pastorNote = districtData['note'] as String?;
+
+              if (pastorName != null && pastorName.isNotEmpty) {
+                // Collect church information
+                final churches = <String>[];
+                final companies = <String>[];
+                final groups = <String>[];
+
+                // Add organized churches
+                if (districtData.containsKey('organized_churches')) {
+                  final organizedChurches =
+                      districtData['organized_churches'] as List<dynamic>;
+                  for (var church in organizedChurches) {
+                    if (church is Map<String, dynamic> &&
+                        church.containsKey('name')) {
+                      churches.add(church['name'] as String);
+                    } else if (church is String) {
+                      churches.add(church);
+                    }
+                  }
+                }
+
+                // Add companies
+                if (districtData.containsKey('companies')) {
+                  final companyList =
+                      districtData['companies'] as List<dynamic>;
+                  for (var company in companyList) {
+                    if (company is Map<String, dynamic> &&
+                        company.containsKey('name')) {
+                      companies.add(company['name'] as String);
+                    } else if (company is String) {
+                      companies.add(company);
+                    }
+                  }
+                }
+
+                // Add groups
+                if (districtData.containsKey('groups')) {
+                  final groupList = districtData['groups'] as List<dynamic>;
+                  for (var group in groupList) {
+                    if (group is Map<String, dynamic> &&
+                        group.containsKey('name')) {
+                      groups.add(group['name'] as String);
+                    } else if (group is String) {
+                      groups.add(group);
+                    }
+                  }
+                }
+
+                // Create notes with church information
+                final notesBuffer = StringBuffer();
+                notesBuffer.write('Region: $regionName\n');
+                notesBuffer.write('District: $districtName\n');
+
+                if (churches.isNotEmpty) {
+                  notesBuffer.write('Churches: ${churches.join(', ')}\n');
+                }
+                if (companies.isNotEmpty) {
+                  notesBuffer.write('Companies: ${companies.join(', ')}\n');
+                }
+                if (groups.isNotEmpty) {
+                  notesBuffer.write('Groups: ${groups.join(', ')}\n');
+                }
+                if (pastorNote != null && pastorNote.isNotEmpty) {
+                  notesBuffer.write('Note: $pastorNote');
+                }
+
+                // Create Staff object
+                final staff = Staff(
+                  id: const Uuid().v4(),
+                  name: pastorName,
+                  role: 'Field Pastor',
+                  email: '', // Email not available in churches data
+                  phone: pastorPhone ?? '',
+                  mission: missionName,
+                  department: 'Field Ministry',
+                  region: regionName,
+                  district: districtName,
+                  notes: notesBuffer.toString().trim(),
+                  createdAt: DateTime.now(),
+                  createdBy: 'system_import',
+                );
+
+                await _staffService.addStaff(staff);
+                staffCreated++;
+              }
+            }
+          }
+        }
+      }
+
+      return {
+        'staffCreated': staffCreated,
+        'staffSkipped': staffSkipped,
+        'totalImported': staffCreated,
+      };
+    } catch (e) {
+      throw 'Failed to import Sabah staff data: $e';
+    }
+  }
+
+  /// Import complete Sabah Mission data from JSON file
+  /// This replaces all existing regions, districts, and churches for Sabah Mission
+  Future<Map<String, int>> importSabahMissionData(String userId) async {
+    const String missionId =
+        '4LFC9isp22H7Og1FHBm6'; // Sabah Mission Firestore ID
+
+    int regionsCreated = 0;
+    int districtsCreated = 0;
+    int churchesCreated = 0;
+    int churchesDeleted = 0;
+
+    try {
+      // Load the JSON data from assets
+      final String jsonString =
+          await rootBundle.loadString('assets/churches_SAB.json');
+      final Map<String, dynamic> jsonData = json.decode(jsonString);
+
+      // STEP 1: Delete all existing churches for this mission
+      print('Deleting existing churches for Sabah Mission...');
+      final existingChurches =
+          await _churchService.getChurchesByMission(missionId);
+      for (var church in existingChurches) {
+        await _churchService.deleteChurch(church.id);
+        churchesDeleted++;
+      }
+      print('Deleted $churchesDeleted existing churches');
+
+      // STEP 2: Delete all existing districts for this mission
+      print('Deleting existing districts for Sabah Mission...');
+      final existingDistricts =
+          await _districtService.getDistrictsByMission(missionId);
+      for (var district in existingDistricts) {
+        await _districtService.deleteDistrict(district.id);
+      }
+      print('Deleted ${existingDistricts.length} existing districts');
+
+      // STEP 3: Delete all existing regions for this mission
+      print('Deleting existing regions for Sabah Mission...');
+      final existingRegions =
+          await _regionService.getRegionsByMission(missionId);
+      for (var region in existingRegions) {
+        await _regionService.deleteRegion(region.id);
+      }
+      print('Deleted ${existingRegions.length} existing regions');
+
+      // STEP 4: Import regions and districts from JSON
+      if (jsonData.containsKey('regions')) {
+        final regions = jsonData['regions'] as Map<String, dynamic>;
+
+        for (var regionEntry in regions.entries) {
+          final regionNumber = regionEntry.key;
+          final regionData = regionEntry.value as Map<String, dynamic>;
+          final regionName = regionData['name'] as String;
+
+          // Create region
+          final regionCode = 'R${regionNumber.replaceAll('REGION ', '')}';
+          final region = Region(
+            id: const Uuid().v4(),
+            name: regionName,
+            code: regionCode,
+            missionId: missionId,
+            createdAt: DateTime.now(),
+            createdBy: userId, // Use the authenticated user's ID
+          );
+
+          await _regionService.createRegion(region);
+          regionsCreated++;
+          print('Created region: $regionName');
+
+          // Process districts within this region
+          if (regionData.containsKey('pastoral_districts')) {
+            final pastoralDistricts =
+                regionData['pastoral_districts'] as Map<String, dynamic>;
+
+            for (var districtEntry in pastoralDistricts.entries) {
+              final districtName = districtEntry.key;
+              final districtData = districtEntry.value as Map<String, dynamic>;
+
+              // Create district
+              final districtCode =
+                  '${districtName.substring(0, districtName.length > 3 ? 3 : districtName.length).toUpperCase()}${districtsCreated + 1}';
+              final district = District(
+                id: const Uuid().v4(),
+                name: districtName,
+                code: districtCode,
+                regionId: region.id,
+                missionId: missionId,
+                pastorId:
+                    null, // Will be assigned later when pastors are linked
+                createdAt: DateTime.now(),
+                createdBy: userId, // Use the authenticated user's ID
+              );
+
+              await _districtService.createDistrict(district);
+              districtsCreated++;
+              print('Created district: $districtName in $regionName');
+
+              // Process churches within this district
+              final churches = <Map<String, dynamic>>[];
+
+              // Add organized churches
+              if (districtData.containsKey('organized_churches')) {
+                final organizedChurches =
+                    districtData['organized_churches'] as List<dynamic>;
+                for (var church in organizedChurches) {
+                  if (church is Map<String, dynamic> &&
+                      church.containsKey('name')) {
+                    churches.add({
+                      'name': church['name'] as String,
+                      'type': 'organized_church',
+                      'doc': church['doc'] as String?,
+                    });
+                  } else if (church is String) {
+                    churches.add({
+                      'name': church,
+                      'type': 'organized_church',
+                      'doc': null,
+                    });
+                  }
+                }
+              }
+
+              // Add companies
+              if (districtData.containsKey('companies')) {
+                final companyList = districtData['companies'] as List<dynamic>;
+                for (var company in companyList) {
+                  if (company is Map<String, dynamic> &&
+                      company.containsKey('name')) {
+                    churches.add({
+                      'name': company['name'] as String,
+                      'type': 'company',
+                      'doc': company['doc'] as String?,
+                    });
+                  } else if (company is String) {
+                    churches.add({
+                      'name': company,
+                      'type': 'company',
+                      'doc': null,
+                    });
+                  }
+                }
+              }
+
+              // Add groups
+              if (districtData.containsKey('groups')) {
+                final groupList = districtData['groups'] as List<dynamic>;
+                for (var group in groupList) {
+                  if (group is Map<String, dynamic> &&
+                      group.containsKey('name')) {
+                    churches.add({
+                      'name': group['name'] as String,
+                      'type': 'group',
+                      'doc': group['doc'] as String?,
+                    });
+                  } else if (group is String) {
+                    churches.add({
+                      'name': group,
+                      'type': 'group',
+                      'doc': null,
+                    });
+                  }
+                }
+              }
+
+              // Create church records
+              for (var churchData in churches) {
+                final churchStatus =
+                    _getChurchStatusFromType(churchData['type'] as String);
+
+                final church = Church(
+                  id: const Uuid().v4(),
+                  userId: '', // Will be assigned later when pastors are linked
+                  churchName: churchData['name'] as String,
+                  elderName: districtData['pastor'] as String? ?? 'Unknown',
+                  status: churchStatus,
+                  elderEmail: '',
+                  elderPhone: districtData['phone'] as String? ?? '',
+                  address: '$districtName, $regionName, Sabah',
+                  memberCount: null,
+                  createdAt: DateTime.now(),
+                  districtId: district.id,
+                  regionId: region.id,
+                  missionId: missionId,
+                );
+
+                await _churchService.createChurch(church);
+                churchesCreated++;
+              }
+
+              print(
+                  'Created ${churches.length} churches/companies/groups in $districtName');
+            }
+          }
+        }
+      }
+
+      print('Import completed successfully!');
+      print('Regions created: $regionsCreated');
+      print('Districts created: $districtsCreated');
+      print('Churches created: $churchesCreated');
+      print('Churches deleted: $churchesDeleted');
+
+      return {
+        'regionsCreated': regionsCreated,
+        'districtsCreated': districtsCreated,
+        'churchesCreated': churchesCreated,
+        'churchesDeleted': churchesDeleted,
+        'totalImported': regionsCreated + districtsCreated + churchesCreated,
+      };
+    } catch (e) {
+      print('Error during import: $e');
+      throw 'Failed to import Sabah Mission data: $e';
+    }
+  }
+
+  ChurchStatus _getChurchStatusFromType(String type) {
+    switch (type) {
+      case 'organized_church':
+        return ChurchStatus.organizedChurch;
+      case 'company':
+        return ChurchStatus.company;
+      case 'group':
+        return ChurchStatus.group;
+      default:
+        return ChurchStatus.organizedChurch;
+    }
+  }
+
+  /// Import complete North Sabah Mission data from JSON file
+  /// This replaces all existing regions, districts, and staff for North Sabah Mission
+  Future<Map<String, int>> importNSMMissionData(String userId) async {
+    const String missionId =
+        'M89PoDdB5sNCoDl8qTNS'; // North Sabah Mission Firestore ID
+
+    int regionsCreated = 0;
+    int districtsCreated = 0;
+    int staffCreated = 0;
+    int staffDeleted = 0;
+    int churchesDeleted = 0;
+
+    try {
+      // Load the JSON data from assets
+      final String jsonString =
+          await rootBundle.loadString('assets/NSM STAFF.json');
+      final Map<String, dynamic> jsonData = json.decode(jsonString);
+
+      // STEP 1: Delete all existing staff for this mission
+      print('Deleting existing staff for North Sabah Mission...');
+      final existingStaff = await _staffService.getStaffByMission(missionId);
+      for (var staff in existingStaff) {
+        await _staffService.deleteStaff(staff.id);
+        staffDeleted++;
+      }
+      print('Deleted $staffDeleted existing staff');
+
+      // STEP 2: Delete all existing churches for this mission
+      print('Deleting existing churches for North Sabah Mission...');
+      final existingChurches =
+          await _churchService.getChurchesByMission(missionId);
+      for (var church in existingChurches) {
+        await _churchService.deleteChurch(church.id);
+        churchesDeleted++;
+      }
+      print('Deleted $churchesDeleted existing churches');
+
+      // STEP 3: Delete all existing districts for this mission
+      print('Deleting existing districts for North Sabah Mission...');
+      final existingDistricts =
+          await _districtService.getDistrictsByMission(missionId);
+      for (var district in existingDistricts) {
+        await _districtService.deleteDistrict(district.id);
+      }
+      print('Deleted ${existingDistricts.length} existing districts');
+
+      // STEP 4: Delete all existing regions for this mission
+      print('Deleting existing regions for North Sabah Mission...');
+      final existingRegions =
+          await _regionService.getRegionsByMission(missionId);
+      for (var region in existingRegions) {
+        await _regionService.deleteRegion(region.id);
+      }
+      print('Deleted ${existingRegions.length} existing regions');
+
+      // STEP 4: Create regions and districts from field_pastors data
+      if (jsonData.containsKey('field_pastors')) {
+        final fieldPastors = jsonData['field_pastors'] as Map<String, dynamic>;
+
+        for (var regionEntry in fieldPastors.entries) {
+          final regionNumber = regionEntry.key; // e.g., "REGION 1"
+          final pastors = regionEntry.value as List<dynamic>;
+
+          // Create region
+          final regionCode = 'R${regionNumber.replaceAll('REGION ', '')}';
+          final regionName = 'Region ${regionNumber.replaceAll('REGION ', '')}';
+          final region = Region(
+            id: const Uuid().v4(),
+            name: regionName,
+            code: regionCode,
+            missionId: missionId,
+            createdAt: DateTime.now(),
+            createdBy: userId,
+          );
+
+          await _regionService.createRegion(region);
+          regionsCreated++;
+          print('Created region: $regionName');
+
+          // Collect unique assignments (districts) for this region
+          final Set<String> uniqueAssignments = {};
+          final Map<String, Map<String, dynamic>> assignmentToPastor = {};
+
+          for (var pastor in pastors) {
+            final assignment = pastor['assignment'] as String;
+            if (!uniqueAssignments.contains(assignment)) {
+              uniqueAssignments.add(assignment);
+              assignmentToPastor[assignment] = {
+                'name': pastor['name'],
+                'phone': pastor['phone'],
+                'email': pastor['email'],
+              };
+            }
+          }
+
+          // Create districts for this region
+          int districtIndex = 1;
+          for (var assignment in uniqueAssignments) {
+            final districtCode =
+                '${assignment.substring(0, assignment.length > 3 ? 3 : assignment.length).toUpperCase()}$districtIndex';
+
+            final district = District(
+              id: const Uuid().v4(),
+              name: assignment,
+              code: districtCode,
+              regionId: region.id,
+              missionId: missionId,
+              pastorId: null, // Will be assigned later when pastors are linked
+              createdAt: DateTime.now(),
+              createdBy: userId,
+            );
+
+            await _districtService.createDistrict(district);
+            districtsCreated++;
+            print('Created district: $assignment in $regionName');
+            districtIndex++;
+          }
+        }
+      }
+
+      // STEP 5: Import all staff
+      print('Importing staff data...');
+
+      // Import officers
+      if (jsonData.containsKey('officers')) {
+        final officers = jsonData['officers'] as List<dynamic>;
+        for (var officer in officers) {
+          final staff = Staff(
+            id: const Uuid().v4(),
+            name: officer['name'] as String,
+            role: officer['position'] as String,
+            email: officer['email'] as String,
+            phone: officer['phone'] as String,
+            mission: missionId,
+            department: 'Executive',
+            createdAt: DateTime.now(),
+            createdBy: userId,
+          );
+          await _staffService.addStaff(staff);
+          staffCreated++;
+        }
+      }
+
+      // Import department directors
+      if (jsonData.containsKey('department_directors')) {
+        final directors = jsonData['department_directors'] as List<dynamic>;
+        for (var director in directors) {
+          final staff = Staff(
+            id: const Uuid().v4(),
+            name: director['name'] as String,
+            role: director['position'] as String,
+            email: director['email'] as String,
+            phone: director['phone'] as String,
+            mission: missionId,
+            department: 'Department Directors',
+            createdAt: DateTime.now(),
+            createdBy: userId,
+          );
+          await _staffService.addStaff(staff);
+          staffCreated++;
+        }
+      }
+
+      // Import administrative assistants
+      if (jsonData.containsKey('administrative_assistants')) {
+        final assistants =
+            jsonData['administrative_assistants'] as List<dynamic>;
+        for (var assistant in assistants) {
+          final staff = Staff(
+            id: const Uuid().v4(),
+            name: assistant['name'] as String,
+            role: assistant['position'] as String,
+            email: assistant['email'] as String,
+            phone: assistant['phone'] as String,
+            mission: missionId,
+            department: 'Administrative',
+            createdAt: DateTime.now(),
+            createdBy: userId,
+          );
+          await _staffService.addStaff(staff);
+          staffCreated++;
+        }
+      }
+
+      // Import finance office staff
+      if (jsonData.containsKey('finance_office')) {
+        final financeStaff = jsonData['finance_office'] as List<dynamic>;
+        for (var staffMember in financeStaff) {
+          final staff = Staff(
+            id: const Uuid().v4(),
+            name: staffMember['name'] as String,
+            role: staffMember['position'] as String,
+            email: staffMember['email'] as String,
+            phone: staffMember['phone'] as String,
+            mission: missionId,
+            department: 'Finance',
+            createdAt: DateTime.now(),
+            createdBy: userId,
+          );
+          await _staffService.addStaff(staff);
+          staffCreated++;
+        }
+      }
+
+      // Import field pastors by region
+      if (jsonData.containsKey('field_pastors')) {
+        final fieldPastors = jsonData['field_pastors'] as Map<String, dynamic>;
+        for (var regionEntry in fieldPastors.entries) {
+          final regionName = regionEntry.key; // e.g., "REGION 1"
+          final pastors = regionEntry.value as List<dynamic>;
+
+          for (var pastor in pastors) {
+            final staff = Staff(
+              id: const Uuid().v4(),
+              name: pastor['name'] as String,
+              role: 'Field Pastor',
+              email: pastor['email'] as String,
+              phone: pastor['phone'] as String,
+              mission: missionId,
+              department: 'Field Ministry',
+              region: regionName,
+              district: pastor['assignment'] as String,
+              notes: 'Region: $regionName, Assignment: ${pastor['assignment']}',
+              createdAt: DateTime.now(),
+              createdBy: userId,
+            );
+            await _staffService.addStaff(staff);
+            staffCreated++;
+          }
+        }
+      }
+
+      print('NSM Import completed successfully!');
+      print('Regions created: $regionsCreated');
+      print('Districts created: $districtsCreated');
+      print('Staff created: $staffCreated');
+      print('Staff deleted: $staffDeleted');
+      print('Churches deleted: $churchesDeleted');
+
+      return {
+        'regionsCreated': regionsCreated,
+        'districtsCreated': districtsCreated,
+        'staffCreated': staffCreated,
+        'staffDeleted': staffDeleted,
+        'churchesDeleted': churchesDeleted,
+        'totalImported': regionsCreated + districtsCreated + staffCreated,
+      };
+    } catch (e) {
+      print('Error during NSM import: $e');
+      throw 'Failed to import North Sabah Mission data: $e';
+    }
   }
 }

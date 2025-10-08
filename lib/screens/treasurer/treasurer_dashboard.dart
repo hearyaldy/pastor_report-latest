@@ -114,7 +114,10 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
       _userChurch = church;
 
       // Load financial reports for this church
-      final reports = await _reportService.getReportsByChurch(_userChurch!.id);
+      final reports = await _reportService.getReportsByChurch(
+        _userChurch!.id,
+        districtId: _userChurch!.districtId,
+      );
 
       setState(() {
         _reports = reports;

@@ -84,6 +84,15 @@ class _FinancialReportFormState extends State<FinancialReportForm> {
     if (!_formKey.currentState!.validate()) {
       // Provide haptic feedback when validation fails
       HapticFeedback.lightImpact();
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please fill in all required fields correctly'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
       return;
     }
 
@@ -158,12 +167,20 @@ class _FinancialReportFormState extends State<FinancialReportForm> {
         throw Exception('User not authenticated');
       }
 
+      // Generate ID if it's empty (for new reports)
+      String reportId = widget.report.id;
+      if (reportId.isEmpty) {
+        reportId =
+            '${widget.report.churchId}_${widget.report.month.year}_${widget.report.month.month}';
+      }
+
       // Create updated report object
       final updatedReport = widget.report.copyWith(
+        id: reportId,
         tithe: tithe,
         offerings: offerings,
         specialOfferings: specialOfferings,
-        notes: notes.isNotEmpty ? notes : null,
+        notes: notes.isNotEmpty ? notes : null, // Notes are optional
         status: _status,
         updatedAt: DateTime.now(),
         submittedAt:
@@ -171,10 +188,15 @@ class _FinancialReportFormState extends State<FinancialReportForm> {
       );
 
       // Save to Firestore
-      if (widget.isNewReport) {
-        await FinancialReportService().createReport(updatedReport);
-      } else {
-        await FinancialReportService().updateReport(updatedReport);
+      try {
+        if (widget.isNewReport) {
+          await FinancialReportService().createReport(updatedReport);
+        } else {
+          await FinancialReportService().updateReport(updatedReport);
+        }
+      } catch (e) {
+        print('Financial report submission error: $e');
+        rethrow; // Rethrow to be caught by outer catch
       }
 
       // Show success message
@@ -192,12 +214,21 @@ class _FinancialReportFormState extends State<FinancialReportForm> {
         Navigator.pop(context, true);
       }
     } catch (e) {
-      // Show error message
+      // Show detailed error message
+      print('Financial Report Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error saving report: $e'),
+            content: Text('Error saving report: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 8),
+            action: SnackBarAction(
+              label: 'DISMISS',
+              textColor: Colors.white,
+              onPressed: () {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
           ),
         );
       }
@@ -383,7 +414,8 @@ class _FinancialReportFormState extends State<FinancialReportForm> {
                               icon: Icons.note_alt,
                               maxLines: 3,
                               focusNode: _notesFocus,
-                              validator: null,
+                              // Notes are optional, so no validation required
+                              validator: (_) => null,
                             ),
                             const SizedBox(height: 32),
                             // FAM Button

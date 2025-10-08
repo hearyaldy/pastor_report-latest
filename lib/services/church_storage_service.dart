@@ -104,9 +104,9 @@ class ChurchStorageService {
   Future<Map<String, dynamic>> getStatistics(String userId) async {
     final churches = await getUserChurches(userId);
 
-    final churchCount = churches.where((c) => c.status == ChurchStatus.church).length;
+    final churchCount = churches.where((c) => c.status == ChurchStatus.organizedChurch).length;
     final companyCount = churches.where((c) => c.status == ChurchStatus.company).length;
-    final branchCount = churches.where((c) => c.status == ChurchStatus.branch).length;
+    final branchCount = churches.where((c) => c.status == ChurchStatus.group).length;
     final totalMembers = churches.fold<int>(0, (sum, c) => sum + (c.memberCount ?? 0));
 
     return {

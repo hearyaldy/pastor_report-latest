@@ -92,6 +92,20 @@ class DistrictService {
             snapshot.docs.map((doc) => District.fromSnapshot(doc)).toList());
   }
 
+  // Stream a single district by ID (real-time updates)
+  Stream<List<District>> streamDistrictById(String districtId) {
+    return _firestore
+        .collection(_collectionName)
+        .doc(districtId)
+        .snapshots()
+        .map((snapshot) {
+      if (!snapshot.exists) {
+        return <District>[];
+      }
+      return [District.fromSnapshot(snapshot)];
+    });
+  }
+
   // Get district by pastor ID
   Future<District?> getDistrictByPastor(String pastorId) async {
     try {
@@ -110,6 +124,24 @@ class DistrictService {
     }
   }
 
+  // Get a district by name (case sensitive)
+  Future<District?> getDistrictByName(String districtName) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_collectionName)
+          .where('name', isEqualTo: districtName)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        return District.fromSnapshot(querySnapshot.docs.first);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to get district by name: $e');
+    }
+  }
+
   // Update a district
   Future<void> updateDistrict(District district) async {
     try {
@@ -123,7 +155,8 @@ class DistrictService {
   }
 
   // Assign pastor to district
-  Future<void> assignPastorToDistrict(String districtId, String pastorId) async {
+  Future<void> assignPastorToDistrict(
+      String districtId, String pastorId) async {
     try {
       await _firestore.collection(_collectionName).doc(districtId).update({
         'pastorId': pastorId,
@@ -168,10 +201,8 @@ class DistrictService {
   // Get all districts (for super admin)
   Future<List<District>> getAllDistricts() async {
     try {
-      final querySnapshot = await _firestore
-          .collection(_collectionName)
-          .orderBy('name')
-          .get();
+      final querySnapshot =
+          await _firestore.collection(_collectionName).orderBy('name').get();
 
       return querySnapshot.docs
           .map((doc) => District.fromSnapshot(doc))
@@ -209,6 +240,22 @@ class DistrictService {
       return snapshot.docs.isNotEmpty;
     } catch (e) {
       throw Exception('Failed to check district code: $e');
+    }
+  }
+
+  // Convert district ID to name
+  Future<String> getDistrictNameById(String? districtId) async {
+    if (districtId == null || districtId.isEmpty) {
+      return "Unknown District";
+    }
+
+    try {
+      final district = await getDistrictById(districtId);
+      return district?.name ?? "Unknown District";
+    } catch (e) {
+      print(
+          'DistrictService: Error getting district name for ID $districtId: $e');
+      return "Unknown District";
     }
   }
 }

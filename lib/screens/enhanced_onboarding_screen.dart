@@ -312,7 +312,7 @@ class _EnhancedOnboardingScreenState extends State<EnhancedOnboardingScreen> {
         userId: authProvider.user!.uid,
         churchName: _churchNameController.text.trim(),
         elderName: 'To be updated', // Placeholder value
-        status: ChurchStatus.church, // Default to church status
+        status: ChurchStatus.organizedChurch, // Default to church status
         elderEmail: 'email@example.com', // Placeholder value
         elderPhone: '0000000000', // Placeholder value
         address: _churchAddressController.text.trim(),

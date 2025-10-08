@@ -300,7 +300,7 @@ class _ComprehensiveOnboardingScreenState
         userId: user?.uid ?? '',
         churchName: _churchNameController.text.trim(),
         elderName: '', // Will be set later
-        status: ChurchStatus.church,
+        status: ChurchStatus.organizedChurch,
         elderEmail: '',
         elderPhone: '',
         address: _churchAddressController.text.trim(),
@@ -363,14 +363,18 @@ class _ComprehensiveOnboardingScreenState
       // Get the names for the selected items
       final selectedRegion =
           _regions.firstWhere((r) => r.id == _selectedRegionId);
-      final selectedDistrict =
-          _districts.firstWhere((d) => d.id == _selectedDistrictId);
 
       // Pass the list of selected church IDs
+      final missionId = user.mission;
+      if (missionId == null || missionId.isEmpty) {
+        throw 'Your profile is missing a mission assignment. Please contact an administrator.';
+      }
+
       await _authService.completeOnboarding(
         uid: user.uid,
+        missionId: missionId,
         region: selectedRegion.name,
-        district: selectedDistrict.name,
+        district: _selectedDistrictId!, // Store district ID instead of name
         churchIds: _selectedChurchIds.isNotEmpty ? _selectedChurchIds : null,
         userRole: _selectedRole,
         roleTitle: _getRoleTitle(_selectedRole),
@@ -414,6 +418,8 @@ class _ComprehensiveOnboardingScreenState
         return 'Pastor';
       case UserRole.churchTreasurer:
         return 'Church Treasurer';
+      case UserRole.districtPastor:
+        return 'District Pastor';
       case UserRole.ministerialSecretary:
         return 'Ministerial Secretary';
       case UserRole.editor:
@@ -1175,6 +1181,16 @@ class _ComprehensiveOnboardingScreenState
                     ],
                   ),
                 ),
+                DropdownMenuItem(
+                  value: UserRole.districtPastor,
+                  child: Row(
+                    children: [
+                      Icon(Icons.location_city, size: 20),
+                      SizedBox(width: 12),
+                      Text('District Pastor', style: TextStyle(fontSize: 15)),
+                    ],
+                  ),
+                ),
               ],
               onChanged: (value) {
                 setState(() {
@@ -1314,7 +1330,7 @@ class _ComprehensiveOnboardingScreenState
                     userId: '',
                     churchName: 'Unknown',
                     elderName: '',
-                    status: ChurchStatus.church,
+                    status: ChurchStatus.organizedChurch,
                     elderEmail: '',
                     elderPhone: '',
                     address: '',

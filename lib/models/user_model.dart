@@ -3,6 +3,7 @@
 enum UserRole {
   user,
   churchTreasurer,
+  districtPastor,
   ministerialSecretary,
   editor,
   missionAdmin,
@@ -25,6 +26,8 @@ extension UserRoleExtension on UserRole {
         return 'Editor';
       case UserRole.churchTreasurer:
         return 'Church Treasurer';
+      case UserRole.districtPastor:
+        return 'District Pastor';
       case UserRole.user:
         return 'User';
     }
@@ -44,6 +47,8 @@ extension UserRoleExtension on UserRole {
         return 2;
       case UserRole.churchTreasurer:
         return 1; // Same level as regular user in hierarchy
+      case UserRole.districtPastor:
+        return 2; // District pastors have higher access than church treasurers
       case UserRole.user:
         return 1;
     }
@@ -110,8 +115,7 @@ class UserModel {
   bool get canAccessFinancialReports =>
       userRole == UserRole.churchTreasurer || isAdmin || isSuperAdmin;
   // Only Ministerial Secretary and Super Admin can view all Borang B reports
-  bool get canAccessBorangBReports =>
-      isMinisterialSecretary || isSuperAdmin;
+  bool get canAccessBorangBReports => isMinisterialSecretary || isSuperAdmin;
   String? get role => userRole.displayName;
 
   // Create UserModel from Firebase User and Firestore data
@@ -184,8 +188,12 @@ class UserModel {
   // Permission checks
   bool canManageUsers() => userRole.level >= UserRole.admin.level;
   bool canManageMissions() => userRole.level >= UserRole.admin.level;
-  bool canManageDepartments() => userRole.level >= UserRole.missionAdmin.level;
-  bool canEditDepartmentUrls() => userRole.level >= UserRole.editor.level;
+  bool canManageDepartments() =>
+      userRole.level >= UserRole.missionAdmin.level &&
+      userRole != UserRole.districtPastor;
+  bool canEditDepartmentUrls() =>
+      userRole.level >= UserRole.editor.level &&
+      userRole != UserRole.districtPastor;
   bool canCreateSuperAdmin() => userRole == UserRole.superAdmin;
   bool canAssignRole(UserRole targetRole) => userRole.canManageRole(targetRole);
 

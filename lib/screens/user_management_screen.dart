@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pastor_report/services/user_management_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
+import 'package:pastor_report/services/district_service.dart';
+import 'package:pastor_report/services/region_service.dart';
 import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/utils/constants.dart';
 
@@ -176,11 +178,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             .toList();
 
         // Sort missions by name
-        final missions = missionIds..sort((a, b) {
-          final nameA = MissionService().getMissionNameById(a);
-          final nameB = MissionService().getMissionNameById(b);
-          return nameA.compareTo(nameB);
-        });
+        final missions = missionIds
+          ..sort((a, b) {
+            final nameA = MissionService().getMissionNameById(a);
+            final nameB = MissionService().getMissionNameById(b);
+            return nameA.compareTo(nameB);
+          });
 
         return DropdownButtonFormField<String>(
           value: _selectedMissionFilter,
@@ -469,7 +472,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               ),
                               if (user.mission != null)
                                 _buildChip(
-                                  MissionService().getMissionNameById(user.mission),
+                                  MissionService()
+                                      .getMissionNameById(user.mission),
                                   Icons.business,
                                   Colors.blue.shade100,
                                   Colors.blue.shade700,
@@ -544,6 +548,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         return Icons.edit_note;
       case UserRole.churchTreasurer:
         return Icons.account_balance_wallet;
+      case UserRole.districtPastor:
+        return Icons.location_city;
       case UserRole.user:
         return Icons.person;
     }
@@ -564,6 +570,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         return Colors.green.shade700;
       case UserRole.churchTreasurer:
         return Colors.amber.shade800;
+      case UserRole.districtPastor:
+        return Colors.indigo.shade700;
       case UserRole.user:
         return AppColors.primaryDark;
     }
@@ -686,11 +694,26 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   ],
                   if (user.district != null) ...[
                     const SizedBox(height: 16),
-                    _buildDetailRow(Icons.map, 'District', user.district!),
+                    FutureBuilder<String>(
+                      future:
+                          DistrictService().getDistrictNameById(user.district),
+                      builder: (context, snapshot) {
+                        final districtName = snapshot.data ?? user.district!;
+                        return _buildDetailRow(
+                            Icons.map, 'District', districtName);
+                      },
+                    ),
                   ],
                   if (user.region != null) ...[
                     const SizedBox(height: 16),
-                    _buildDetailRow(Icons.place, 'Region', user.region!),
+                    FutureBuilder<String>(
+                      future: RegionService().getRegionNameById(user.region),
+                      builder: (context, snapshot) {
+                        final regionName = snapshot.data ?? user.region!;
+                        return _buildDetailRow(
+                            Icons.place, 'Region', regionName);
+                      },
+                    ),
                   ],
                   if (user.role != null) ...[
                     const SizedBox(height: 16),
@@ -1145,6 +1168,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         return 'Edit department URLs';
       case UserRole.churchTreasurer:
         return 'Manage financial reports';
+      case UserRole.districtPastor:
+        return 'Manage churches and reports in own district';
       case UserRole.user:
         return 'Basic access';
     }

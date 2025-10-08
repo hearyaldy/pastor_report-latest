@@ -1923,6 +1923,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         return Colors.orange;
       case UserRole.churchTreasurer:
         return Colors.amber.shade800;
+      case UserRole.districtPastor:
+        return Colors.indigo;
       case UserRole.user:
         return Colors.green;
     }
@@ -1942,6 +1944,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         return Icons.edit;
       case UserRole.churchTreasurer:
         return Icons.account_balance_wallet;
+      case UserRole.districtPastor:
+        return Icons.location_city;
       case UserRole.user:
         return Icons.person;
     }

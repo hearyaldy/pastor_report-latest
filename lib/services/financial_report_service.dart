@@ -2,7 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pastor_report/models/financial_report_model.dart';
 
 class FinancialReportService {
-  static final FinancialReportService instance = FinancialReportService._internal();
+  static final FinancialReportService instance =
+      FinancialReportService._internal();
   factory FinancialReportService() => instance;
   FinancialReportService._internal();
 
@@ -12,10 +13,18 @@ class FinancialReportService {
   /// Create a new financial report
   Future<void> createReport(FinancialReport report) async {
     try {
+      // Make sure report has a valid ID
+      final reportId = report.id.isNotEmpty
+          ? report.id
+          : '${report.churchId}_${report.month.year}_${report.month.month}';
+
+      final reportWithId =
+          report.id.isEmpty ? report.copyWith(id: reportId) : report;
+
       await _firestore
           .collection(_collectionName)
-          .doc(report.id)
-          .set(report.toMap());
+          .doc(reportId)
+          .set(reportWithId.toMap());
     } catch (e) {
       throw Exception('Failed to create financial report: $e');
     }
@@ -24,7 +33,8 @@ class FinancialReportService {
   /// Get a financial report by ID
   Future<FinancialReport?> getReportById(String reportId) async {
     try {
-      final doc = await _firestore.collection(_collectionName).doc(reportId).get();
+      final doc =
+          await _firestore.collection(_collectionName).doc(reportId).get();
 
       if (doc.exists) {
         return FinancialReport.fromSnapshot(doc);
@@ -47,7 +57,8 @@ class FinancialReportService {
       final querySnapshot = await _firestore
           .collection(_collectionName)
           .where('churchId', isEqualTo: churchId)
-          .where('month', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+          .where('month',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
           .where('month', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
           .limit(1)
           .get();
@@ -62,13 +73,19 @@ class FinancialReportService {
   }
 
   /// Get all reports for a church
-  Future<List<FinancialReport>> getReportsByChurch(String churchId) async {
+  Future<List<FinancialReport>> getReportsByChurch(String churchId,
+      {String? districtId}) async {
     try {
-      final querySnapshot = await _firestore
+      var query = _firestore
           .collection(_collectionName)
-          .where('churchId', isEqualTo: churchId)
-          .orderBy('month', descending: true)
-          .get();
+          .where('churchId', isEqualTo: churchId);
+
+      if (districtId != null) {
+        query = query.where('districtId', isEqualTo: districtId);
+      }
+
+      final querySnapshot =
+          await query.orderBy('month', descending: true).get();
 
       return querySnapshot.docs
           .map((doc) => FinancialReport.fromSnapshot(doc))
@@ -170,7 +187,8 @@ class FinancialReportService {
       final querySnapshot = await _firestore
           .collection(_collectionName)
           .where('districtId', isEqualTo: districtId)
-          .where('month', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+          .where('month',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
           .where('month', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
           .where('status', isEqualTo: 'submitted')
           .get();
@@ -206,17 +224,20 @@ class FinancialReportService {
       final startOfMonth = DateTime(month.year, month.month, 1);
       final endOfMonth = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
 
-      print('🔎 FinancialReportService: Querying for missionId="$missionId", month=$month');
+      print(
+          '🔎 FinancialReportService: Querying for missionId="$missionId", month=$month');
 
       final querySnapshot = await _firestore
           .collection(_collectionName)
           .where('missionId', isEqualTo: missionId)
-          .where('month', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+          .where('month',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
           .where('month', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
           .where('status', isEqualTo: 'submitted')
           .get();
 
-      print('🔎 FinancialReportService: Found ${querySnapshot.docs.length} reports');
+      print(
+          '🔎 FinancialReportService: Found ${querySnapshot.docs.length} reports');
 
       double totalTithe = 0.0;
       double totalOfferings = 0.0;
@@ -268,7 +289,8 @@ class FinancialReportService {
   }
 
   /// Count churches with submitted reports in a district for a given month
-  Future<int> countChurchesWithReports(String districtId, DateTime month) async {
+  Future<int> countChurchesWithReports(
+      String districtId, DateTime month) async {
     try {
       final startOfMonth = DateTime(month.year, month.month, 1);
       final endOfMonth = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
@@ -276,7 +298,8 @@ class FinancialReportService {
       final querySnapshot = await _firestore
           .collection(_collectionName)
           .where('districtId', isEqualTo: districtId)
-          .where('month', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+          .where('month',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
           .where('month', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
           .where('status', isEqualTo: 'submitted')
           .get();

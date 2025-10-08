@@ -215,57 +215,84 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Admin Settings Card - Only visible to Super Admins
+            // Profile & Organization Settings Card - Visible to all users based on role
             Consumer<AuthProvider>(
               builder: (context, authProvider, _) {
-                // Show Admin Settings only for Super Admins
-                if (authProvider.user?.userRole == UserRole.superAdmin) {
-                  return Column(
-                    children: [
-                      Card(
-                        elevation: 2,
-                        margin: const EdgeInsets.only(bottom: 16.0),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Admin Settings',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                final userRole = authProvider.user?.userRole;
+                if (userRole == null) return const SizedBox.shrink();
+
+                String cardTitle;
+                String listTitle;
+                String subtitle;
+
+                switch (userRole) {
+                  case UserRole.superAdmin:
+                    cardTitle = 'Admin Settings';
+                    listTitle = 'Manage Organizational Hierarchy';
+                    subtitle = 'Manage regions, districts, and churches';
+                    break;
+                  case UserRole.admin:
+                  case UserRole.missionAdmin:
+                    cardTitle = 'Organization Management';
+                    listTitle = 'Manage Organization';
+                    subtitle =
+                        'Update regions, districts, and churches in your mission';
+                    break;
+                  case UserRole.districtPastor:
+                    cardTitle = 'District Management';
+                    listTitle = 'Manage District';
+                    subtitle =
+                        'Update churches and financial reports in your district';
+                    break;
+                  default:
+                    cardTitle = 'Profile Settings';
+                    listTitle = 'Update Profile';
+                    subtitle = 'Complete or update your profile information';
+                    break;
+                }
+
+                return Column(
+                  children: [
+                    Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.only(bottom: 16.0),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              cardTitle,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
                               ),
-                              const Divider(),
-                              ListTile(
-                                leading: Icon(Icons.admin_panel_settings,
-                                    color: AppColors.primaryLight),
-                                title: const Text('Manage Organizational Hierarchy'),
-                                subtitle: const Text(
-                                    'Manage regions, districts, and churches'),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const ComprehensiveOnboardingScreen(),
-                                    ),
-                                  );
-                                },
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ],
-                          ),
+                            ),
+                            const Divider(),
+                            ListTile(
+                              leading: Icon(Icons.admin_panel_settings,
+                                  color: AppColors.primaryLight),
+                              title: Text(listTitle),
+                              subtitle: Text(subtitle),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ComprehensiveOnboardingScreen(),
+                                  ),
+                                );
+                              },
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 16),
-                    ],
-                  );
-                }
-                return const SizedBox
-                    .shrink(); // Don't show for non-super admins
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                );
               },
             ),
 

@@ -246,7 +246,7 @@ class ManagementDataProvider with ChangeNotifier {
         userId: '',
         churchName: 'Unknown',
         elderName: '',
-        status: ChurchStatus.church,
+        status: ChurchStatus.organizedChurch,
         elderEmail: '',
         elderPhone: '',
         createdAt: DateTime.now(),

@@ -61,3 +61,5 @@ flutter:
     - assets/images/ # Ensure your header image is placed here
     - assets/SAB Ministerial Pastoral Monthly Report-New - Borang A & B.xlsx
     - assets/sabah_mission_staff.csv
+    - assets/churches_SAB.json
+    - assets/NSM STAFF.json

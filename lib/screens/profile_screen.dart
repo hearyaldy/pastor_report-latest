@@ -34,8 +34,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Region> _regions = [];
   List<District> _filteredDistricts = [];
 
-  // Maps to store mission, region and district names by ID
-  Map<String, String> _missionNames = {};
+  // Maps to store region and district names by ID
   Map<String, String> _regionNames = {};
   Map<String, String> _districtNames = {};
 
@@ -95,7 +94,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final allMissions = await MissionService.instance.getAllMissions();
       setState(() {
         _missions = allMissions;
-        _missionNames = {for (var m in allMissions) m.id: m.name};
       });
 
       // Load all regions
@@ -1091,6 +1089,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Colors.orange;
       case UserRole.churchTreasurer:
         return Colors.amber.shade800;
+      case UserRole.districtPastor:
+        return Colors.indigo;
       case UserRole.user:
         return AppTheme.success;
     }
@@ -1110,6 +1110,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Icons.edit;
       case UserRole.churchTreasurer:
         return Icons.account_balance_wallet;
+      case UserRole.districtPastor:
+        return Icons.location_city;
       case UserRole.user:
         return Icons.person;
     }

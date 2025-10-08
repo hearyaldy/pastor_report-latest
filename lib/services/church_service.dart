@@ -206,11 +206,11 @@ class ChurchService {
       final churches = await getUserChurches(userId);
 
       final churchCount =
-          churches.where((c) => c.status == ChurchStatus.church).length;
+          churches.where((c) => c.status == ChurchStatus.organizedChurch).length;
       final companyCount =
           churches.where((c) => c.status == ChurchStatus.company).length;
       final branchCount =
-          churches.where((c) => c.status == ChurchStatus.branch).length;
+          churches.where((c) => c.status == ChurchStatus.group).length;
       final totalMembers =
           churches.fold<int>(0, (sum, c) => sum + (c.memberCount ?? 0));
 
@@ -232,11 +232,11 @@ class ChurchService {
       final churches = await getChurchesByDistrict(districtId);
 
       final churchCount =
-          churches.where((c) => c.status == ChurchStatus.church).length;
+          churches.where((c) => c.status == ChurchStatus.organizedChurch).length;
       final companyCount =
           churches.where((c) => c.status == ChurchStatus.company).length;
       final branchCount =
-          churches.where((c) => c.status == ChurchStatus.branch).length;
+          churches.where((c) => c.status == ChurchStatus.group).length;
       final totalMembers =
           churches.fold<int>(0, (sum, c) => sum + (c.memberCount ?? 0));
 

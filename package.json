@@ -1,5 +1,29 @@
 {
   "dependencies": {
     "firebase-admin": "^13.5.0"
-  }
+  },
+  "name": "pastor_report-latest",
+  "version": "1.0.0",
+  "description": "A comprehensive church management application for tracking pastoral activities, events, appointments, and generating monthly reports (Borang B).",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hearyaldy/pastor_report-latest.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/hearyaldy/pastor_report-latest/issues"
+  },
+  "homepage": "https://github.com/hearyaldy/pastor_report-latest#readme"
 }

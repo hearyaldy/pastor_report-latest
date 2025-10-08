@@ -53,8 +53,8 @@ class _MainScreenState extends State<MainScreen> {
             ),
       // 2: Profile (always visible)
       const ProfileScreen(),
-      // 3: Admin Dashboard (visible for admins) or Treasurer Dashboard (visible for treasurers)
-      isAdmin
+      // 3: Admin Dashboard (visible for admins and district pastors) or Treasurer Dashboard (visible for treasurers)
+      (isAdmin || authProvider.user?.userRole == UserRole.districtPastor)
           ? const ImprovedAdminDashboard()
           : isChurchTreasurer
               ? const TreasurerDashboard()
@@ -153,8 +153,10 @@ class _MainScreenState extends State<MainScreen> {
         return;
       }
 
-      // Only allow access if user is admin or church treasurer
-      if (!isAdmin && !isChurchTreasurer) {
+      // Only allow access if user is admin, church treasurer, or district pastor
+      if (!isAdmin &&
+          !isChurchTreasurer &&
+          authProvider.user?.userRole != UserRole.districtPastor) {
         return;
       }
     }

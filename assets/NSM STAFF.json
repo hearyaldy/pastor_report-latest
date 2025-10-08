@@ -1,0 +1,358 @@
+{
+  "officers": [
+    {
+      "id": 1,
+      "name": "Feldinand B. Sawanai",
+      "position": "President, Adventist Chaplaincy Ministry (ACM), Public Affair & Religious Liberty (PARL)",
+      "phone": "011-36467812",
+      "email": "feldinand@nsmadventist.org"
+    },
+    {
+      "id": 2,
+      "name": "Earie Madius",
+      "position": "Executive Secretary, Human Resource (HR), Information Technology (IT) Services, Communication, Adventist World Radio (AWR), Hope Media Northern Sabah, Spirit of Prophecy (SOP), LEAD, Adventist Mission, Adventist-Muslim Relation (AMR)",
+      "phone": "011-35491060",
+      "email": "emadius@nsmadventist.org"
+    },
+    {
+      "id": 3,
+      "name": "Heljony Morudin",
+      "position": "Treasurer, Publishing, Planned Giving & Trust Services (PGTS), Adventist Laymen Services & Industries (ASI)",
+      "phone": "019-5880125",
+      "email": "heljony@nsmadventist.org"
+    }
+  ],
+  "department_directors": [
+    {
+      "id": 1,
+      "name": "Linda Lagason",
+      "position": "Women, Children",
+      "phone": "011-56301312",
+      "email": "linda@nsmadventist.org"
+    },
+    {
+      "id": 2,
+      "name": "Saimie Gisosoh",
+      "position": "Ministerial Spouses Association (Honorary)",
+      "phone": "019-8605548",
+      "email": "saimie@nsmadventist.org"
+    },
+    {
+      "id": 3,
+      "name": "George Ebbie",
+      "position": "Youth, Family, Men Ministry",
+      "phone": "011-16177565",
+      "email": "george_ebbie@nsmadventist.org"
+    },
+    {
+      "id": 4,
+      "name": "Dj Herjai Zahari",
+      "position": "Associate Youth Director, Music, One Year in Mission (OYiM), Public Campus Ministry",
+      "phone": "014-5544909",
+      "email": "djherjai@nsmadventist.org"
+    },
+    {
+      "id": 5,
+      "name": "Hamir Sigandal",
+      "position": "Ministerial Association, NDR-IEL, Health, Adventist Community Service (ACS), Adventist Possibility Ministry (APM)",
+      "phone": "011-29849061",
+      "email": "hamir@nsmadventist.org"
+    },
+    {
+      "id": 6,
+      "name": "Juri Rumondok",
+      "position": "Stewardship",
+      "phone": "014-5639527",
+      "email": "juri@nsmadventist.org"
+    },
+    {
+      "id": 7,
+      "name": "Octavius Guling",
+      "position": "Education, Sabbath School & Personal Ministry (SSPM), Adventist Development & Relief Agency (ADRA), Voice of Prophecy (VOP)",
+      "phone": "013-8787972",
+      "email": "octavius@nsmadventist.org"
+    }
+  ],
+  "administrative_assistants": [
+    {
+      "id": 1,
+      "name": "Jancy Gaban",
+      "position": "Stewardship, MSA, NDR-IEL, Ministerial Association, Health",
+      "phone": "011-12681230",
+      "email": "jancy@nsmadventist.org"
+    },
+    {
+      "id": 2,
+      "name": "Nodli Lisah",
+      "position": "Youth, Family, Education, Sabbath School & Personal Ministry, Publishing",
+      "phone": "014-3727713",
+      "email": "nodli@nsmadventist.org"
+    }
+  ],
+  "finance_office": [
+    {
+      "id": 1,
+      "name": "Dexshera Mison",
+      "position": "Cashier",
+      "phone": "010-9366182",
+      "email": "dexshera@nsmadventist.org"
+    },
+    {
+      "id": 2,
+      "name": "Veroneca Dumieh",
+      "position": "Accountant, Auditor",
+      "phone": "011-51524877",
+      "email": "veroneca@nsmadventist.org"
+    }
+  ],
+  "field_pastors": {
+    "REGION 1": [
+      {
+        "id": 1,
+        "name": "Almer John",
+        "assignment": "Pulau Banggi",
+        "phone": "019-5382845",
+        "email": "almer@nsmadventist.org"
+      },
+      {
+        "id": 2,
+        "name": "James Basi",
+        "assignment": "Kudat",
+        "phone": "010-9301644",
+        "email": "james@nsmadventist.org"
+      },
+      {
+        "id": 3,
+        "name": "Welfred M. Johari",
+        "assignment": "Sikuati",
+        "phone": "014-8512736",
+        "email": "welfred@nsmadventist.org"
+      }
+    ],
+    "REGION 2": [
+      {
+        "id": 4,
+        "name": "Ferinly Justin",
+        "assignment": "Parapat-Tambuluran",
+        "phone": "014-7842579",
+        "email": "ferinly@nsmadventist.org"
+      },
+      {
+        "id": 5,
+        "name": "Simon Musalim@ Waddin Masalin",
+        "assignment": "Matunggong",
+        "phone": "011-17965979",
+        "email": "simon@nsmadventist.org"
+      }
+    ],
+    "REGION 3": [
+      {
+        "id": 6,
+        "name": "Fredinus Julis",
+        "assignment": "Rasak",
+        "phone": "019-5341475",
+        "email": "fredinus@nsmadventist.org"
+      },
+      {
+        "id": 7,
+        "name": "Jered John Johan",
+        "assignment": "Langkon",
+        "phone": "011-31422289",
+        "email": "jered@nsmadventist.org"
+      }
+    ],
+    "REGION 4": [
+      {
+        "id": 8,
+        "name": "Enos Hitlor",
+        "assignment": "Tagaroh",
+        "phone": "017-8967699",
+        "email": "enos@nsmadventist.org"
+      },
+      {
+        "id": 9,
+        "name": "Janson Tongkiang",
+        "assignment": "Mangaris",
+        "phone": "013-4902988",
+        "email": "janson@nsmadventist.org"
+      }
+    ],
+    "REGION 5": [
+      {
+        "id": 10,
+        "name": "Jerry Siming",
+        "assignment": "Taiwan",
+        "phone": "012-8177386",
+        "email": "jerry@nsmadventist.org"
+      },
+      {
+        "id": 11,
+        "name": "Axworthy Daryl Samuel Terrence",
+        "assignment": "Rugading",
+        "phone": "011-31478499",
+        "email": "adsterrence@nsmadventist.org"
+      }
+    ],
+    "REGION 6": [
+      {
+        "id": 12,
+        "name": "Edwin Roy Dulis",
+        "assignment": "Goshen",
+        "phone": "012-8445074",
+        "email": "edwinroy@nsmadventist.org"
+      },
+      {
+        "id": 13,
+        "name": "Rikho Jafry",
+        "assignment": "GASS",
+        "phone": "019-8119811",
+        "email": "rikho@nsmadventist.org"
+      },
+      {
+        "id": 14,
+        "name": "Brian Lee Tat Kee",
+        "assignment": "Bandau",
+        "phone": "014-6706433",
+        "email": "brianlee@nsmadventist.org"
+      },
+      {
+        "id": 15,
+        "name": "Julios Ubara",
+        "assignment": "Lotong",
+        "phone": "019-8097077",
+        "email": "juliosubara@nsmadventist.org"
+      },
+      {
+        "id": 16,
+        "name": "Jaslie Mungau",
+        "assignment": "Sumbilingon",
+        "phone": "014-5565015",
+        "email": "jaslie@nsmadventist.org"
+      }
+    ],
+    "REGION 7": [
+      {
+        "id": 17,
+        "name": "Merddano Madzim",
+        "assignment": "Marak Parak",
+        "phone": "013-9650814",
+        "email": "merddano@nsmadventist.org"
+      },
+      {
+        "id": 18,
+        "name": "Haiyon Jhone",
+        "assignment": "Bambangan",
+        "phone": "011-12687950",
+        "email": "haiyon@nsmadventist.org"
+      },
+      {
+        "id": 19,
+        "name": "Reckroland Suning",
+        "assignment": "Pinampadan-Wayan",
+        "phone": "010-8886097",
+        "email": "reckroland@nsmadventist.org"
+      }
+    ],
+    "REGION 8": [
+      {
+        "id": 20,
+        "name": "Laidis Maj ingkal",
+        "assignment": "Damai",
+        "phone": "014-5545799",
+        "email": "lmaj ingkal@nsmadventist.org"
+      },
+      {
+        "id": 21,
+        "name": "Raynnold Suning",
+        "assignment": "Mosolog",
+        "phone": "011-39200173",
+        "email": "raynnold@nsmadventist.org"
+      },
+      {
+        "id": 22,
+        "name": "Jason Jon Johny",
+        "assignment": "Gana",
+        "phone": "011-36933575",
+        "email": "jasonjon@nsmadventist.org"
+      }
+    ],
+    "REGION 9": [
+      {
+        "id": 23,
+        "name": "Ray Palmer Suning",
+        "assignment": "Tandek",
+        "phone": "016-3170827",
+        "email": "rpalmer@nsmadventist.org"
+      },
+      {
+        "id": 24,
+        "name": "Lambrin Mabin",
+        "assignment": "Morion",
+        "phone": "011-10992767",
+        "email": "lambrin@nsmadventist.org"
+      },
+      {
+        "id": 25,
+        "name": "Maj iri Jaipol",
+        "assignment": "Mempakad",
+        "phone": "013-6360321",
+        "email": "maj iri@nsmadventist.org"
+      }
+    ],
+    "REGION 10": [
+      {
+        "id": 26,
+        "name": "Junus Epol",
+        "assignment": "Samparita",
+        "phone": "014-8488216",
+        "email": "junus@nsmadventist.org"
+      },
+      {
+        "id": 27,
+        "name": "Vely Mosibin",
+        "assignment": "Magandai",
+        "phone": "019-3792142",
+        "email": "vely@nsmadventist.org"
+      }
+    ],
+    "REGION 11": [
+      {
+        "id": 28,
+        "name": "Donny Sungangai",
+        "assignment": "Bengkoka",
+        "phone": "019-8314169",
+        "email": "donny@nsmadventist.org"
+      },
+      {
+        "id": 29,
+        "name": "Robert Jada",
+        "assignment": "Bongkol-Liu",
+        "phone": "010-7775587",
+        "email": "robert@nsmadventist.org"
+      },
+      {
+        "id": 30,
+        "name": "Webestelong Gorikin",
+        "assignment": "Mapad",
+        "phone": "011-18889391",
+        "email": "webestelong@nsmadventist.org"
+      }
+    ],
+    "REGION 12": [
+      {
+        "id": 31,
+        "name": "Tongming Marting",
+        "assignment": "Kinadaan",
+        "phone": "016-8957137",
+        "email": "tongming@nsmadventist.org"
+      },
+      {
+        "id": 32,
+        "name": "Amos Gunggut",
+        "assignment": "Koiboton",
+        "phone": "016-9180490",
+        "email": "amos@nsmadventist.org"
+      }
+    ]
+  }
+}

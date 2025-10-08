@@ -45,14 +45,17 @@ class AppConstants {
   // the Firestore document ID format (e.g. '4LFC9isp22H7Og1FHBm6')
   static const List<Map<String, String>> missions = [
     {
-      'id': 'sabah-mission',
+      'id': '4LFC9isp22H7Og1FHBm6',
       'name': 'Sabah Mission',
       'code': 'SAB',
-      'firestore_id': '4LFC9isp22H7Og1FHBm6'
     },
-    {'id': 'north-sabah-mission', 'name': 'North Sabah Mission'},
-    {'id': 'sarawak-mission', 'name': 'Sarawak Mission'},
-    {'id': 'peninsular-mission', 'name': 'Peninsular Mission'},
+    {
+      'id': 'M89PoDdB5sNCoDl8qTNS',
+      'name': 'North Sabah Mission',
+      'code': 'NSM'
+    },
+    {'id': 'bwi23rsOpWJLnKcn20WC', 'name': 'Sarawak Mission', 'code': 'SWK'},
+    {'id': 'mpfQa7qEaj0fzuo4xhDN', 'name': 'Peninsular Mission', 'code': 'PEN'},
   ];
 
   // Role Options

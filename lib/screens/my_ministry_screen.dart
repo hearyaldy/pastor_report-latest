@@ -7,8 +7,6 @@ import 'package:pastor_report/models/church_model.dart';
 import 'package:pastor_report/models/mission_model.dart';
 import 'package:pastor_report/models/staff_model.dart';
 import 'package:pastor_report/models/user_model.dart';
-import 'package:pastor_report/models/district_model.dart';
-import 'package:pastor_report/models/region_model.dart';
 import 'package:pastor_report/services/church_storage_service.dart';
 import 'package:pastor_report/services/church_service.dart';
 import 'package:pastor_report/services/staff_service.dart';
@@ -167,6 +165,21 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
     return _districtNames[districtId] ?? districtId;
   }
 
+  String _getMissionName(String? missionId) {
+    if (missionId == null || missionId.isEmpty) {
+      return 'Not assigned';
+    }
+    // Try to find mission name from loaded missions
+    final mission = _missions.firstWhere(
+      (m) => m.id == missionId,
+      orElse: () => Mission(
+        id: missionId,
+        name: missionId,
+      ),
+    );
+    return mission.name;
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -300,77 +313,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
     }
   }
 
-  void _addChurch() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
-      builder: (context) => _ChurchForm(
-        onSave: (church) async {
-          try {
-            // First try to save to Firebase
-            await ChurchService.instance.createChurch(church);
-            debugPrint('✅ Church saved to Firebase: ${church.churchName}');
-          } catch (e) {
-            debugPrint('❌ Error saving church to Firebase: $e');
-            // If Firebase fails, save to local storage as backup
-            await ChurchStorageService.instance.saveChurch(church);
-            debugPrint(
-                '✅ Church saved to local storage as backup: ${church.churchName}');
-          }
-          _loadData();
-        },
-      ),
-    );
-  }
-
-  void _editChurch(Church church) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
-      builder: (context) => _ChurchForm(
-        church: church,
-        onSave: (updatedChurch) async {
-          try {
-            // Update in Firebase
-            await ChurchService.instance.createChurch(
-                updatedChurch); // createChurch also handles updates
-            debugPrint(
-                '✅ Church updated in Firebase: ${updatedChurch.churchName}');
-          } catch (e) {
-            debugPrint('❌ Error updating church in Firebase: $e');
-            // If Firebase fails, update in local storage
-            await ChurchStorageService.instance.saveChurch(updatedChurch);
-            debugPrint(
-                '✅ Church updated in local storage as backup: ${updatedChurch.churchName}');
-          }
-          _loadData();
-        },
-      ),
-    );
-  }
-
-  void _addStaff(UserModel user) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
-      builder: (context) => _StaffForm(
-        userMission: user.mission ?? '',
-        userId: user.uid,
-        onSave: (staff) async {
-          await StaffService.instance.addStaff(staff);
-        },
-      ),
-    );
-  }
+  // Note: Add/Edit Church and Add Staff actions were removed to keep this page read-only.
 
   void _editStaff(Staff staff, UserModel user) {
     showModalBottomSheet(
@@ -415,31 +358,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
     }
   }
 
-  void _deleteChurch(Church church) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Church'),
-        content: Text('Are you sure you want to delete ${church.churchName}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await ChurchStorageService.instance.deleteChurch(church.id);
-      _loadData();
-    }
-  }
+  // Note: Delete Church action removed; churches are managed via Admin Dashboard.
 
   @override
   Widget build(BuildContext context) {
@@ -511,28 +430,6 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                 _buildTeamTab(),
               ],
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          if (_tabController.index == 0) {
-            _addChurch();
-          } else {
-            final user =
-                Provider.of<AuthProvider>(context, listen: false).user!;
-            final isMissionAdmin = user.userRole == UserRole.missionAdmin ||
-                user.userRole == UserRole.admin ||
-                user.userRole == UserRole.superAdmin;
-
-            if (isMissionAdmin) {
-              _addStaff(user);
-            }
-          }
-        },
-        backgroundColor: AppColors.primaryLight,
-        foregroundColor: Colors.white,
-        icon: Icon(_tabController.index == 0 ? Icons.church : Icons.person_add),
-        label: Text(_tabController.index == 0 ? 'Add Church' : 'Add Staff'),
-        elevation: 4,
-      ),
     );
   }
 
@@ -549,11 +446,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
               style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: _addChurch,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Your First Church'),
-            ),
+            // Removed add action; data is managed via Admin Dashboard
           ],
         ),
       );
@@ -601,11 +494,11 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
     // Calculate statistics
     final totalChurches = _churches.length;
     final churches =
-        _churches.where((c) => c.status == ChurchStatus.church).length;
+        _churches.where((c) => c.status == ChurchStatus.organizedChurch).length;
     final companies =
         _churches.where((c) => c.status == ChurchStatus.company).length;
     final branches =
-        _churches.where((c) => c.status == ChurchStatus.branch).length;
+        _churches.where((c) => c.status == ChurchStatus.group).length;
     final totalMembers = _churches
         .where((c) => c.memberCount != null)
         .fold<int>(0, (sum, c) => sum + (c.memberCount ?? 0));
@@ -659,7 +552,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                               borderSide: BorderSide.none,
                             ),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: Colors.grey.shade100,
                           ),
                           onChanged: (value) {
                             if (value != _churchSearchQuery) {
@@ -719,24 +612,6 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                             ),
                           ),
                           PopupMenuItem(
-                            value: 'status',
-                            child: Row(
-                              children: [
-                                Icon(Icons.category,
-                                    size: 20,
-                                    color: _churchSortBy == 'status'
-                                        ? AppColors.primaryLight
-                                        : Colors.grey),
-                                const SizedBox(width: 8),
-                                Text('Status',
-                                    style: TextStyle(
-                                        fontWeight: _churchSortBy == 'status'
-                                            ? FontWeight.bold
-                                            : FontWeight.normal)),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
                             value: 'members',
                             child: Row(
                               children: [
@@ -775,7 +650,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
+                          color: Colors.grey.withValues(alpha: 0.1),
                           spreadRadius: 1,
                           blurRadius: 3,
                           offset: const Offset(0, 1),
@@ -787,7 +662,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryLight.withOpacity(0.1),
+                            color:
+                                AppColors.primaryLight.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(Icons.analytics,
@@ -795,7 +671,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          'Ministry Statistics',
+                          'Church Statistics',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -873,15 +749,15 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      Colors.blue.withOpacity(0.15),
-                                      Colors.blue.withOpacity(0.05),
+                                      Colors.blue.withValues(alpha: 0.15),
+                                      Colors.blue.withValues(alpha: 0.05),
                                     ],
                                     begin: Alignment.centerLeft,
                                     end: Alignment.centerRight,
                                   ),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: Colors.blue.withOpacity(0.3),
+                                    color: Colors.blue.withValues(alpha: 0.3),
                                     width: 1.5,
                                   ),
                                 ),
@@ -893,7 +769,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: Colors.blue.withOpacity(0.2),
+                                            color: Colors.blue
+                                                .withValues(alpha: 0.2),
                                             shape: BoxShape.circle,
                                           ),
                                           child: const Icon(Icons.person,
@@ -1068,11 +945,24 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                             return InkWell(
                               onTap: () => _showChurchDetails(church),
                               borderRadius: BorderRadius.circular(12),
-                              child: Card(
+                              child: Container(
                                 margin: const EdgeInsets.only(bottom: 12),
-                                elevation: 2,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: AppColors.primaryLight
+                                        .withValues(alpha: 0.25),
+                                    width: 1.2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primaryLight
+                                          .withValues(alpha: 0.08),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(12.0),
@@ -1118,28 +1008,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                               ],
                                             ),
                                           ),
-                                          PopupMenuButton(
-                                            itemBuilder: (context) => [
-                                              const PopupMenuItem(
-                                                  value: 'view',
-                                                  child: Text('View Details')),
-                                              const PopupMenuItem(
-                                                  value: 'edit',
-                                                  child: Text('Edit')),
-                                              const PopupMenuItem(
-                                                  value: 'delete',
-                                                  child: Text('Delete')),
-                                            ],
-                                            onSelected: (value) {
-                                              if (value == 'edit') {
-                                                _editChurch(church);
-                                              } else if (value == 'delete') {
-                                                _deleteChurch(church);
-                                              } else if (value == 'view') {
-                                                _showChurchDetails(church);
-                                              }
-                                            },
-                                          ),
+                                          const Icon(Icons.chevron_right,
+                                              color: Colors.grey),
                                         ],
                                       ),
                                       const Divider(height: 20),
@@ -1340,7 +1210,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                   borderSide: BorderSide.none,
                                 ),
                                 filled: true,
-                                fillColor: Colors.white,
+                                fillColor: Colors.grey.shade100,
                               ),
                               onChanged: (value) {
                                 if (value != _staffSearchQuery) {
@@ -1439,7 +1309,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.grey.withOpacity(0.1),
+                              color: Colors.grey.withValues(alpha: 0.1),
                               spreadRadius: 1,
                               blurRadius: 3,
                               offset: const Offset(0, 1),
@@ -1451,7 +1321,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppColors.primaryLight.withOpacity(0.1),
+                                color: AppColors.primaryLight
+                                    .withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(Icons.people,
@@ -1561,8 +1432,25 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                               itemCount: filteredStaff.length,
                               itemBuilder: (context, index) {
                                 final staff = filteredStaff[index];
-                                return Card(
+                                return Container(
                                   margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: AppColors.primaryLight
+                                          .withValues(alpha: 0.25),
+                                      width: 1.2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.primaryLight
+                                            .withValues(alpha: 0.08),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
                                   child: ListTile(
                                     leading: CircleAvatar(
                                       backgroundColor: AppColors.primaryLight,
@@ -1587,7 +1475,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                       children: [
                                         Text(staff.role),
                                         Text(
-                                          staff.mission,
+                                          _getMissionName(staff.mission),
                                           style: TextStyle(
                                             color: AppColors.primaryLight,
                                             fontSize: 12,
@@ -1719,6 +1607,13 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
       return StaffService.instance.streamAllStaff();
     }
 
+    // District Pastor sees all staff from their mission
+    if (user.userRole == UserRole.districtPastor &&
+        user.mission != null &&
+        user.mission!.isNotEmpty) {
+      return StaffService.instance.streamStaffByMission(user.mission!);
+    }
+
     // Regular users see staff from their district only (more restrictive than mission)
     if (user.district != null && user.district!.isNotEmpty) {
       return StaffService.instance.streamStaffByDistrict(user.district!);
@@ -1794,7 +1689,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                 style: const TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 24),
-              _detailRow(Icons.business, 'Mission', staff.mission),
+              _detailRow(
+                  Icons.business, 'Mission', _getMissionName(staff.mission)),
               if (staff.department != null)
                 _detailRow(Icons.category, 'Department', staff.department!),
               if (districtName != null)
@@ -1951,11 +1847,11 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
 
   Color _getStatusColor(ChurchStatus status) {
     switch (status) {
-      case ChurchStatus.church:
+      case ChurchStatus.organizedChurch:
         return Colors.blue;
       case ChurchStatus.company:
         return Colors.orange;
-      case ChurchStatus.branch:
+      case ChurchStatus.group:
         return Colors.green;
     }
   }
@@ -1972,419 +1868,6 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }
-  }
-}
-
-// Church Form Bottom Sheet
-class _ChurchForm extends StatefulWidget {
-  final Church? church;
-  final Function(Church) onSave;
-
-  const _ChurchForm({this.church, required this.onSave});
-
-  @override
-  State<_ChurchForm> createState() => _ChurchFormState();
-}
-
-class _ChurchFormState extends State<_ChurchForm> {
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController _churchNameController;
-  late TextEditingController _elderNameController;
-  late TextEditingController _elderEmailController;
-  late TextEditingController _elderPhoneController;
-  late TextEditingController _addressController;
-  late TextEditingController _memberCountController;
-  ChurchStatus _selectedStatus = ChurchStatus.church;
-  String? _selectedDistrictId;
-  String? _selectedRegionId;
-  List<Region> _regions = [];
-  List<District> _districts = [];
-
-  // Global key for contact validation - used to check if either email or phone is provided
-  final GlobalKey<FormFieldState> _emailKey = GlobalKey<FormFieldState>();
-  final GlobalKey<FormFieldState> _phoneKey = GlobalKey<FormFieldState>();
-
-  @override
-  void initState() {
-    super.initState();
-    _churchNameController =
-        TextEditingController(text: widget.church?.churchName ?? '');
-    _elderNameController =
-        TextEditingController(text: widget.church?.elderName ?? '');
-    _elderEmailController =
-        TextEditingController(text: widget.church?.elderEmail ?? '');
-    _elderPhoneController =
-        TextEditingController(text: widget.church?.elderPhone ?? '');
-    _addressController =
-        TextEditingController(text: widget.church?.address ?? '');
-    _memberCountController = TextEditingController(
-        text: widget.church?.memberCount?.toString() ?? '');
-    _selectedStatus = widget.church?.status ?? ChurchStatus.church;
-    _selectedDistrictId = widget.church?.districtId;
-    _selectedRegionId = widget.church?.regionId;
-    _loadOrganizationalData();
-  }
-
-  Future<void> _loadOrganizationalData() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final user = authProvider.user;
-    final missionId = user?.mission;
-
-    if (missionId != null && missionId.isNotEmpty) {
-      try {
-        // For regular users (not super admin), only show their assigned region/district
-        // For super admin, show all regions/districts in the mission
-        if (user?.userRole == UserRole.superAdmin) {
-          // Super admin sees all regions in the mission
-          final regions =
-              await RegionService.instance.getRegionsByMission(missionId);
-          setState(() {
-            _regions = regions;
-          });
-        } else {
-          // Regular users only see their assigned region
-          if (user?.region != null && user!.region!.isNotEmpty) {
-            final userRegion =
-                await RegionService.instance.getRegionById(user.region!);
-            if (userRegion != null) {
-              setState(() {
-                _regions = [userRegion];
-                _selectedRegionId = user.region;
-              });
-            }
-          }
-        }
-
-        // Auto-select user's region if they have one
-        if (user?.region != null && user!.region!.isNotEmpty) {
-          _selectedRegionId = user.region;
-
-          // Load districts for the user's region
-          final districts =
-              await DistrictService.instance.getDistrictsByRegion(user.region!);
-          setState(() {
-            _districts = districts;
-          });
-
-          // Auto-select user's district if they have one
-          if (user.district != null && user.district!.isNotEmpty) {
-            _selectedDistrictId = user.district;
-          }
-        }
-      } catch (e) {
-        // Handle error silently
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _churchNameController.dispose();
-    _elderNameController.dispose();
-    _elderEmailController.dispose();
-    _elderPhoneController.dispose();
-    _addressController.dispose();
-    _memberCountController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(bottom: 20),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                Text(
-                  widget.church == null ? 'Add Church' : 'Edit Church',
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 24),
-                TextFormField(
-                  controller: _churchNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Church Name',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.church),
-                  ),
-                  validator: (value) =>
-                      value?.isEmpty ?? true ? 'Required' : null,
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<ChurchStatus>(
-                  value: _selectedStatus,
-                  decoration: const InputDecoration(
-                    labelText: 'Status',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.category),
-                  ),
-                  items: ChurchStatus.values.map((status) {
-                    return DropdownMenuItem(
-                      value: status,
-                      child: Text(status.displayName),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => _selectedStatus = value);
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-                // Region Dropdown - Auto-selected from user profile
-                if (_regions.isNotEmpty)
-                  DropdownButtonFormField<String>(
-                    value: _selectedRegionId,
-                    decoration: const InputDecoration(
-                      labelText: 'Region (Auto-selected)',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.map),
-                      filled: true,
-                      fillColor: Color(0xFFF5F5F5),
-                    ),
-                    items: [
-                      ..._regions.map((region) => DropdownMenuItem(
-                            value: region.id,
-                            child: Text(region.name),
-                          )),
-                    ],
-                    onChanged: null, // Disabled - auto-selected
-                    validator: (value) =>
-                        value == null ? 'Region is required' : null,
-                  ),
-                if (_regions.isNotEmpty) const SizedBox(height: 16),
-                // District Dropdown - Auto-selected from user profile
-                if (_selectedRegionId != null && _districts.isNotEmpty)
-                  DropdownButtonFormField<String>(
-                    value: _selectedDistrictId,
-                    decoration: const InputDecoration(
-                      labelText: 'District (Auto-selected)',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.location_city),
-                      filled: true,
-                      fillColor: Color(0xFFF5F5F5),
-                    ),
-                    items: [
-                      ..._districts.map((district) => DropdownMenuItem(
-                            value: district.id,
-                            child: Text(district.name),
-                          )),
-                    ],
-                    onChanged: null, // Disabled - auto-selected
-                    validator: (value) =>
-                        value == null ? 'District is required' : null,
-                  ),
-                if (_selectedRegionId != null && _districts.isNotEmpty)
-                  const SizedBox(height: 16),
-                TextFormField(
-                  controller: _elderNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Elder Name',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person),
-                  ),
-                  validator: (value) =>
-                      value?.isEmpty ?? true ? 'Required' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  key: _emailKey,
-                  controller: _elderEmailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Elder Email',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.email),
-                    helperText: 'Either email or phone required',
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    // Valid if not empty and is email format
-                    if (value != null && value.isNotEmpty) {
-                      // Basic email validation
-                      if (!value.contains('@') || !value.contains('.')) {
-                        return 'Enter a valid email';
-                      }
-                      return null; // Valid email
-                    }
-
-                    // Empty is OK if phone has a value
-                    final phoneValue = _elderPhoneController.text.trim();
-                    if (phoneValue.isEmpty) {
-                      return 'Email or phone required';
-                    }
-                    return null; // Phone has value, so email not required
-                  },
-                  onChanged: (value) {
-                    // Validate phone field when email changes
-                    if (_phoneKey.currentState != null) {
-                      _phoneKey.currentState!.validate();
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  key: _phoneKey,
-                  controller: _elderPhoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'Elder Phone',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.phone),
-                    helperText: 'Either email or phone required',
-                  ),
-                  keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    // Valid if not empty
-                    if (value != null && value.isNotEmpty) {
-                      return null; // Valid phone
-                    }
-
-                    // Empty is OK if email has a value
-                    final emailValue = _elderEmailController.text.trim();
-                    if (emailValue.isEmpty) {
-                      return 'Email or phone required';
-                    }
-                    return null; // Email has value, so phone not required
-                  },
-                  onChanged: (value) {
-                    // Validate email field when phone changes
-                    if (_emailKey.currentState != null) {
-                      _emailKey.currentState!.validate();
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _addressController,
-                  decoration: const InputDecoration(
-                    labelText: 'Address (Optional)',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.location_on),
-                  ),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _memberCountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Number of Members (Optional)',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.people),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 50,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.pop(context); // Close the bottom sheet
-                          },
-                          icon: const Icon(Icons.cancel),
-                          label: const Text('Cancel'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.grey[700],
-                            side: BorderSide(color: Colors.grey[300]!),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: SizedBox(
-                        height: 50,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            // Make sure at least one of email or phone has a value
-                            final emailValue =
-                                _elderEmailController.text.trim();
-                            final phoneValue =
-                                _elderPhoneController.text.trim();
-
-                            if (emailValue.isEmpty && phoneValue.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                      'Please provide either an email or phone number for the elder'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                              return;
-                            }
-
-                            if (_formKey.currentState!.validate()) {
-                              final church = Church(
-                                id: widget.church?.id ?? const Uuid().v4(),
-                                userId: authProvider.user?.uid ?? '',
-                                churchName: _churchNameController.text.trim(),
-                                elderName: _elderNameController.text.trim(),
-                                status: _selectedStatus,
-                                elderEmail:
-                                    emailValue.isEmpty ? "" : emailValue,
-                                elderPhone:
-                                    phoneValue.isEmpty ? "" : phoneValue,
-                                address: _addressController.text.trim().isEmpty
-                                    ? null
-                                    : _addressController.text.trim(),
-                                memberCount:
-                                    _memberCountController.text.trim().isEmpty
-                                        ? null
-                                        : int.tryParse(
-                                            _memberCountController.text.trim()),
-                                createdAt:
-                                    widget.church?.createdAt ?? DateTime.now(),
-                                districtId: _selectedDistrictId,
-                                regionId: _selectedRegionId,
-                                missionId: authProvider.user?.mission,
-                              );
-                              widget.onSave(church);
-                              Navigator.pop(context);
-                            }
-                          },
-                          icon: const Icon(Icons.save),
-                          label: const Text('Save Church'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryLight,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 

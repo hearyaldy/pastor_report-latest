@@ -143,7 +143,9 @@ class AuthService {
       if (region != null) updates['region'] = region;
       if (district != null) updates['district'] = district;
       if (churchId != null) updates['churchId'] = churchId;
-      if (userRole != null) updates['userRole'] = userRole.toString().split('.').last;
+      if (userRole != null) {
+        updates['userRole'] = userRole.toString().split('.').last;
+      }
       if (roleTitle != null) updates['roleTitle'] = roleTitle;
 
       if (updates.isNotEmpty) {
@@ -161,6 +163,7 @@ class AuthService {
   // Complete onboarding profile
   Future<void> completeOnboarding({
     required String uid,
+    required String missionId,
     required String region,
     required String district,
     String? churchId,
@@ -170,6 +173,7 @@ class AuthService {
   }) async {
     try {
       Map<String, dynamic> updates = {
+        'mission': missionId,
         'region': region,
         'district': district,
         'onboardingCompleted': true,
@@ -185,7 +189,9 @@ class AuthService {
         updates['churchIds'] = [churchId];
       }
 
-      if (userRole != null) updates['userRole'] = userRole.toString().split('.').last;
+      if (userRole != null) {
+        updates['userRole'] = userRole.toString().split('.').last;
+      }
       if (roleTitle != null) updates['roleTitle'] = roleTitle;
 
       await _firestore.collection('users').doc(uid).update(updates);

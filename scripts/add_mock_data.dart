@@ -254,14 +254,14 @@ void main() async {
 
   print('⛪ Creating ${churches.length} churches...');
   for (var church in churches) {
-    await firestore.collection('churches').doc(church['id']).set({
-      'id': church['id'],
-      'churchName': church['name'],
-      'districtId': church['districtId'],
-      'regionId': church['regionId'],
+    await firestore.collection('churches').doc(church['id'] as String).set({
+      'id': church['id'] as String,
+      'churchName': church['name'] as String,
+      'districtId': church['districtId'] as String,
+      'regionId': church['regionId'] as String,
       'missionId': missionId,
       'userId': 'system',
-      'elderName': 'Elder ${church['name']!.split(' ')[0]}',
+      'elderName': 'Elder ${(church['name'] as String).split(' ')[0]}',
       'elderEmail': 'elder@${church['id']}.com',
       'elderPhone': '+60123456789',
       'status': 'church',

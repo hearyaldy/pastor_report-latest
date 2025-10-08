@@ -2,9 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/models/mission_model.dart';
-import 'package:pastor_report/models/department_model.dart';
 import 'package:pastor_report/providers/mission_provider.dart';
-import 'package:pastor_report/widgets/loading_overlay.dart';
+import 'package:pastor_report/utils/constants.dart';
 
 class MissionManagementScreen extends StatefulWidget {
   const MissionManagementScreen({super.key});
@@ -14,26 +13,12 @@ class MissionManagementScreen extends StatefulWidget {
       _MissionManagementScreenState();
 }
 
-class _MissionManagementScreenState extends State<MissionManagementScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _MissionManagementScreenState extends State<MissionManagementScreen> {
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-
-    // Add listener to prevent invalid index
-    _tabController.addListener(() {
-      if (_tabController.index < 0 || _tabController.index >= 2) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && _tabController.index != 0) {
-            _tabController.animateTo(0);
-          }
-        });
-      }
-    });
-
     // Load missions when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final missionProvider =
@@ -42,62 +27,452 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
     });
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+  List<Mission> get _filteredMissions {
+    final missionProvider = Provider.of<MissionProvider>(context);
+    if (_searchQuery.isEmpty) return missionProvider.missions;
+    return missionProvider.missions.where((mission) {
+      return mission.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          (mission.code?.toLowerCase().contains(_searchQuery.toLowerCase()) ??
+              false) ||
+          (mission.description
+                  ?.toLowerCase()
+                  .contains(_searchQuery.toLowerCase()) ??
+              false);
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mission Management'),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
-          tabs: const [
-            Tab(text: 'Missions'),
-            Tab(text: 'Departments'),
+      backgroundColor: Colors.grey[100],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          final missionProvider =
+              Provider.of<MissionProvider>(context, listen: false);
+          await missionProvider.loadMissions();
+        },
+        child: CustomScrollView(
+          slivers: [
+            _buildModernAppBar(),
+            _buildSearchAndFilter(),
+            _buildStatsCards(),
+            _buildMissionsList(),
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
         ),
       ),
-      body: Consumer<MissionProvider>(
-        builder: (context, missionProvider, child) {
-          return LoadingOverlay(
-            isLoading: missionProvider.isLoading,
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // Missions Tab
-                _MissionsTab(
-                  missions: missionProvider.missions,
-                  selectedMission: missionProvider.selectedMission,
-                  onMissionSelected: (mission) {
-                    missionProvider.selectMission(id: mission.id);
-                  },
-                  onAddMission: _showAddMissionDialog,
-                  onEditMission: _showEditMissionDialog,
-                  onDeleteMission: (mission) {
-                    _showDeleteMissionConfirmation(mission);
-                  },
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showAddMissionDialog,
+        backgroundColor: AppColors.primaryLight,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('Add Mission'),
+      ),
+    );
+  }
+
+  Widget _buildModernAppBar() {
+    return SliverAppBar(
+      expandedHeight: 160,
+      pinned: true,
+      elevation: 0,
+      backgroundColor: AppColors.primaryLight,
+      foregroundColor: Colors.white,
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.primaryLight,
+                AppColors.primaryLight.withValues(alpha: 0.9),
+                AppColors.primaryDark,
+              ],
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 60),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.public,
+                            size: 28, color: Colors.white),
+                      ),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Mission Management',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              'Manage mission configurations',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh),
+          tooltip: 'Refresh',
+          onPressed: () {
+            final missionProvider =
+                Provider.of<MissionProvider>(context, listen: false);
+            missionProvider.loadMissions();
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchAndFilter() {
+    return SliverToBoxAdapter(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // Search Bar
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: TextField(
+                onChanged: (value) => setState(() => _searchQuery = value),
+                decoration: InputDecoration(
+                  hintText: 'Search missions...',
+                  prefixIcon: Icon(Icons.search, color: AppColors.primaryLight),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 20),
+                          onPressed: () => setState(() => _searchQuery = ''),
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.all(16),
                 ),
-                // Departments Tab
-                _DepartmentsTab(
-                  departments: missionProvider.departments,
-                  selectedMission: missionProvider.selectedMission,
-                  onAddDepartment: _showAddDepartmentDialog,
-                  onEditDepartment: _showEditDepartmentDialog,
-                  onDeleteDepartment: (department) {
-                    _showDeleteDepartmentConfirmation(department);
-                  },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsCards() {
+    return SliverToBoxAdapter(
+      child: Consumer<MissionProvider>(
+        builder: (context, missionProvider, child) {
+          final missions = missionProvider.missions;
+          final totalMissions = missions.length;
+          final activeMissions =
+              missions.length; // All missions are active by default
+
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    'Total Missions',
+                    totalMissions.toString(),
+                    Icons.public,
+                    Colors.blue,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildStatCard(
+                    'Active Missions',
+                    activeMissions.toString(),
+                    Icons.check_circle,
+                    Colors.green,
+                  ),
                 ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildStatCard(
+      String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const Spacer(),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMissionsList() {
+    return SliverToBoxAdapter(
+      child: Consumer<MissionProvider>(
+        builder: (context, missionProvider, child) {
+          if (missionProvider.isLoading) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+
+          final missions = _filteredMissions;
+
+          if (missions.isEmpty) {
+            return Container(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.public_off,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _searchQuery.isNotEmpty
+                        ? 'No missions found'
+                        : 'No missions yet',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _searchQuery.isNotEmpty
+                        ? 'Try adjusting your search criteria'
+                        : 'Tap the + button to add your first mission',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[500],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: missions
+                  .map((mission) => _buildMissionCard(mission))
+                  .toList(),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMissionCard(Mission mission) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _showEditMissionDialog(mission),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.public,
+                        color: AppColors.primaryLight,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            mission.name,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Code: ${mission.code}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuButton<String>(
+                      icon: Icon(Icons.more_vert, color: Colors.grey[600]),
+                      onSelected: (value) {
+                        if (value == 'edit') {
+                          _showEditMissionDialog(mission);
+                        } else if (value == 'delete') {
+                          _showDeleteMissionConfirmation(mission);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, size: 20),
+                              SizedBox(width: 12),
+                              Text('Edit'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, size: 20, color: Colors.red),
+                              SizedBox(width: 12),
+                              Text('Delete',
+                                  style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                if (mission.description != null &&
+                    mission.description!.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      mission.description!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -357,516 +732,6 @@ class _MissionManagementScreenState extends State<MissionManagementScreen>
           ),
         ],
       ),
-    );
-  }
-
-  void _showAddDepartmentDialog() {
-    final nameController = TextEditingController();
-    final formUrlController = TextEditingController();
-    IconData selectedIcon = Department.availableIcons.first['icon'];
-    final missionProvider =
-        Provider.of<MissionProvider>(context, listen: false);
-    final selectedMission = missionProvider.selectedMission;
-
-    if (selectedMission == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a mission first')),
-      );
-      return;
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-              left: 16,
-              right: 16,
-              top: 16,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Add New Department',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.shade200),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          size: 20,
-                          color: Colors.blue.shade700,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Adding to: ${selectedMission.name}',
-                            style: TextStyle(
-                              color: Colors.blue.shade700,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: nameController,
-                    autofocus: false,
-                    decoration: const InputDecoration(
-                      labelText: 'Department Name',
-                      hintText: 'Enter department name',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<IconData>(
-                    value: selectedIcon,
-                    decoration: const InputDecoration(
-                      labelText: 'Icon',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: Department.availableIcons.map((iconData) {
-                      return DropdownMenuItem<IconData>(
-                        value: iconData['icon'],
-                        child: Row(
-                          children: [
-                            Icon(iconData['icon']),
-                            const SizedBox(width: 8),
-                            Text(iconData['name']),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (IconData? value) {
-                      if (value != null) {
-                        setState(() {
-                          selectedIcon = value;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: formUrlController,
-                    autofocus: false,
-                    decoration: const InputDecoration(
-                      labelText: 'Form URL',
-                      hintText: 'Enter Google Form URL',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('CANCEL'),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: () {
-                          if (nameController.text.isNotEmpty &&
-                              formUrlController.text.isNotEmpty) {
-                            final department = Department(
-                              id: '', // Will be assigned by Firestore
-                              name: nameController.text,
-                              icon: selectedIcon,
-                              formUrl: formUrlController.text,
-                              mission: selectedMission.name,
-                            );
-
-                            missionProvider.addDepartment(department);
-                            Navigator.pop(context);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text(
-                                      'Please fill in all required fields')),
-                            );
-                          }
-                        },
-                        child: const Text('ADD'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _showEditDepartmentDialog(Department department) {
-    final nameController = TextEditingController(text: department.name);
-    final formUrlController = TextEditingController(text: department.formUrl);
-    IconData selectedIcon = department.icon;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-              left: 16,
-              right: 16,
-              top: 16,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Edit Department',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.shade200),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          size: 20,
-                          color: Colors.blue.shade700,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Mission: ${department.mission ?? "None"}',
-                            style: TextStyle(
-                              color: Colors.blue.shade700,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: nameController,
-                    autofocus: false,
-                    decoration: const InputDecoration(
-                      labelText: 'Department Name',
-                      hintText: 'Enter department name',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<IconData>(
-                    value: selectedIcon,
-                    decoration: const InputDecoration(
-                      labelText: 'Icon',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: Department.availableIcons.map((iconData) {
-                      return DropdownMenuItem<IconData>(
-                        value: iconData['icon'],
-                        child: Row(
-                          children: [
-                            Icon(iconData['icon']),
-                            const SizedBox(width: 8),
-                            Text(iconData['name']),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (IconData? value) {
-                      if (value != null) {
-                        setState(() {
-                          selectedIcon = value;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: formUrlController,
-                    autofocus: false,
-                    decoration: const InputDecoration(
-                      labelText: 'Form URL',
-                      hintText: 'Enter Google Form URL',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('CANCEL'),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: () {
-                          if (nameController.text.isNotEmpty &&
-                              formUrlController.text.isNotEmpty) {
-                            final updatedDepartment = Department(
-                              id: department.id,
-                              name: nameController.text,
-                              icon: selectedIcon,
-                              formUrl: formUrlController.text,
-                              mission: department.mission,
-                              isActive: department.isActive,
-                              color: department.color, // Preserve the color
-                            );
-
-                            Provider.of<MissionProvider>(context, listen: false)
-                                .updateDepartment(updatedDepartment);
-                            Navigator.pop(context);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text(
-                                      'Please fill in all required fields')),
-                            );
-                          }
-                        },
-                        child: const Text('UPDATE'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _showDeleteDepartmentConfirmation(Department department) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Department'),
-        content: Text(
-            'Are you sure you want to delete ${department.name}?\n\nThis action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () {
-              Provider.of<MissionProvider>(context, listen: false)
-                  .deleteDepartment(
-                department.id,
-                missionName: department.mission,
-              );
-              Navigator.pop(context);
-            },
-            child: const Text('DELETE', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MissionsTab extends StatelessWidget {
-  final List<Mission> missions;
-  final Mission? selectedMission;
-  final Function(Mission) onMissionSelected;
-  final VoidCallback onAddMission;
-  final Function(Mission) onEditMission;
-  final Function(Mission) onDeleteMission;
-
-  const _MissionsTab({
-    required this.missions,
-    required this.selectedMission,
-    required this.onMissionSelected,
-    required this.onAddMission,
-    required this.onEditMission,
-    required this.onDeleteMission,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        missions.isEmpty
-            ? const Center(
-                child: Text('No missions found. Add a mission to get started.'),
-              )
-            : ListView.builder(
-                itemCount: missions.length,
-                padding: const EdgeInsets.only(bottom: 80), // Space for FAB
-                itemBuilder: (context, index) {
-                  final mission = missions[index];
-                  final isSelected = selectedMission?.id == mission.id;
-
-                  return Card(
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    color: isSelected
-                        ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
-                        : null,
-                    child: ListTile(
-                      title: Text(mission.name),
-                      subtitle: Text('Code: ${mission.code}'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit),
-                            onPressed: () => onEditMission(mission),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () => onDeleteMission(mission),
-                          ),
-                        ],
-                      ),
-                      onTap: () => onMissionSelected(mission),
-                    ),
-                  );
-                },
-              ),
-        Positioned(
-          right: 16,
-          bottom: 16,
-          child: FloatingActionButton(
-            onPressed: onAddMission,
-            child: const Icon(Icons.add),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _DepartmentsTab extends StatelessWidget {
-  final List<Department> departments;
-  final Mission? selectedMission;
-  final VoidCallback onAddDepartment;
-  final Function(Department) onEditDepartment;
-  final Function(Department) onDeleteDepartment;
-
-  const _DepartmentsTab({
-    required this.departments,
-    required this.selectedMission,
-    required this.onAddDepartment,
-    required this.onEditDepartment,
-    required this.onDeleteDepartment,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        selectedMission == null
-            ? const Center(
-                child: Text('Select a mission first to see its departments.'),
-              )
-            : departments.isEmpty
-                ? Center(
-                    child: Text(
-                        'No departments found for ${selectedMission!.name}. Add a department to get started.'),
-                  )
-                : ListView.builder(
-                    itemCount: departments.length,
-                    padding: const EdgeInsets.only(bottom: 80), // Space for FAB
-                    itemBuilder: (context, index) {
-                      final department = departments[index];
-
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
-                        child: ListTile(
-                          leading: Icon(department.icon),
-                          title: Text(department.name),
-                          subtitle: Text(
-                            department.formUrl,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit),
-                                onPressed: () => onEditDepartment(department),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete),
-                                onPressed: () => onDeleteDepartment(department),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-        Positioned(
-          right: 16,
-          bottom: 16,
-          child: FloatingActionButton(
-            onPressed: selectedMission != null ? onAddDepartment : null,
-            child: const Icon(Icons.add),
-          ),
-        ),
-      ],
     );
   }
 }

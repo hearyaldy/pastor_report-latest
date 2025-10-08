@@ -78,7 +78,7 @@ class Church {
       elderName: json['elderName'] as String,
       status: ChurchStatus.values.firstWhere(
         (e) => e.name == json['status'],
-        orElse: () => ChurchStatus.church,
+        orElse: () => ChurchStatus.organizedChurch,
       ),
       elderEmail: json['elderEmail'] as String,
       elderPhone: json['elderPhone'] as String,
@@ -132,18 +132,18 @@ class Church {
 }
 
 enum ChurchStatus {
-  church,
+  organizedChurch,
   company,
-  branch;
+  group;
 
   String get displayName {
     switch (this) {
-      case ChurchStatus.church:
-        return 'Church';
+      case ChurchStatus.organizedChurch:
+        return 'Organized Church';
       case ChurchStatus.company:
         return 'Company';
-      case ChurchStatus.branch:
-        return 'Branch';
+      case ChurchStatus.group:
+        return 'Group';
     }
   }
 }

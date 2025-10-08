@@ -117,13 +117,83 @@ class RegionService {
 
   // Stream all regions for a mission (real-time updates)
   Stream<List<Region>> streamRegionsByMission(String missionId) {
+    print('RegionService: Streaming regions with missionId=$missionId');
+
+    // First try the direct missionId query
     return _firestore
         .collection(_collectionName)
         .where('missionId', isEqualTo: missionId)
         .orderBy('name')
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Region.fromSnapshot(doc)).toList());
+        .asyncMap((snapshot) async {
+      print(
+          'RegionService: Stream found ${snapshot.docs.length} regions by missionId');
+
+      // If no results, try the mission field for backward compatibility
+      if (snapshot.docs.isEmpty) {
+        print('RegionService: Stream trying mission field...');
+        final missionSnapshot = await _firestore
+            .collection(_collectionName)
+            .where('mission', isEqualTo: missionId)
+            .orderBy('name')
+            .get();
+
+        print(
+            'RegionService: Stream found ${missionSnapshot.docs.length} regions by mission field');
+
+        if (missionSnapshot.docs.isNotEmpty) {
+          return missionSnapshot.docs
+              .map((doc) => Region.fromSnapshot(doc))
+              .toList();
+        }
+
+        // If still no results, try getting mission name and filtering
+        try {
+          final missionsSnapshot = await _firestore
+              .collection('missions')
+              .where(FieldPath.documentId, isEqualTo: missionId)
+              .limit(1)
+              .get();
+
+          if (missionsSnapshot.docs.isNotEmpty) {
+            final missionName = missionsSnapshot.docs.first.get('name');
+            print(
+                'RegionService: Stream found mission name: $missionName for ID: $missionId');
+
+            final allRegionsSnapshot = await _firestore
+                .collection(_collectionName)
+                .orderBy('name')
+                .get();
+
+            final filteredRegions = allRegionsSnapshot.docs
+                .where((doc) {
+                  final data = doc.data();
+                  final regionMissionId =
+                      data['missionId'] ?? data['mission'] ?? '';
+                  return regionMissionId == missionName ||
+                      regionMissionId.toString().toLowerCase() ==
+                          missionName.toString().toLowerCase();
+                })
+                .map((doc) => Region.fromSnapshot(doc))
+                .toList();
+
+            print(
+                'RegionService: Stream found ${filteredRegions.length} regions by mission name');
+            return filteredRegions;
+          }
+        } catch (e) {
+          print('RegionService: Stream error during mission name lookup: $e');
+        }
+      }
+
+      final regions =
+          snapshot.docs.map((doc) => Region.fromSnapshot(doc)).toList();
+      for (var region in regions) {
+        print(
+            '  Stream Region: ${region.id} - ${region.name} (mission: ${region.missionId})');
+      }
+      return regions;
+    });
   }
 
   // Update a region
@@ -199,6 +269,21 @@ class RegionService {
       return snapshot.docs.isNotEmpty;
     } catch (e) {
       throw Exception('Failed to check region code: $e');
+    }
+  }
+
+  // Convert region ID to name
+  Future<String> getRegionNameById(String? regionId) async {
+    if (regionId == null || regionId.isEmpty) {
+      return "Unknown Region";
+    }
+
+    try {
+      final region = await getRegionById(regionId);
+      return region?.name ?? "Unknown Region";
+    } catch (e) {
+      print('RegionService: Error getting region name for ID $regionId: $e');
+      return "Unknown Region";
     }
   }
 }

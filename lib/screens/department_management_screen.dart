@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:pastor_report/services/department_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/models/department_model.dart';
+import 'package:pastor_report/models/mission_model.dart';
+import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -11,12 +13,47 @@ class DepartmentManagementScreen extends StatefulWidget {
   const DepartmentManagementScreen({super.key});
 
   @override
-  State<DepartmentManagementScreen> createState() => _DepartmentManagementScreenState();
+  State<DepartmentManagementScreen> createState() =>
+      _DepartmentManagementScreenState();
 }
 
-class _DepartmentManagementScreenState extends State<DepartmentManagementScreen> {
+class _DepartmentManagementScreenState
+    extends State<DepartmentManagementScreen> {
   String _searchQuery = '';
   bool _showInactive = false;
+  String? _selectedMissionId;
+  List<Mission> _missions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMissions();
+  }
+
+  Future<void> _loadMissions() async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final user = authProvider.user;
+
+      if (user?.userRole == UserRole.superAdmin) {
+        _missions = await MissionService.instance.getAllMissions();
+        if (_missions.isNotEmpty && _selectedMissionId == null) {
+          _selectedMissionId = _missions.first.id;
+        }
+      } else if (user?.mission != null) {
+        _selectedMissionId = user!.mission;
+        final userMission =
+            await MissionService.instance.getMissionByID(user.mission!);
+        if (userMission != null) {
+          _missions = [userMission];
+        }
+      }
+
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('Error loading missions: $e');
+    }
+  }
 
   // Available colors for department selection - Bright CMYK colors
   static final List<Color> _availableColors = [
@@ -49,7 +86,7 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final userMission = authProvider.user?.mission;
+    final user = authProvider.user;
 
     return Scaffold(
       body: RefreshIndicator(
@@ -58,12 +95,17 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
         },
         child: CustomScrollView(
           slivers: [
-            _buildModernAppBar(userMission),
+            _buildModernAppBar(user),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
+                    // Mission selector for SuperAdmin
+                    if (user?.userRole == UserRole.superAdmin) ...[
+                      _buildMissionSelector(),
+                      const SizedBox(height: 16),
+                    ],
                     _buildSearchBar(),
                     const SizedBox(height: 12),
                     _buildToggleBar(),
@@ -71,12 +113,13 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                 ),
               ),
             ),
-            _buildDepartmentGrid(userMission),
+            _buildDepartmentGrid(_selectedMissionId),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showDepartmentDialog(context, null, userMission),
+        onPressed: () =>
+            _showDepartmentDialog(context, null, _selectedMissionId),
         icon: const Icon(Icons.add),
         label: const Text('Add Department'),
         backgroundColor: AppColors.primaryLight,
@@ -85,9 +128,9 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
     );
   }
 
-  Widget _buildModernAppBar(String? userMission) {
-    final missionName = userMission != null
-        ? MissionService().getMissionNameById(userMission)
+  Widget _buildModernAppBar(UserModel? user) {
+    final missionName = _selectedMissionId != null
+        ? MissionService().getMissionNameById(_selectedMissionId!)
         : 'All Missions';
 
     return SliverAppBar(
@@ -162,7 +205,8 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                 top: 60,
                 right: 16,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
@@ -181,7 +225,8 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                       ),
                       const SizedBox(width: 6),
                       StreamBuilder<List<Department>>(
-                        stream: DepartmentService().getDepartmentsStream(mission: userMission),
+                        stream: DepartmentService()
+                            .getDepartmentsStream(mission: _selectedMissionId),
                         builder: (context, snapshot) {
                           final count = snapshot.data?.length ?? 0;
                           return Text(
@@ -200,6 +245,67 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMissionSelector() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.admin_panel_settings,
+                    color: Colors.blue.shade700, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Super Admin: Select Mission',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue.shade700,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: _selectedMissionId,
+              decoration: InputDecoration(
+                labelText: 'Mission',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                prefixIcon: const Icon(Icons.business),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              items: _missions.map((mission) {
+                return DropdownMenuItem(
+                  value: mission.id,
+                  child: Text(mission.name),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _selectedMissionId = value;
+                  });
+                }
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -262,11 +368,11 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
     );
   }
 
-  Widget _buildDepartmentGrid(String? userMission) {
+  Widget _buildDepartmentGrid(String? missionId) {
     final deptService = DepartmentService();
 
     return StreamBuilder<List<Department>>(
-      stream: deptService.getDepartmentsStream(mission: userMission),
+      stream: deptService.getDepartmentsStream(mission: missionId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SliverFillRemaining(
@@ -355,7 +461,7 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
             delegate: SliverChildBuilderDelegate(
               (context, index) {
                 final dept = departments[index];
-                return _buildDepartmentCard(dept, userMission);
+                return _buildDepartmentCard(dept, missionId);
               },
               childCount: departments.length,
             ),
@@ -398,7 +504,8 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                   top: 8,
                   right: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.red,
                       borderRadius: BorderRadius.circular(12),
@@ -486,10 +593,13 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                           child: IconButton(
                             icon: const Icon(Icons.edit, size: 16),
                             padding: const EdgeInsets.all(6),
-                            constraints: const BoxConstraints(minHeight: 32, minWidth: 32),
-                            onPressed: () => _showDepartmentDialog(context, dept, userMission),
+                            constraints: const BoxConstraints(
+                                minHeight: 32, minWidth: 32),
+                            onPressed: () => _showDepartmentDialog(
+                                context, dept, userMission),
                             style: IconButton.styleFrom(
-                              backgroundColor: Colors.white.withValues(alpha: 0.9),
+                              backgroundColor:
+                                  Colors.white.withValues(alpha: 0.9),
                               foregroundColor: AppColors.primaryLight,
                             ),
                           ),
@@ -499,10 +609,12 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                           child: IconButton(
                             icon: const Icon(Icons.link, size: 16),
                             padding: const EdgeInsets.all(6),
-                            constraints: const BoxConstraints(minHeight: 32, minWidth: 32),
+                            constraints: const BoxConstraints(
+                                minHeight: 32, minWidth: 32),
                             onPressed: () => _openUrl(dept.formUrl),
                             style: IconButton.styleFrom(
-                              backgroundColor: Colors.white.withValues(alpha: 0.9),
+                              backgroundColor:
+                                  Colors.white.withValues(alpha: 0.9),
                               foregroundColor: Colors.blue,
                             ),
                           ),
@@ -588,7 +700,8 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: dept.isActive ? Colors.green : Colors.red,
                       borderRadius: BorderRadius.circular(12),
@@ -665,8 +778,12 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                           title: Row(
                             children: [
                               Icon(
-                                dept.isActive ? Icons.visibility_off : Icons.visibility,
-                                color: dept.isActive ? Colors.orange : Colors.green,
+                                dept.isActive
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: dept.isActive
+                                    ? Colors.orange
+                                    : Colors.green,
                               ),
                               const SizedBox(width: 12),
                               Text(dept.isActive ? 'Deactivate' : 'Activate'),
@@ -683,7 +800,9 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                             ElevatedButton(
                               onPressed: () => Navigator.pop(context, true),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: dept.isActive ? Colors.orange : Colors.green,
+                                backgroundColor: dept.isActive
+                                    ? Colors.orange
+                                    : Colors.green,
                                 foregroundColor: Colors.white,
                               ),
                               child: const Text('Confirm'),
@@ -709,9 +828,11 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                             SnackBar(
                               content: Row(
                                 children: [
-                                  const Icon(Icons.check_circle, color: Colors.white),
+                                  const Icon(Icons.check_circle,
+                                      color: Colors.white),
                                   const SizedBox(width: 12),
-                                  Text('Department ${dept.isActive ? 'deactivated' : 'activated'}'),
+                                  Text(
+                                      'Department ${dept.isActive ? 'deactivated' : 'activated'}'),
                                 ],
                               ),
                               backgroundColor: Colors.green,
@@ -742,10 +863,13 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                         }
                       }
                     },
-                    icon: Icon(dept.isActive ? Icons.visibility_off : Icons.visibility),
+                    icon: Icon(dept.isActive
+                        ? Icons.visibility_off
+                        : Icons.visibility),
                     label: Text(dept.isActive ? 'Deactivate' : 'Activate'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: dept.isActive ? Colors.orange : Colors.green,
+                      foregroundColor:
+                          dept.isActive ? Colors.orange : Colors.green,
                       padding: const EdgeInsets.all(16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -789,7 +913,8 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
 
                       if (confirm == true) {
                         try {
-                          await deptService.deleteDepartment(dept.id, missionName: userMission);
+                          await deptService.deleteDepartment(dept.id,
+                              missionName: userMission);
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -901,15 +1026,18 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
           ),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     }
   }
 
-  void _showDepartmentDialog(BuildContext context, Department? department, String? userMission) {
+  void _showDepartmentDialog(
+      BuildContext context, Department? department, String? userMission) {
     final nameController = TextEditingController(text: department?.name ?? '');
-    final urlController = TextEditingController(text: department?.formUrl ?? '');
+    final urlController =
+        TextEditingController(text: department?.formUrl ?? '');
     IconData selectedIcon = department?.icon ?? Icons.dashboard;
     Color selectedColor = department?.color ?? AppColors.cardBackground;
 
@@ -936,7 +1064,8 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(20)),
                   ),
                   child: Row(
                     children: [
@@ -947,7 +1076,9 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        department == null ? 'Add Department' : 'Edit Department',
+                        department == null
+                            ? 'Add Department'
+                            : 'Edit Department',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -969,127 +1100,138 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Department Name',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.badge),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: urlController,
-                    decoration: const InputDecoration(
-                      labelText: 'Form URL',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.link),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Select Color:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: selectedColor,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        selectedIcon,
-                        color: _getIconColor(selectedColor),
-                        size: 32,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 120,
-                    child: GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 6,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                      ),
-                      itemCount: _availableColors.length,
-                      itemBuilder: (context, index) {
-                        final color = _availableColors[index];
-                        final isSelected = selectedColor.toARGB32() == color.toARGB32();
-
-                        return InkWell(
-                          onTap: () {
-                            setState(() {
-                              selectedColor = color;
-                            });
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: color,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: isSelected ? AppColors.primaryDark : Colors.grey.shade300,
-                                width: isSelected ? 3 : 1,
-                              ),
-                            ),
-                            child: isSelected
-                                ? const Icon(Icons.check, color: Colors.black54, size: 16)
-                                : null,
+                        TextField(
+                          controller: nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Department Name',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.badge),
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Select Icon:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 150,
-                    child: GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 4,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                      ),
-                      itemCount: Department.availableIcons.length,
-                      itemBuilder: (context, index) {
-                        final iconData = Department.availableIcons[index];
-                        final isSelected = selectedIcon == iconData['icon'];
-
-                        return InkWell(
-                          onTap: () {
-                            setState(() {
-                              selectedIcon = iconData['icon'];
-                            });
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: isSelected ? AppColors.primaryLight : Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: urlController,
+                          decoration: const InputDecoration(
+                            labelText: 'Form URL',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.link),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Select Color:',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: selectedColor,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: Center(
                             child: Icon(
-                              iconData['icon'],
-                              size: 28,
-                              color: isSelected ? Colors.white : Colors.grey.shade700,
+                              selectedIcon,
+                              color: _getIconColor(selectedColor),
+                              size: 32,
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 120,
+                          child: GridView.builder(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 6,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
+                            itemCount: _availableColors.length,
+                            itemBuilder: (context, index) {
+                              final color = _availableColors[index];
+                              final isSelected =
+                                  selectedColor.toARGB32() == color.toARGB32();
+
+                              return InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    selectedColor = color;
+                                  });
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: color,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? AppColors.primaryDark
+                                          : Colors.grey.shade300,
+                                      width: isSelected ? 3 : 1,
+                                    ),
+                                  ),
+                                  child: isSelected
+                                      ? const Icon(Icons.check,
+                                          color: Colors.black54, size: 16)
+                                      : null,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Select Icon:',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 150,
+                          child: GridView.builder(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 4,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
+                            itemCount: Department.availableIcons.length,
+                            itemBuilder: (context, index) {
+                              final iconData = Department.availableIcons[index];
+                              final isSelected =
+                                  selectedIcon == iconData['icon'];
+
+                              return InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    selectedIcon = iconData['icon'];
+                                  });
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? AppColors.primaryLight
+                                        : Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    iconData['icon'],
+                                    size: 28,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.grey.shade700,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -1120,7 +1262,8 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                         flex: 2,
                         child: ElevatedButton(
                           onPressed: () async {
-                            if (nameController.text.isEmpty || urlController.text.isEmpty) {
+                            if (nameController.text.isEmpty ||
+                                urlController.text.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: const Row(
@@ -1132,7 +1275,8 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                                   ),
                                   backgroundColor: Colors.red,
                                   behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10)),
                                 ),
                               );
                               return;
@@ -1165,21 +1309,27 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                               // Refresh the parent screen
                               if (context.mounted) {
                                 // Use findAncestorStateOfType to refresh the parent
-                                context.findAncestorStateOfType<_DepartmentManagementScreenState>()?.setState(() {});
+                                context
+                                    .findAncestorStateOfType<
+                                        _DepartmentManagementScreenState>()
+                                    ?.setState(() {});
                               }
 
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Row(
                                     children: [
-                                      const Icon(Icons.check_circle, color: Colors.white),
+                                      const Icon(Icons.check_circle,
+                                          color: Colors.white),
                                       const SizedBox(width: 12),
-                                      Text('Department ${department == null ? 'added' : 'updated'} successfully!'),
+                                      Text(
+                                          'Department ${department == null ? 'added' : 'updated'} successfully!'),
                                     ],
                                   ),
                                   backgroundColor: Colors.green,
                                   behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10)),
                                 ),
                               );
                             } catch (e) {
@@ -1191,7 +1341,8 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                                 SnackBar(
                                   content: Row(
                                     children: [
-                                      const Icon(Icons.error, color: Colors.white),
+                                      const Icon(Icons.error,
+                                          color: Colors.white),
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Text(
@@ -1203,7 +1354,8 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                                   ),
                                   backgroundColor: Colors.red,
                                   behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10)),
                                   duration: const Duration(seconds: 5),
                                 ),
                               );
@@ -1214,7 +1366,9 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
-                          child: Text(department == null ? 'Add Department' : 'Update Department'),
+                          child: Text(department == null
+                              ? 'Add Department'
+                              : 'Update Department'),
                         ),
                       ),
                     ],

@@ -10,6 +10,9 @@ import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/models/staff_model.dart';
 import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/services/staff_service.dart';
+import 'package:pastor_report/services/district_service.dart';
+import 'package:pastor_report/services/region_service.dart';
+import 'package:pastor_report/services/data_import_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/utils/import_sabah_staff.dart';
 
@@ -24,6 +27,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedMission = 'All';
+  String _sortBy = 'Position'; // New sorting state
 
   @override
   void dispose() {
@@ -37,9 +41,10 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     final user = authProvider.user;
     final isMissionAdmin = user?.userRole == UserRole.missionAdmin ||
         user?.userRole == UserRole.admin ||
-        user?.userRole == UserRole.superAdmin;
+        user?.userRole == UserRole.superAdmin ||
+        user?.userRole == UserRole.districtPastor;
 
-    // Only mission admins and above can access this screen
+    // Only mission admins, district pastors and above can access this screen
     if (!isMissionAdmin) {
       return Scaffold(
         appBar: AppBar(
@@ -74,183 +79,33 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Staff Directory'),
-        backgroundColor: AppColors.primaryLight,
-        foregroundColor: Colors.white,
-        actions: [
-          if (isMissionAdmin)
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert),
-              onSelected: (value) {
-                if (value == 'import') {
-                  _importCSV(context, user!);
-                } else if (value == 'export') {
-                  _exportCSV(context, user!);
-                } else if (value == 'template') {
-                  _downloadTemplate(context);
-                } else if (value == 'import_sabah') {
-                  _importSabahStaff(context, user!);
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'import',
-                  child: Row(
-                    children: [
-                      Icon(Icons.upload_file, size: 20),
-                      SizedBox(width: 8),
-                      Text('Import CSV'),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          setState(() {});
+        },
+        child: CustomScrollView(
+          slivers: [
+            _buildModernAppBar(),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildSearchBar(),
+                    if (user?.userRole == UserRole.superAdmin ||
+                        user?.userRole == UserRole.admin) ...[
+                      const SizedBox(height: 16),
+                      _buildMissionFilter(),
+                      const SizedBox(height: 16),
+                      _buildSortFilter(),
                     ],
-                  ),
+                  ],
                 ),
-                const PopupMenuItem(
-                  value: 'export',
-                  child: Row(
-                    children: [
-                      Icon(Icons.download, size: 20),
-                      SizedBox(width: 8),
-                      Text('Export CSV'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'template',
-                  child: Row(
-                    children: [
-                      Icon(Icons.file_download, size: 20),
-                      SizedBox(width: 8),
-                      Text('Download Template'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'import_sabah',
-                  child: Row(
-                    children: [
-                      Icon(Icons.cloud_upload, size: 20, color: Colors.blue),
-                      SizedBox(width: 8),
-                      Text('Import Sabah Staff'),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Search and Filter
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.grey.shade100,
-            child: Column(
-              children: [
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search staff...',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() => _searchQuery = '');
-                            },
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  onChanged: (value) => setState(() => _searchQuery = value),
-                ),
-                if (user?.userRole == UserRole.superAdmin ||
-                    user?.userRole == UserRole.admin) ...[
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: _selectedMission,
-                    decoration: InputDecoration(
-                      labelText: 'Filter by Mission',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                      prefixIcon: const Icon(Icons.filter_list),
-                    ),
-                    items: [
-                      const DropdownMenuItem(value: 'All', child: Text('All')),
-                      ...AppConstants.missions.map((m) => DropdownMenuItem(
-                          value: m['name'], child: Text(m['name']!))),
-                    ],
-                    onChanged: (value) =>
-                        setState(() => _selectedMission = value!),
-                  ),
-                ],
-              ],
-            ),
-          ),
-
-          // Staff List
-          Expanded(
-            child: StreamBuilder<List<Staff>>(
-              stream: _getStaffStream(user),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return _buildEmptyState(isMissionAdmin);
-                }
-
-                var staffList = snapshot.data!;
-
-                // Apply search filter
-                if (_searchQuery.isNotEmpty) {
-                  staffList = staffList
-                      .where((s) =>
-                          s.name
-                              .toLowerCase()
-                              .contains(_searchQuery.toLowerCase()) ||
-                          s.role
-                              .toLowerCase()
-                              .contains(_searchQuery.toLowerCase()) ||
-                          s.email
-                              .toLowerCase()
-                              .contains(_searchQuery.toLowerCase()))
-                      .toList();
-                }
-
-                // Apply mission filter
-                if (_selectedMission != 'All') {
-                  staffList = staffList
-                      .where((s) => s.mission == _selectedMission)
-                      .toList();
-                }
-
-                if (staffList.isEmpty) {
-                  return const Center(child: Text('No staff found'));
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: staffList.length,
-                  itemBuilder: (context, index) {
-                    final staff = staffList[index];
-                    return _buildStaffCard(staff, isMissionAdmin, user);
-                  },
-                );
-              },
-            ),
-          ),
-        ],
+            _buildStaffList(user, isMissionAdmin),
+          ],
+        ),
       ),
       floatingActionButton: isMissionAdmin
           ? FloatingActionButton.extended(
@@ -263,6 +118,834 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     );
   }
 
+  Widget _buildModernAppBar() {
+    return SliverAppBar(
+      expandedHeight: 160,
+      floating: false,
+      pinned: true,
+      backgroundColor: AppColors.primaryLight,
+      flexibleSpace: FlexibleSpaceBar(
+        title: const Text(
+          'Staff Directory',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.primaryLight,
+                AppColors.primaryDark,
+              ],
+            ),
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -30,
+                top: -30,
+                child: Icon(
+                  Icons.people_alt_rounded,
+                  size: 150,
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert, color: Colors.white),
+          onSelected: (value) {
+            final user = context.read<AuthProvider>().user!;
+            if (value == 'import') {
+              _importCSV(context, user);
+            } else if (value == 'export') {
+              _exportCSV(context, user);
+            } else if (value == 'template') {
+              _downloadTemplate(context);
+            } else if (value == 'import_sabah') {
+              _importSabahStaff(context, user);
+            } else if (value == 'import_sabah_mission') {
+              _importSabahMissionData(context, user);
+            } else if (value == 'import_nsm_mission') {
+              _importNSMMissionData(context, user);
+            } else if (value == 'migrate_missions') {
+              // Inline migration logic to update existing staff records from mission names to UUIDs
+              () async {
+                try {
+                  // Show loading indicator
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) =>
+                        const Center(child: CircularProgressIndicator()),
+                  );
+
+                  // Get all staff records
+                  final staffService = StaffService.instance;
+                  final allStaff = await staffService.getAllStaff();
+
+                  int migratedCount = 0;
+                  for (final staff in allStaff) {
+                    // Check if mission field contains a name instead of UUID
+                    final missionMap = AppConstants.missions.firstWhere(
+                      (m) => m['name'] == staff.mission,
+                      orElse: () => {'id': '', 'name': ''},
+                    );
+
+                    if (missionMap['id']!.isNotEmpty &&
+                        missionMap['id'] != staff.mission) {
+                      // Update the staff record with the UUID
+                      final updatedStaff =
+                          staff.copyWith(mission: missionMap['id']);
+                      await staffService.updateStaff(updatedStaff);
+                      migratedCount++;
+                    }
+                  }
+
+                  // Close loading dialog
+                  if (mounted && Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+
+                  // Show success message
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            'Migration completed! $migratedCount records updated.'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  // Close loading dialog if open
+                  if (mounted && Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+
+                  // Show error message
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Migration failed: ${e.toString()}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              }();
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'import',
+              child: Row(
+                children: [
+                  Icon(Icons.upload_file, size: 20),
+                  SizedBox(width: 8),
+                  Text('Import CSV'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'export',
+              child: Row(
+                children: [
+                  Icon(Icons.download, size: 20),
+                  SizedBox(width: 8),
+                  Text('Export CSV'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'template',
+              child: Row(
+                children: [
+                  Icon(Icons.file_download, size: 20),
+                  SizedBox(width: 8),
+                  Text('Download Template'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'import_sabah',
+              child: Row(
+                children: [
+                  Icon(Icons.cloud_upload, size: 20, color: Colors.blue),
+                  SizedBox(width: 8),
+                  Text('Import Sabah Staff'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'import_sabah_mission',
+              child: Row(
+                children: [
+                  Icon(Icons.business, size: 20, color: Colors.green),
+                  SizedBox(width: 8),
+                  Text('Import Sabah Mission Data'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'import_nsm_mission',
+              child: Row(
+                children: [
+                  Icon(Icons.business, size: 20, color: Colors.blue),
+                  SizedBox(width: 8),
+                  Text('Import North Sabah Mission Data'),
+                ],
+              ),
+            ),
+            if (context.read<AuthProvider>().user?.userRole ==
+                UserRole.superAdmin)
+              const PopupMenuItem(
+                value: 'migrate_missions',
+                child: Row(
+                  children: [
+                    Icon(Icons.sync, size: 20, color: Colors.orange),
+                    SizedBox(width: 8),
+                    Text('Migrate Mission UUIDs'),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return TextField(
+      controller: _searchController,
+      decoration: InputDecoration(
+        hintText: 'Search staff by name, role, or email...',
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: _searchController.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() => _searchQuery = '');
+                },
+              )
+            : null,
+        filled: true,
+        fillColor: Colors.grey.shade100,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      onChanged: (value) => setState(() => _searchQuery = value),
+    );
+  }
+
+  Widget _buildMissionFilter() {
+    final user = context.read<AuthProvider>().user;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.admin_panel_settings,
+                    color: Colors.blue.shade700, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  user?.userRole == UserRole.superAdmin
+                      ? 'Super Admin: Select Mission'
+                      : 'Admin: Filter by Mission',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue.shade700,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: _selectedMission,
+              decoration: InputDecoration(
+                labelText: 'Mission',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                prefixIcon: const Icon(Icons.business),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              isExpanded: true,
+              items: [
+                const DropdownMenuItem(
+                    value: 'All', child: Text('All Missions')),
+                ...AppConstants.missions.map((m) => DropdownMenuItem(
+                      value: m['id'],
+                      child: Text(m['name']!),
+                    )),
+              ],
+              onChanged: (value) => setState(() => _selectedMission = value!),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSortFilter() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.sort, color: Colors.green.shade700, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Sort Staff By',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.green.shade700,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: _sortBy,
+              decoration: InputDecoration(
+                labelText: 'Sort By',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                prefixIcon: const Icon(Icons.sort_by_alpha),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              isExpanded: true,
+              items: const [
+                DropdownMenuItem(
+                    value: 'Position', child: Text('Position Hierarchy')),
+                DropdownMenuItem(value: 'Name', child: Text('Name (A-Z)')),
+                DropdownMenuItem(value: 'Role', child: Text('Role (A-Z)')),
+                DropdownMenuItem(
+                    value: 'Department', child: Text('Department')),
+              ],
+              onChanged: (value) => setState(() => _sortBy = value!),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStaffList(UserModel? user, bool isMissionAdmin) {
+    return StreamBuilder<List<Staff>>(
+      stream: _getStaffStream(user),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return SliverFillRemaining(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text('Error: ${snapshot.error}'),
+                ],
+              ),
+            ),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return SliverFillRemaining(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No staff found',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        var staffList = snapshot.data!;
+
+        // Apply search filter
+        if (_searchQuery.isNotEmpty) {
+          staffList = staffList
+              .where((s) =>
+                  s.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                  s.role.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                  s.email.toLowerCase().contains(_searchQuery.toLowerCase()))
+              .toList();
+        }
+
+        // Apply mission filter
+        if (_selectedMission != 'All') {
+          staffList =
+              staffList.where((s) => s.mission == _selectedMission).toList();
+        }
+
+        // Apply sorting
+        staffList = _sortStaffList(staffList);
+
+        if (staffList.isEmpty) {
+          return SliverFillRemaining(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.search_off, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No staff match your search',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // Display staff based on sorting method
+        if (_sortBy == 'Position') {
+          // For position hierarchy, display in a flat sorted list
+          return SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  if (index >= staffList.length) return null;
+                  final staff = staffList[index];
+                  return Column(
+                    children: [
+                      _buildModernStaffCard(staff, isMissionAdmin, user),
+                      if (index < staffList.length - 1)
+                        const SizedBox(height: 12),
+                    ],
+                  );
+                },
+                childCount: staffList.length,
+              ),
+            ),
+          );
+        } else {
+          // For other sorting methods, group by role
+          Map<String, List<Staff>> staffByRole = {};
+          for (var staff in staffList) {
+            final role = staff.role;
+            if (!staffByRole.containsKey(role)) {
+              staffByRole[role] = [];
+            }
+            staffByRole[role]!.add(staff);
+          }
+
+          // Create a list of widgets for each role group
+          List<Widget> roleGroups = [];
+          final sortedRoles = staffByRole.keys.toList()..sort();
+
+          for (var role in sortedRoles) {
+            roleGroups.add(_buildRoleSectionHeader(role));
+            roleGroups.addAll(staffByRole[role]!
+                .map((staff) =>
+                    _buildModernStaffCard(staff, isMissionAdmin, user))
+                .toList());
+            roleGroups.add(const SizedBox(height: 24));
+          }
+
+          return SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => roleGroups[index],
+                childCount: roleGroups.length,
+              ),
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  List<Staff> _sortStaffList(List<Staff> staffList) {
+    switch (_sortBy) {
+      case 'Position':
+        return _sortByPositionHierarchy(staffList);
+      case 'Name':
+        return staffList..sort((a, b) => a.name.compareTo(b.name));
+      case 'Role':
+        return staffList..sort((a, b) => a.role.compareTo(b.role));
+      case 'Department':
+        return staffList
+          ..sort((a, b) {
+            final deptA = a.department ?? '';
+            final deptB = b.department ?? '';
+            return deptA.compareTo(deptB);
+          });
+      default:
+        return staffList;
+    }
+  }
+
+  List<Staff> _sortByPositionHierarchy(List<Staff> staffList) {
+    // Define position hierarchy (higher index = higher priority)
+    const positionHierarchy = {
+      'President': 4,
+      'Executive Secretary': 3,
+      'Treasurer': 2,
+      // All other positions get priority 1
+    };
+
+    return staffList
+      ..sort((a, b) {
+        // Get priority for each staff member's role
+        int getPriority(Staff staff) {
+          // Check if the role contains any of the high-priority positions
+          for (var entry in positionHierarchy.entries) {
+            if (staff.role.toLowerCase().contains(entry.key.toLowerCase())) {
+              return entry.value;
+            }
+          }
+          return 1; // Default priority for other positions
+        }
+
+        int priorityA = getPriority(a);
+        int priorityB = getPriority(b);
+
+        // Sort by priority first (higher priority first)
+        if (priorityA != priorityB) {
+          return priorityB.compareTo(priorityA); // Higher priority first
+        }
+
+        // If same priority, sort by name
+        return a.name.compareTo(b.name);
+      });
+  }
+
+  Widget _buildRoleSectionHeader(String role) {
+    Color roleColor = _getRoleColor(role);
+    IconData roleIcon = _getRoleIcon(role);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 12),
+      child: Row(
+        children: [
+          Icon(roleIcon, color: roleColor, size: 24),
+          const SizedBox(width: 12),
+          Text(
+            role,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[800],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: roleColor.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${_getRoleCount(role)} staff',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: roleColor,
+                  fontWeight: FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  int _getRoleCount(String role) {
+    // This would need to be calculated based on current filtered staff
+    // For now, return a placeholder
+    return 0;
+  }
+
+  Color _getRoleColor(String role) {
+    switch (role.toLowerCase()) {
+      case 'district pastor':
+        return Colors.blue;
+      case 'mission officer':
+        return Colors.green;
+      case 'assistant pastor':
+        return Colors.orange;
+      case 'youth pastor':
+        return Colors.purple;
+      case 'children pastor':
+        return Colors.pink;
+      case 'worship pastor':
+        return Colors.teal;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getRoleIcon(String role) {
+    switch (role.toLowerCase()) {
+      case 'district pastor':
+        return Icons.business;
+      case 'mission officer':
+        return Icons.group_work;
+      case 'assistant pastor':
+        return Icons.person;
+      case 'youth pastor':
+        return Icons.sports_soccer;
+      case 'children pastor':
+        return Icons.child_care;
+      case 'worship pastor':
+        return Icons.music_note;
+      default:
+        return Icons.work;
+    }
+  }
+
+  Widget _buildModernStaffCard(Staff staff, bool canEdit, UserModel? user) {
+    final roleColor = _getRoleColor(staff.role);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: roleColor.withValues(alpha: 0.3), width: 1.5),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: roleColor.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: Stack(
+          children: [
+            // Role indicator in top right corner
+            Positioned(
+              top: 0,
+              right: 0,
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: roleColor,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    _getRoleIcon(staff.role),
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+              ),
+            ),
+            InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => _showStaffDetails(staff, canEdit, user),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    // Avatar
+                    Container(
+                      width: 48, // Reduced from 56 to save space
+                      height: 48, // Reduced from 56 to save space
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            roleColor.withValues(alpha: 0.8),
+                            roleColor,
+                          ],
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _getRoleIcon(staff.role),
+                        color: Colors.white,
+                        size: 24, // Reduced from 28
+                      ),
+                    ),
+                    const SizedBox(width: 12), // Reduced from 16
+                    // Staff info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            staff.name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            staff.email,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              _buildChip(
+                                staff.role,
+                                _getRoleIcon(staff.role),
+                                roleColor.withValues(alpha: 0.1),
+                                roleColor,
+                              ),
+                              if (staff.mission.isNotEmpty)
+                                _buildChip(
+                                  AppConstants.missions.firstWhere(
+                                        (m) => m['id'] == staff.mission,
+                                        orElse: () => {'name': staff.mission},
+                                      )['name'] ??
+                                      staff.mission,
+                                  Icons.business,
+                                  Colors.blue.shade100,
+                                  Colors.blue.shade700,
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Action buttons
+                    if (canEdit)
+                      SizedBox(
+                        width:
+                            96, // Increased from 80 to 96 to prevent overflow
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.edit,
+                                color: AppColors.primaryLight,
+                              ),
+                              iconSize: 20, // Smaller icons
+                              padding: const EdgeInsets.all(4), // Less padding
+                              onPressed: () =>
+                                  _editStaff(context, staff, user!),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete,
+                                color: Colors.red.shade400,
+                              ),
+                              iconSize: 20, // Smaller icons
+                              padding: const EdgeInsets.all(4), // Less padding
+                              onPressed: () => _deleteStaff(staff),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChip(
+      String label, IconData icon, Color backgroundColor, Color textColor) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 200), // Limit chip width
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: textColor),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: textColor,
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Stream<List<Staff>> _getStaffStream(UserModel? user) {
     if (user == null) return Stream.value([]);
 
@@ -272,72 +955,11 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
         return StaffService.instance.streamAllStaff();
       case UserRole.missionAdmin:
         return StaffService.instance.streamStaffByMission(user.mission ?? '');
+      case UserRole.districtPastor:
+        return StaffService.instance.streamStaffByDistrict(user.district ?? '');
       default:
         return StaffService.instance.streamStaffByMission(user.mission ?? '');
     }
-  }
-
-  Widget _buildStaffCard(Staff staff, bool canEdit, UserModel? user) {
-    final canEditThis = canEdit &&
-        (user?.userRole == UserRole.superAdmin ||
-            user?.userRole == UserRole.admin ||
-            staff.mission == user?.mission);
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: staff.photoUrl != null
-            ? CircleAvatar(backgroundImage: NetworkImage(staff.photoUrl!))
-            : CircleAvatar(
-                backgroundColor: AppColors.primaryLight,
-                child: Text(
-                  staff.name.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ),
-        title: Text(staff.name,
-            style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(staff.role),
-            Text(staff.mission,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.phone, color: Colors.green),
-              onPressed: () => _makePhoneCall(staff.phone),
-              tooltip: 'Call',
-            ),
-            if (canEditThis)
-              PopupMenuButton(
-                itemBuilder: (context) => [
-                  const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                  const PopupMenuItem(
-                      value: 'email', child: Text('Send Email')),
-                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
-                ],
-                onSelected: (value) {
-                  if (value == 'edit') {
-                    _editStaff(context, staff, user!);
-                  } else if (value == 'delete') {
-                    _deleteStaff(staff);
-                  } else if (value == 'email') {
-                    _sendEmail(staff.email);
-                  }
-                },
-              ),
-          ],
-        ),
-        isThreeLine: true,
-        onTap: () => _showStaffDetails(staff),
-      ),
-    );
   }
 
   Widget _buildEmptyState(bool canAdd) {
@@ -423,7 +1045,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     }
   }
 
-  void _showStaffDetails(Staff staff) {
+  void _showStaffDetails(Staff staff, bool canEdit, UserModel? user) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -453,13 +1075,34 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
               Text(staff.role,
                   style: const TextStyle(fontSize: 16, color: Colors.grey)),
               const SizedBox(height: 24),
-              _detailRow(Icons.business, 'Mission', staff.mission),
+              _detailRow(
+                  Icons.business,
+                  'Mission',
+                  AppConstants.missions.firstWhere(
+                        (m) => m['id'] == staff.mission,
+                        orElse: () =>
+                            {'id': staff.mission, 'name': staff.mission},
+                      )['name'] ??
+                      staff.mission),
               if (staff.department != null)
                 _detailRow(Icons.category, 'Department', staff.department!),
               if (staff.district != null)
-                _detailRow(Icons.location_on, 'District', staff.district!),
+                FutureBuilder<String>(
+                  future: DistrictService().getDistrictNameById(staff.district),
+                  builder: (context, snapshot) {
+                    final districtName = snapshot.data ?? staff.district!;
+                    return _detailRow(
+                        Icons.location_on, 'District', districtName);
+                  },
+                ),
               if (staff.region != null)
-                _detailRow(Icons.map, 'Region', staff.region!),
+                FutureBuilder<String>(
+                  future: RegionService().getRegionNameById(staff.region),
+                  builder: (context, snapshot) {
+                    final regionName = snapshot.data ?? staff.region!;
+                    return _detailRow(Icons.map, 'Region', regionName);
+                  },
+                ),
               _detailRow(Icons.email, 'Email', staff.email),
               _detailRow(Icons.phone, 'Phone', staff.phone),
               if (staff.notes != null && staff.notes!.isNotEmpty)
@@ -737,6 +1380,174 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     }
   }
 
+  Future<void> _importSabahMissionData(
+      BuildContext context, UserModel user) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Import Sabah Mission Data'),
+        content: const Text(
+          'This will import complete Sabah Mission data including regions, districts, and churches from the JSON file.\n\n'
+          'WARNING: This will DELETE all existing regions, districts, and churches for Sabah Mission and replace them with data from churches_SAB.json.\n\n'
+          'This action cannot be undone. Are you sure?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Import Data'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    // Show progress dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Importing Sabah Mission data...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final result =
+          await DataImportService.instance.importSabahMissionData(user.uid);
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close progress dialog
+
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Import Complete'),
+          content: Text(
+            'Successfully imported Sabah Mission data:\n\n'
+            '• Regions created: ${result['regionsCreated']}\n'
+            '• Districts created: ${result['districtsCreated']}\n'
+            '• Churches created: ${result['churchesCreated']}\n'
+            '• Churches deleted: ${result['churchesDeleted']}\n\n'
+            'Total imported: ${result['totalImported']}',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close progress dialog
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error importing mission data: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _importNSMMissionData(
+      BuildContext context, UserModel user) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Import North Sabah Mission Data'),
+        content: const Text(
+            'This will import complete North Sabah Mission data including regions, districts, and staff from the JSON file.\n\n'
+            'This will REPLACE all existing data for North Sabah Mission.\n\n'
+            'Are you sure you want to continue?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+            child: const Text('Import Data'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    // Show progress dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Importing North Sabah Mission data...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final result =
+          await DataImportService.instance.importNSMMissionData(user.uid);
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close progress dialog
+
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Import Successful'),
+          content: Text('Successfully imported North Sabah Mission data:\n\n'
+              '• Regions created: ${result['regionsCreated']}\n'
+              '• Districts created: ${result['districtsCreated']}\n'
+              '• Staff created: ${result['staffCreated']}\n'
+              '• Staff deleted: ${result['staffDeleted']}\n'
+              '• Churches deleted: ${result['churchesDeleted']}\n\n'
+              'Total imported: ${result['totalImported']}'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close progress dialog
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error importing NSM mission data: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Future<void> _makePhoneCall(String phone) async {
     final uri = Uri.parse('tel:$phone');
     if (await canLaunchUrl(uri)) {
@@ -805,20 +1616,7 @@ class _StaffFormState extends State<_StaffForm> {
           ? AppConstants.missions.first
           : {'id': '', 'name': 'Unknown Mission'},
     );
-    _selectedMission = matchingMission['name']!;
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _roleController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    _departmentController.dispose();
-    _districtController.dispose();
-    _regionController.dispose();
-    _notesController.dispose();
-    super.dispose();
+    _selectedMission = matchingMission['id']!;
   }
 
   @override
@@ -903,7 +1701,7 @@ class _StaffFormState extends State<_StaffForm> {
                   ),
                   items: AppConstants.missions
                       .map((m) => DropdownMenuItem(
-                          value: m['name'], child: Text(m['name']!)))
+                          value: m['id'], child: Text(m['name']!)))
                       .toList(),
                   onChanged: (value) =>
                       setState(() => _selectedMission = value!),
@@ -1021,4 +1819,16 @@ class _StaffFormState extends State<_StaffForm> {
       ),
     );
   }
+}
+
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text('Staff Management'),
+    ),
+    body: const Center(
+      child: Text('Staff Management Screen'),
+    ),
+  );
 }
