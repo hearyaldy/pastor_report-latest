@@ -174,11 +174,11 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
         : null;
     final missionName = report.missionId != null
         ? (AppConstants.missions.firstWhere(
-              (m) => m['id'] == report.missionId,
-              orElse: () => {'name': report.missionId ?? 'Unknown'},
-            )['name'])
+            (m) => m['id'] == report.missionId,
+            orElse: () => {'name': report.missionId ?? 'Unknown'},
+          )['name'])
         : null;
-    
+
     Navigator.pushNamed(
       context,
       '/borang-b-preview',
@@ -783,6 +783,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
   Widget _buildChip(
       String label, IconData icon, Color bgColor, Color textColor) {
     return Container(
+      constraints: const BoxConstraints(maxWidth: 200), // Add max width constraint
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: bgColor,
@@ -793,12 +794,16 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
         children: [
           Icon(icon, size: 12, color: textColor),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: textColor,
-              fontWeight: FontWeight.w600,
+          Flexible( // Make text flexible to prevent overflow
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: textColor,
+                fontWeight: FontWeight.w600,
+              ),
+              overflow: TextOverflow.ellipsis, // Add ellipsis for long text
+              maxLines: 1,
             ),
           ),
         ],
