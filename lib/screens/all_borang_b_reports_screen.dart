@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:pastor_report/models/borang_b_model.dart';
+import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/services/borang_b_firestore_service.dart';
 import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/utils/constants.dart';
@@ -42,26 +44,51 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
   Future<void> _loadAllReports() async {
     setState(() => _isLoading = true);
     try {
+      // Get current user's mission
+      final authProvider = context.read<AuthProvider>();
+      final userMission = authProvider.user?.mission;
+      
       final reports = await _firestoreService.getAllReports();
       
-      // Load district names for reports
+      // Filter reports by user's mission if they are ministerial secretary
+      List<BorangBData> filteredByMission = reports;
+      if (userMission != null && userMission.isNotEmpty) {
+        filteredByMission = reports
+            .where((r) => r.missionId == userMission)
+            .toList();
+        // Set the selected mission to user's mission and disable changing it
+        _selectedMission = userMission;
+      }
+      
+      // Load district names for ALL reports to build complete cache
       final districtIds = reports
           .where((r) => r.districtId != null && r.districtId!.isNotEmpty)
           .map((r) => r.districtId!)
           .toSet();
       
+      debugPrint('Loading ${districtIds.length} unique districts...');
       for (final districtId in districtIds) {
         if (!_districtNames.containsKey(districtId)) {
-          final district = await DistrictService.instance.getDistrictById(districtId);
-          if (district != null) {
-            _districtNames[districtId] = district.name;
+          try {
+            final district = await DistrictService.instance.getDistrictById(districtId);
+            if (district != null) {
+              _districtNames[districtId] = district.name;
+              debugPrint('✅ Loaded district: ${district.name} (ID: $districtId)');
+            } else {
+              _districtNames[districtId] = districtId; // Fallback to ID if not found
+              debugPrint('⚠️ District not found, using ID: $districtId');
+            }
+          } catch (e) {
+            debugPrint('❌ Error loading district $districtId: $e');
+            _districtNames[districtId] = districtId; // Fallback to ID on error
           }
         }
       }
+      debugPrint('District names cache: $_districtNames');
       
       if (mounted) {
         setState(() {
-          _reports = reports;
+          _reports = filteredByMission;
           _applyFiltersAndSort();
           _isLoading = false;
         });
@@ -329,6 +356,61 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
   }
 
   Widget _buildMissionFilter() {
+    final authProvider = context.read<AuthProvider>();
+    final userMission = authProvider.user?.mission;
+    final isMinisterialSecretary = authProvider.user?.isMinisterialSecretary ?? false;
+    
+    // If user is ministerial secretary, show read-only mission info
+    if (isMinisterialSecretary && userMission != null) {
+      final missionName = AppConstants.missions.firstWhere(
+        (m) => m['id'] == userMission,
+        orElse: () => {'name': 'Unknown Mission'},
+      )['name'];
+      
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.blue.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.blue.shade200),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Icon(Icons.business, color: Colors.blue.shade700, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Your Mission',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue.shade700,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      missionName ?? 'Unknown Mission',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.blue.shade900,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.lock, color: Colors.blue.shade300, size: 20),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    // For super admin/admin, show dropdown filter
     return Container(
       decoration: BoxDecoration(
         color: Colors.blue.shade50,
