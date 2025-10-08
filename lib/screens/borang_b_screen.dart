@@ -208,12 +208,25 @@ class _BorangBScreenState extends State<BorangBScreen> {
   void _viewReport() {
     if (_currentData == null) return;
 
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
+    
+    // Get mission name from user data
+    final missionName = user?.mission != null
+        ? (AppConstants.missions.firstWhere(
+              (m) => m['id'] == user?.mission,
+              orElse: () => {'name': user?.mission ?? 'Unknown'},
+            )['name'])
+        : null;
+
     Navigator.pushNamed(
       context,
       '/borang-b-preview',
       arguments: {
         'data': _currentData,
         'month': _selectedMonth,
+        'districtName': user?.district,
+        'missionName': missionName,
       },
     );
   }

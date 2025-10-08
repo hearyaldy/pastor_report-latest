@@ -883,6 +883,17 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () {
+            // Get district and mission names
+            final districtName = report.districtId != null
+                ? report.districtId // Will be improved in future with district name loading
+                : null;
+            final missionName = report.missionId != null
+                ? (AppConstants.missions.firstWhere(
+                      (m) => m['id'] == report.missionId,
+                      orElse: () => {'name': report.missionId ?? 'Unknown'},
+                    )['name'])
+                : null;
+            
             // Navigate to report preview
             Navigator.pushNamed(
               context,
@@ -890,6 +901,8 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
               arguments: {
                 'data': report,
                 'month': report.month,
+                'districtName': districtName,
+                'missionName': missionName,
               },
             );
           },

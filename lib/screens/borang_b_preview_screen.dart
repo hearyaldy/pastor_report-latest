@@ -242,6 +242,8 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
     final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     final BorangBData data = args['data'] as BorangBData;
     final DateTime month = args['month'] as DateTime;
+    final String? districtName = args['districtName'] as String?;
+    final String? missionName = args['missionName'] as String?;
 
     return Scaffold(
       appBar: AppBar(
@@ -267,7 +269,7 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-            _buildHeader(month),
+            _buildHeader(data, month, districtName, missionName),
             const SizedBox(height: 24),
 
             // Church Membership Statistics
@@ -422,10 +424,7 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
     );
   }
 
-  Widget _buildHeader(DateTime month) {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final user = authProvider.user;
-
+  Widget _buildHeader(BorangBData data, DateTime month, String? districtName, String? missionName) {
     return Card(
       elevation: 2,
       child: Padding(
@@ -443,9 +442,9 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
             ),
             const Divider(),
             const SizedBox(height: 8),
-            _buildInfoRow('Pastor', user?.displayName ?? 'N/A'),
-            _buildInfoRow('Mission', user?.mission ?? 'N/A'),
-            _buildInfoRow('District', user?.district ?? 'N/A'),
+            _buildInfoRow('Pastor', data.userName),
+            _buildInfoRow('Mission', missionName ?? data.missionId ?? 'N/A'),
+            _buildInfoRow('District', districtName ?? data.districtId ?? 'N/A'),
             _buildInfoRow('Month', DateFormat('MMMM yyyy').format(month)),
           ],
         ),

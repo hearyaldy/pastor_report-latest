@@ -19,7 +19,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
   final BorangBFirestoreService _firestoreService =
       BorangBFirestoreService.instance;
   final TextEditingController _searchController = TextEditingController();
-  
+
   List<BorangBData> _reports = [];
   List<BorangBData> _filteredReports = [];
   Map<String, String> _districtNames = {}; // Cache district names
@@ -47,35 +47,37 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
       // Get current user's mission
       final authProvider = context.read<AuthProvider>();
       final userMission = authProvider.user?.mission;
-      
+
       final reports = await _firestoreService.getAllReports();
-      
+
       // Filter reports by user's mission if they are ministerial secretary
       List<BorangBData> filteredByMission = reports;
       if (userMission != null && userMission.isNotEmpty) {
-        filteredByMission = reports
-            .where((r) => r.missionId == userMission)
-            .toList();
+        filteredByMission =
+            reports.where((r) => r.missionId == userMission).toList();
         // Set the selected mission to user's mission and disable changing it
         _selectedMission = userMission;
       }
-      
+
       // Load district names for ALL reports to build complete cache
       final districtIds = reports
           .where((r) => r.districtId != null && r.districtId!.isNotEmpty)
           .map((r) => r.districtId!)
           .toSet();
-      
+
       debugPrint('Loading ${districtIds.length} unique districts...');
       for (final districtId in districtIds) {
         if (!_districtNames.containsKey(districtId)) {
           try {
-            final district = await DistrictService.instance.getDistrictById(districtId);
+            final district =
+                await DistrictService.instance.getDistrictById(districtId);
             if (district != null) {
               _districtNames[districtId] = district.name;
-              debugPrint('✅ Loaded district: ${district.name} (ID: $districtId)');
+              debugPrint(
+                  '✅ Loaded district: ${district.name} (ID: $districtId)');
             } else {
-              _districtNames[districtId] = districtId; // Fallback to ID if not found
+              _districtNames[districtId] =
+                  districtId; // Fallback to ID if not found
               debugPrint('⚠️ District not found, using ID: $districtId');
             }
           } catch (e) {
@@ -85,7 +87,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
         }
       }
       debugPrint('District names cache: $_districtNames');
-      
+
       if (mounted) {
         setState(() {
           _reports = filteredByMission;
@@ -118,8 +120,9 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
         final districtName = report.districtId != null
             ? (_districtNames[report.districtId] ?? '').toLowerCase()
             : '';
-        final monthStr = DateFormat('MMMM yyyy').format(report.month).toLowerCase();
-        
+        final monthStr =
+            DateFormat('MMMM yyyy').format(report.month).toLowerCase();
+
         return nameLower.contains(searchLower) ||
             districtName.contains(searchLower) ||
             monthStr.contains(searchLower);
@@ -128,12 +131,14 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
 
     // Apply mission filter
     if (_selectedMission != 'All') {
-      filtered = filtered.where((r) => r.missionId == _selectedMission).toList();
+      filtered =
+          filtered.where((r) => r.missionId == _selectedMission).toList();
     }
 
     // Apply district filter
     if (_selectedDistrict != 'All') {
-      filtered = filtered.where((r) => r.districtId == _selectedDistrict).toList();
+      filtered =
+          filtered.where((r) => r.districtId == _selectedDistrict).toList();
     }
 
     // Apply sorting
@@ -163,12 +168,25 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
   }
 
   void _viewReport(BorangBData report) {
+    // Get the actual names instead of IDs
+    final districtName = report.districtId != null
+        ? (_districtNames[report.districtId] ?? report.districtId)
+        : null;
+    final missionName = report.missionId != null
+        ? (AppConstants.missions.firstWhere(
+              (m) => m['id'] == report.missionId,
+              orElse: () => {'name': report.missionId ?? 'Unknown'},
+            )['name'])
+        : null;
+    
     Navigator.pushNamed(
       context,
       '/borang-b-preview',
       arguments: {
         'data': report,
         'month': report.month,
+        'districtName': districtName,
+        'missionName': missionName,
       },
     );
   }
@@ -336,10 +354,16 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
               ),
               isExpanded: true,
               items: const [
-                DropdownMenuItem(value: 'Month (Newest)', child: Text('Month (Newest First)')),
-                DropdownMenuItem(value: 'Month (Oldest)', child: Text('Month (Oldest First)')),
-                DropdownMenuItem(value: 'Name (A-Z)', child: Text('Name (A-Z)')),
-                DropdownMenuItem(value: 'Name (Z-A)', child: Text('Name (Z-A)')),
+                DropdownMenuItem(
+                    value: 'Month (Newest)',
+                    child: Text('Month (Newest First)')),
+                DropdownMenuItem(
+                    value: 'Month (Oldest)',
+                    child: Text('Month (Oldest First)')),
+                DropdownMenuItem(
+                    value: 'Name (A-Z)', child: Text('Name (A-Z)')),
+                DropdownMenuItem(
+                    value: 'Name (Z-A)', child: Text('Name (Z-A)')),
                 DropdownMenuItem(value: 'District', child: Text('District')),
               ],
               onChanged: (value) {
@@ -358,15 +382,16 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
   Widget _buildMissionFilter() {
     final authProvider = context.read<AuthProvider>();
     final userMission = authProvider.user?.mission;
-    final isMinisterialSecretary = authProvider.user?.isMinisterialSecretary ?? false;
-    
+    final isMinisterialSecretary =
+        authProvider.user?.isMinisterialSecretary ?? false;
+
     // If user is ministerial secretary, show read-only mission info
     if (isMinisterialSecretary && userMission != null) {
       final missionName = AppConstants.missions.firstWhere(
         (m) => m['id'] == userMission,
         orElse: () => {'name': 'Unknown Mission'},
       )['name'];
-      
+
       return Container(
         decoration: BoxDecoration(
           color: Colors.blue.shade50,
@@ -409,7 +434,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
         ),
       );
     }
-    
+
     // For super admin/admin, show dropdown filter
     return Container(
       decoration: BoxDecoration(
@@ -453,7 +478,8 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
               ),
               isExpanded: true,
               items: [
-                const DropdownMenuItem(value: 'All', child: Text('All Missions')),
+                const DropdownMenuItem(
+                    value: 'All', child: Text('All Missions')),
                 ...AppConstants.missions.map((m) => DropdownMenuItem(
                       value: m['id'],
                       child: Text(m['name']!),
@@ -462,7 +488,8 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
               onChanged: (value) {
                 setState(() {
                   _selectedMission = value!;
-                  _selectedDistrict = 'All'; // Reset district when mission changes
+                  _selectedDistrict =
+                      'All'; // Reset district when mission changes
                   _applyFiltersAndSort();
                 });
               },
@@ -477,10 +504,10 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
     // Get unique districts from filtered reports
     final availableDistricts = <String, String>{};
     for (final report in _reports) {
-      if (report.districtId != null && 
+      if (report.districtId != null &&
           report.districtId!.isNotEmpty &&
           (_selectedMission == 'All' || report.missionId == _selectedMission)) {
-        availableDistricts[report.districtId!] = 
+        availableDistricts[report.districtId!] =
             _districtNames[report.districtId] ?? report.districtId!;
       }
     }
@@ -527,7 +554,8 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
               ),
               isExpanded: true,
               items: [
-                const DropdownMenuItem(value: 'All', child: Text('All Districts')),
+                const DropdownMenuItem(
+                    value: 'All', child: Text('All Districts')),
                 ...availableDistricts.entries.map((e) => DropdownMenuItem(
                       value: e.key,
                       child: Text(e.value),
@@ -638,12 +666,10 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
 
   Widget _buildReportCard(BorangBData report) {
     final monthStr = DateFormat('MMMM yyyy').format(report.month);
-    final statusColor = report.status == ReportStatus.submitted
-        ? Colors.green
-        : Colors.orange;
-    final statusText = report.status == ReportStatus.submitted
-        ? 'Submitted'
-        : 'Draft';
+    final statusColor =
+        report.status == ReportStatus.submitted ? Colors.green : Colors.orange;
+    final statusText =
+        report.status == ReportStatus.submitted ? 'Submitted' : 'Draft';
     final districtName = report.districtId != null
         ? (_districtNames[report.districtId] ?? 'Unknown District')
         : 'No District';
@@ -651,7 +677,8 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
         ? (AppConstants.missions.firstWhere(
               (m) => m['id'] == report.missionId,
               orElse: () => {'name': 'Unknown'},
-            )['name'] ?? 'Unknown')
+            )['name'] ??
+            'Unknown')
         : 'No Mission';
 
     return Card(
@@ -753,7 +780,8 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
     );
   }
 
-  Widget _buildChip(String label, IconData icon, Color bgColor, Color textColor) {
+  Widget _buildChip(
+      String label, IconData icon, Color bgColor, Color textColor) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
