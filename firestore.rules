@@ -22,6 +22,13 @@ service cloud.firestore {
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'missionAdmin';
     }
 
+    // Helper function to check if user is a Mission President
+    function isMissionPresident() {
+      return isAuthenticated() &&
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Mission President' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userRole == 'missionPresident');
+    }
+
     // Helper function to check if user is accessing their own document
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
@@ -43,6 +50,33 @@ service cloud.firestore {
     function isSuperAdmin() {
       return isAuthenticated() &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superAdmin';
+    }
+
+    // Helper function to check if user is a District Pastor
+    function isDistrictPastor() {
+      return isAuthenticated() &&
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'District Pastor' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userRole == 'districtPastor');
+    }
+
+    // Helper function to check if user is a Church Treasurer
+    function isChurchTreasurer() {
+      return isAuthenticated() &&
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Church Treasurer' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userRole == 'churchTreasurer');
+    }
+
+    // Helper functions to get current user's district and mission IDs
+    function userDistrictId() {
+      return isAuthenticated()
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.district
+        : null;
+    }
+
+    function userMissionId() {
+      return isAuthenticated()
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.mission
+        : null;
     }
 
     // Users collection
@@ -141,14 +175,15 @@ service cloud.firestore {
       allow update: if isAuthenticated() &&
                        (resource.data.createdBy == request.auth.uid || isAdmin());
 
-      // Only admins can delete regions
-      allow delete: if isAdmin();
+      // Admins and mission admins can delete regions
+      allow delete: if isAdmin() || isMissionAdmin();
     }
 
     // Districts collection (organizational structure)
     match /districts/{districtId} {
       // Allow anyone to read districts (needed for registration and onboarding)
-      allow read: if true;
+      // District pastors can read their own district
+      allow read: if true || (isDistrictPastor() && resource.data.id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.district);
 
       // Authenticated users can create districts during onboarding
       allow create: if isAuthenticated() &&
@@ -156,39 +191,83 @@ service cloud.firestore {
 
       // Users can update districts they created, admins can update any
       allow update: if isAuthenticated() &&
-                       (resource.data.createdBy == request.auth.uid || isAdmin());
+                       (resource.data.createdBy == request.auth.uid || isAdmin() || (isDistrictPastor() && resource.data.id == get(/databases/$(database)/documents/churches/$(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.churchId)).data.districtId));
 
-      // Only admins can delete districts
-      allow delete: if isAdmin();
+      // Admins and mission admins can delete districts
+      allow delete: if isAdmin() || isMissionAdmin();
     }
 
     // Churches collection
     match /churches/{churchId} {
-      // Anyone authenticated can read churches
+      // Allow authenticated users to read churches (needed for listings and assignments)
       allow read: if isAuthenticated();
 
-      // Authenticated users can create churches
-      allow create: if isAuthenticated();
+      // Authenticated users can create churches if they are admin, mission admin, district pastor, or creating a church for themselves
+      allow create: if isAuthenticated() && (
+        isAdmin() ||
+        isMissionAdmin() ||
+        isDistrictPastor() ||
+        request.resource.data.userId == request.auth.uid
+      );
 
-      // Users can update their own churches, admins can update any
+      // Users can update their own churches, admins, district pastors can update any church
       allow update: if isAuthenticated() &&
-                       (resource.data.userId == request.auth.uid || isAdmin());
+                       (resource.data.userId == request.auth.uid || isAdmin() || isDistrictPastor());
 
-      // Only admins can delete churches
-      allow delete: if isAdmin();
+      // Admins and mission admins can delete churches
+      allow delete: if isAdmin() || isMissionAdmin();
     }
 
     // Financial Reports collection
     match /financial_reports/{reportId} {
-      // Anyone authenticated can read financial reports
-      allow read: if isAuthenticated();
+      // Allow reads for admins, mission admins, district pastors (their district/mission), church treasurers (their church), or the report submitter
+      allow read: if isAuthenticated() &&
+                     (isAdmin() || isMissionAdmin() || isDistrictPastor() ||
+                      (isDistrictPastor() && resource.data.districtId == get(/databases/$(database)/documents/churches/$(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.churchId)).data.districtId) ||
+                      resource.data.churchId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.churchId ||
+                      resource.data.districtId == userDistrictId() ||
+                      resource.data.missionId == userMissionId());
+      // A user can list reports if they are authenticated and meet role-specific query conditions.
+      allow list: if isAuthenticated() && (
+        // Admins and mission admins can query broadly.
+        isAdmin() ||
+        isMissionAdmin() ||
 
-      // Authenticated users can create financial reports
-      allow create: if isAuthenticated();
+        // Mission Presidents can query reports within their mission.
+        (isMissionPresident() && request.query.missionId == userMissionId()) ||
 
-      // Users can update their own reports, admins can update any
-      allow update: if isAuthenticated() &&
-                       (resource.data.submittedBy == request.auth.uid || isAdmin());
+        // District Pastors can query reports within their district, or for a church.
+        (isDistrictPastor() && (request.query.districtId != null || request.query.churchId != null)) ||
+
+        // Church Treasurers can only query for their own church.
+        (isChurchTreasurer() && request.query.churchId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.churchId)
+      );
+      // Allow creates for allowed roles within their scope
+      allow create: if isAuthenticated() && (
+        isAdmin() ||
+        isMissionAdmin() ||
+        (
+          isDistrictPastor() && (
+            request.resource.data.districtId == userDistrictId() ||
+            (request.resource.data.missionId != null && request.resource.data.missionId == userMissionId())
+          )
+        ) ||
+        (isChurchTreasurer() && request.resource.data.churchId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.churchId)
+      ) && request.resource.data.submittedBy == request.auth.uid;
+
+      // Allow updates for report owner, admins, mission admins, district pastors (their district/mission), and treasurers (their church)
+      allow update: if isAuthenticated() && (
+        resource.data.submittedBy == request.auth.uid ||
+        isAdmin() ||
+        isMissionAdmin() ||
+        (
+          isDistrictPastor() && (
+            resource.data.districtId == userDistrictId() ||
+            (resource.data.missionId != null && resource.data.missionId == userMissionId())
+          )
+        ) ||
+        (isChurchTreasurer() && resource.data.churchId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.churchId)
+      );
 
       // Only admins can delete financial reports
       allow delete: if isAdmin();
@@ -197,11 +276,16 @@ service cloud.firestore {
     // Borang B Reports (Monthly Ministerial Reports)
     match /borang_b_reports/{reportId} {
       // Users can read their own reports
-      // Superadmin and MinisterialSecretary can read all reports
-      allow read: if isAuthenticated() &&
-                     (resource.data.userId == request.auth.uid ||
-                      isSuperAdmin() ||
-                      isMinisterialSecretary());
+      // Superadmin/Admin and MinisterialSecretary can read all reports
+      // Mission Admins can read reports for their own mission only
+      allow read: if isAuthenticated() && (
+                     resource.data.userId == request.auth.uid ||
+                     isAdmin() ||
+                     isSuperAdmin() ||
+                     isMinisterialSecretary() ||
+                     (isMissionAdmin() &&
+                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.mission == resource.data.missionId)
+                   );
 
       // Authenticated users can create their own reports
       allow create: if isAuthenticated() &&
@@ -216,6 +300,16 @@ service cloud.firestore {
 
       // Only Superadmin and MinisterialSecretary can delete reports
       allow delete: if isSuperAdmin() || isMinisterialSecretary();
+    }
+
+    // Admin Activity feed (used by Admin Dashboard Recent Activity)
+    match /admin_activity/{activityId} {
+      // Allow admins, mission admins, and district pastors to read recent activity
+      allow read: if isAdmin() || isMissionAdmin() || isDistrictPastor();
+
+      // Writes should be restricted; allow only admins to create/update/delete
+      // Optionally, you can further restrict to Cloud Functions by checking request.auth.token.firebase.sign_in_provider
+      allow create, update, delete: if isAdmin();
     }
   }
 }
