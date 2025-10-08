@@ -145,49 +145,53 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 60),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.end, // Changed from center to end
+                mainAxisSize: MainAxisSize.min, // Added to minimize space
                 children: [
                   if (user != null) ...[
                     Row(
                       children: [
                         CircleAvatar(
-                          radius: 28,
+                          radius: 24, // Reduced from 28 to save space
                           backgroundColor: Colors.white,
                           child: Text(
                             user.displayName.isNotEmpty
                                 ? user.displayName[0].toUpperCase()
                                 : 'U',
                             style: TextStyle(
-                              fontSize: 24,
+                              fontSize: 20, // Reduced from 24
                               fontWeight: FontWeight.bold,
                               color: AppColors.primaryLight,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 12), // Reduced from 16
                         Expanded(
-                          child: SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Welcome back,',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white.withValues(alpha: 0.9),
-                                  ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min, // Added
+                            children: [
+                              Text(
+                                'Welcome back,',
+                                style: TextStyle(
+                                  fontSize: 12, // Reduced from 14
+                                  color: Colors.white.withValues(alpha: 0.9),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  user.displayName,
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
+                                overflow: TextOverflow.ellipsis, // Added
+                                maxLines: 1, // Added
+                              ),
+                              const SizedBox(height: 2), // Reduced from 4
+                              Text(
+                                user.displayName,
+                                style: const TextStyle(
+                                  fontSize: 18, // Reduced from 22
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
                                 ),
-                              ],
-                            ),
+                                overflow: TextOverflow.ellipsis, // Added
+                                maxLines: 1, // Added
+                              ),
+                            ],
                           ),
                         ),
                         _buildRoleBadge(user),
