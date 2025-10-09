@@ -949,6 +949,7 @@ class DataImportService {
     int staffCreated = 0;
     int staffDeleted = 0;
     int churchesDeleted = 0;
+    int duplicatesSkipped = 0;
 
     try {
       // Load the JSON data from assets
@@ -1076,8 +1077,14 @@ class DataImportService {
             createdAt: DateTime.now(),
             createdBy: userId,
           );
-          await _staffService.addStaff(staff);
-          staffCreated++;
+          final added = await _staffService.addStaff(staff);
+          if (added) {
+            staffCreated++;
+          } else {
+            duplicatesSkipped++;
+            print(
+                '⚠️ Duplicate staff entry skipped: ${staff.name} - ${staff.role}');
+          }
         }
       }
 
@@ -1096,8 +1103,14 @@ class DataImportService {
             createdAt: DateTime.now(),
             createdBy: userId,
           );
-          await _staffService.addStaff(staff);
-          staffCreated++;
+          final added = await _staffService.addStaff(staff);
+          if (added) {
+            staffCreated++;
+          } else {
+            duplicatesSkipped++;
+            print(
+                '⚠️ Duplicate staff entry skipped: ${staff.name} - ${staff.role}');
+          }
         }
       }
 
@@ -1117,8 +1130,14 @@ class DataImportService {
             createdAt: DateTime.now(),
             createdBy: userId,
           );
-          await _staffService.addStaff(staff);
-          staffCreated++;
+          final added = await _staffService.addStaff(staff);
+          if (added) {
+            staffCreated++;
+          } else {
+            duplicatesSkipped++;
+            print(
+                '⚠️ Duplicate staff entry skipped: ${staff.name} - ${staff.role}');
+          }
         }
       }
 
@@ -1137,8 +1156,14 @@ class DataImportService {
             createdAt: DateTime.now(),
             createdBy: userId,
           );
-          await _staffService.addStaff(staff);
-          staffCreated++;
+          final added = await _staffService.addStaff(staff);
+          if (added) {
+            staffCreated++;
+          } else {
+            duplicatesSkipped++;
+            print(
+                '⚠️ Duplicate staff entry skipped: ${staff.name} - ${staff.role}');
+          }
         }
       }
 
@@ -1164,8 +1189,14 @@ class DataImportService {
               createdAt: DateTime.now(),
               createdBy: userId,
             );
-            await _staffService.addStaff(staff);
-            staffCreated++;
+            final added = await _staffService.addStaff(staff);
+            if (added) {
+              staffCreated++;
+            } else {
+              duplicatesSkipped++;
+              print(
+                  '⚠️ Duplicate staff entry skipped: ${staff.name} - Field Pastor');
+            }
           }
         }
       }
@@ -1183,6 +1214,7 @@ class DataImportService {
         'staffCreated': staffCreated,
         'staffDeleted': staffDeleted,
         'churchesDeleted': churchesDeleted,
+        'duplicatesSkipped': duplicatesSkipped,
         'totalImported': regionsCreated + districtsCreated + staffCreated,
       };
     } catch (e) {

@@ -5,6 +5,8 @@ enum UserRole {
   churchTreasurer,
   districtPastor,
   ministerialSecretary,
+  officer, // Mission-level officer with read-only access
+  director, // Mission-level director with broader access
   editor,
   missionAdmin,
   admin,
@@ -22,6 +24,10 @@ extension UserRoleExtension on UserRole {
         return 'Mission Admin';
       case UserRole.ministerialSecretary:
         return 'Ministerial Secretary';
+      case UserRole.director:
+        return 'Director';
+      case UserRole.officer:
+        return 'Officer';
       case UserRole.editor:
         return 'Editor';
       case UserRole.churchTreasurer:
@@ -43,6 +49,10 @@ extension UserRoleExtension on UserRole {
         return 3;
       case UserRole.ministerialSecretary:
         return 3; // Same level as mission admin for accessing mission reports
+      case UserRole.director:
+        return 3; // Mission-level access
+      case UserRole.officer:
+        return 3; // Mission-level access
       case UserRole.editor:
         return 2;
       case UserRole.churchTreasurer:
@@ -65,9 +75,11 @@ extension UserRoleExtension on UserRole {
       return targetRole != UserRole.admin && targetRole != UserRole.superAdmin;
     }
 
-    // MissionAdmin can only assign ministerialSecretary, editor, churchTreasurer or user
+    // MissionAdmin can only assign ministerialSecretary, officer, director, editor, churchTreasurer or user
     if (this == UserRole.missionAdmin) {
       return targetRole == UserRole.ministerialSecretary ||
+          targetRole == UserRole.officer ||
+          targetRole == UserRole.director ||
           targetRole == UserRole.editor ||
           targetRole == UserRole.churchTreasurer ||
           targetRole == UserRole.user;
@@ -110,12 +122,15 @@ class UserModel {
   bool get isSuperAdmin => userRole == UserRole.superAdmin;
   bool get isMissionAdmin => userRole == UserRole.missionAdmin;
   bool get isMinisterialSecretary => userRole == UserRole.ministerialSecretary;
+  bool get isOfficer => userRole == UserRole.officer;
+  bool get isDirector => userRole == UserRole.director;
   bool get isEditor => userRole == UserRole.editor;
   bool get isChurchTreasurer => userRole == UserRole.churchTreasurer;
   bool get canAccessFinancialReports =>
       userRole == UserRole.churchTreasurer || isAdmin || isSuperAdmin;
-  // Only Ministerial Secretary and Super Admin can view all Borang B reports
-  bool get canAccessBorangBReports => isMinisterialSecretary || isSuperAdmin;
+  // Mission-level staff can view all Borang B reports
+  bool get canAccessBorangBReports =>
+      isMinisterialSecretary || isOfficer || isDirector || isSuperAdmin;
   String? get role => userRole.displayName;
 
   // Create UserModel from Firebase User and Firestore data

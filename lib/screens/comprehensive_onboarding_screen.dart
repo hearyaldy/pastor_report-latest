@@ -343,11 +343,14 @@ class _ComprehensiveOnboardingScreenState
   }
 
   Future<void> _completeOnboarding() async {
-    if (_selectedRegionId == null || _selectedDistrictId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select region and district')),
-      );
-      return;
+    // For mission-level roles, skip region/district validation
+    if (!_isMissionLevelRole(_selectedRole)) {
+      if (_selectedRegionId == null || _selectedDistrictId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select region and district')),
+        );
+        return;
+      }
     }
 
     setState(() => _isSubmitting = true);
@@ -360,21 +363,29 @@ class _ComprehensiveOnboardingScreenState
         throw 'User not found';
       }
 
-      // Get the names for the selected items
-      final selectedRegion =
-          _regions.firstWhere((r) => r.id == _selectedRegionId);
-
       // Pass the list of selected church IDs
       final missionId = user.mission;
       if (missionId == null || missionId.isEmpty) {
         throw 'Your profile is missing a mission assignment. Please contact an administrator.';
       }
 
+      // For mission-level roles, use null for region and district
+      String? region;
+      String? district;
+
+      if (!_isMissionLevelRole(_selectedRole)) {
+        // Get the names for the selected items
+        final selectedRegion =
+            _regions.firstWhere((r) => r.id == _selectedRegionId);
+        region = selectedRegion.name;
+        district = _selectedDistrictId;
+      }
+
       await _authService.completeOnboarding(
         uid: user.uid,
         missionId: missionId,
-        region: selectedRegion.name,
-        district: _selectedDistrictId!, // Store district ID instead of name
+        region: region,
+        district: district,
         churchIds: _selectedChurchIds.isNotEmpty ? _selectedChurchIds : null,
         userRole: _selectedRole,
         roleTitle: _getRoleTitle(_selectedRole),
@@ -422,6 +433,10 @@ class _ComprehensiveOnboardingScreenState
         return 'District Pastor';
       case UserRole.ministerialSecretary:
         return 'Ministerial Secretary';
+      case UserRole.officer:
+        return 'Officer';
+      case UserRole.director:
+        return 'Director';
       case UserRole.editor:
         return 'Editor';
       case UserRole.missionAdmin:
@@ -431,6 +446,18 @@ class _ComprehensiveOnboardingScreenState
       case UserRole.superAdmin:
         return 'Super Admin';
     }
+  }
+
+  // Helper method to check if a role requires region/district/church selection
+  bool _isMissionLevelRole(UserRole? role) {
+    if (role == null) return false;
+    return role == UserRole.ministerialSecretary ||
+        role == UserRole.officer ||
+        role == UserRole.director ||
+        role == UserRole.missionAdmin ||
+        role == UserRole.editor ||
+        role == UserRole.admin ||
+        role == UserRole.superAdmin;
   }
 
   @override
@@ -595,31 +622,44 @@ class _ComprehensiveOnboardingScreenState
                     currentStep: _currentStep,
                     onStepContinue: () {
                       if (_currentStep == 0) {
-                        // Step 1: Region
+                        // Step 1: Role - Just move to next step
+                        setState(() => _currentStep++);
+                      } else if (_currentStep == 1) {
+                        // Step 2: Region
                         if (_selectedRegionId != null) {
                           setState(() => _currentStep++);
+                          _loadDistricts(_selectedRegionId!);
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please select or create a region'),
-                            ),
-                          );
-                        }
-                      } else if (_currentStep == 1) {
-                        // Step 2: District
-                        if (_selectedDistrictId != null) {
-                          setState(() => _currentStep++);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content:
-                                  Text('Please select or create a district'),
-                            ),
-                          );
+                          // Skip region selection for mission-level roles
+                          if (_isMissionLevelRole(_selectedRole)) {
+                            setState(() => _currentStep++);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Please select or create a region first.'),
+                              ),
+                            );
+                          }
                         }
                       } else if (_currentStep == 2) {
-                        // Step 3: Role - Just move to next step
-                        setState(() => _currentStep++);
+                        // Step 3: District
+                        if (_selectedDistrictId != null) {
+                          setState(() => _currentStep++);
+                          _loadChurches(_selectedDistrictId!);
+                        } else {
+                          // Skip district selection for mission-level roles
+                          if (_isMissionLevelRole(_selectedRole)) {
+                            setState(() => _currentStep++);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Please select or create a district first.'),
+                              ),
+                            );
+                          }
+                        }
                       } else if (_currentStep == 3) {
                         // Step 4: Churches - Complete onboarding
                         // Church Treasurers MUST select at least one church if churches are available
@@ -644,28 +684,28 @@ class _ComprehensiveOnboardingScreenState
                       }
                     },
                     steps: [
-                      // Step 1: Select or Create Region
+                      // Step 1: Select Role
                       Step(
-                        title: const Text('Select Region'),
-                        content: _buildRegionStep(user),
+                        title: const Text('Select Your Role'),
+                        content: _buildRoleStep(user),
                         isActive: _currentStep >= 0,
                         state: _currentStep > 0
                             ? StepState.complete
                             : StepState.indexed,
                       ),
-                      // Step 2: Select or Create District
+                      // Step 2: Select or Create Region
                       Step(
-                        title: const Text('Select District'),
-                        content: _buildDistrictStep(user),
+                        title: const Text('Select Region'),
+                        content: _buildRegionStep(user),
                         isActive: _currentStep >= 1,
                         state: _currentStep > 1
                             ? StepState.complete
                             : StepState.indexed,
                       ),
-                      // Step 3: Select Role
+                      // Step 3: Select or Create District
                       Step(
-                        title: const Text('Select Your Role'),
-                        content: _buildRoleStep(user),
+                        title: const Text('Select District'),
+                        content: _buildDistrictStep(user),
                         isActive: _currentStep >= 2,
                         state: _currentStep > 2
                             ? StepState.complete
@@ -692,26 +732,76 @@ class _ComprehensiveOnboardingScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Role info banner
         Container(
           padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
-            color: Colors.blue.shade50,
+            color: AppTheme.primary.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.blue.shade200),
+            border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
           ),
           child: Row(
             children: [
-              Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+              Icon(Icons.check_circle, color: AppTheme.primary, size: 20),
               const SizedBox(width: 8),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Select your region or create a new one if it doesn\'t exist',
-                  style: TextStyle(fontSize: 13),
+                  'Role: ${_getRoleTitle(_selectedRole)}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
           ),
         ),
+
+        // Skip region selection for mission-level roles
+        if (_isMissionLevelRole(_selectedRole))
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline,
+                    color: Colors.green.shade700, size: 20),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'As a mission-level role, you don\'t need to select a specific region.',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Select your region or create a new one if it doesn\'t exist',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
         const SizedBox(height: 20),
 
         // Existing Regions
@@ -868,6 +958,7 @@ class _ComprehensiveOnboardingScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Summary of previous steps
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -875,24 +966,68 @@ class _ComprehensiveOnboardingScreenState
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.check_circle, color: AppTheme.primary, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Region: ${_regions.where((r) => r.id == _selectedRegionId).firstOrNull?.name ?? 'None'}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+              Row(
+                children: [
+                  Icon(Icons.check_circle, color: AppTheme.primary, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Role: ${_getRoleTitle(_selectedRole)}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.check_circle, color: AppTheme.primary, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Region: ${_regions.where((r) => r.id == _selectedRegionId).firstOrNull?.name ?? 'None'}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
         const SizedBox(height: 20),
-        if (_isLoadingDistricts)
+        // Skip district selection for mission-level roles
+        if (_isMissionLevelRole(_selectedRole))
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline,
+                    color: Colors.green.shade700, size: 20),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'As a mission-level role, you don\'t need to select a specific district.',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else if (_isLoadingDistricts)
           const Center(
             child: Padding(
               padding: EdgeInsets.all(20),
@@ -1076,34 +1211,32 @@ class _ComprehensiveOnboardingScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppTheme.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.check_circle, color: AppTheme.primary, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'District: ${_districts.where((d) => d.id == _selectedDistrictId).firstOrNull?.name ?? 'None'}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
+        // Mission info banner
+        if (_missionName.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.shade300),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.location_on, color: Colors.green.shade700),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Mission: $_missionName',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
                     ),
                   ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
-        ),
         const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.all(12),
@@ -1191,6 +1324,37 @@ class _ComprehensiveOnboardingScreenState
                     ],
                   ),
                 ),
+                DropdownMenuItem(
+                  value: UserRole.officer,
+                  child: Row(
+                    children: [
+                      Icon(Icons.business_center, size: 20),
+                      SizedBox(width: 12),
+                      Text('Mission Officer', style: TextStyle(fontSize: 15)),
+                    ],
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: UserRole.director,
+                  child: Row(
+                    children: [
+                      Icon(Icons.assignment_ind, size: 20),
+                      SizedBox(width: 12),
+                      Text('Mission Director', style: TextStyle(fontSize: 15)),
+                    ],
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: UserRole.ministerialSecretary,
+                  child: Row(
+                    children: [
+                      Icon(Icons.emoji_people, size: 20),
+                      SizedBox(width: 12),
+                      Text('Ministerial Secretary',
+                          style: TextStyle(fontSize: 15)),
+                    ],
+                  ),
+                ),
               ],
               onChanged: (value) {
                 setState(() {
@@ -1225,7 +1389,7 @@ class _ComprehensiveOnboardingScreenState
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'District: ${_districts.where((d) => d.id == _selectedDistrictId).firstOrNull?.name ?? 'None'}',
+                      'Role: ${_getRoleTitle(_selectedRole)}',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -1234,68 +1398,111 @@ class _ComprehensiveOnboardingScreenState
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.check_circle, color: AppTheme.primary, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Role: ${_selectedRole == UserRole.churchTreasurer ? 'Church Treasurer' : 'Pastor'}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+              // Only show region and district if not mission-level role
+              if (!_isMissionLevelRole(_selectedRole)) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.check_circle, color: AppTheme.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Region: ${_regions.where((r) => r.id == _selectedRegionId).firstOrNull?.name ?? 'None'}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.check_circle, color: AppTheme.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'District: ${_districts.where((d) => d.id == _selectedDistrictId).firstOrNull?.name ?? 'None'}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
         const SizedBox(height: 20),
 
-        // Info banner
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: _selectedRole == UserRole.churchTreasurer
-                ? Colors.blue.shade50
-                : Colors.green.shade50,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: _selectedRole == UserRole.churchTreasurer
-                  ? Colors.blue.shade200
-                  : Colors.green.shade200,
-              width: 2,
+        // Skip church selection for mission-level roles
+        if (_isMissionLevelRole(_selectedRole))
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.shade200),
             ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                _selectedRole == UserRole.churchTreasurer
-                    ? Icons.church
-                    : Icons.add_business,
-                color: _selectedRole == UserRole.churchTreasurer
-                    ? Colors.blue.shade700
-                    : Colors.green.shade700,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _selectedRole == UserRole.churchTreasurer
-                      ? 'Select the church(es) you will manage financial reports for.'
-                      : 'Create your church(es) below. You can also select existing churches if needed.',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+            child: Row(
+              children: [
+                Icon(Icons.info_outline,
+                    color: Colors.green.shade700, size: 20),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'As a mission-level role, you don\'t need to select a specific church.',
+                    style: TextStyle(fontSize: 13),
                   ),
                 ),
+              ],
+            ),
+          )
+        else
+          // Info banner for church selection
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _selectedRole == UserRole.churchTreasurer
+                  ? Colors.blue.shade50
+                  : Colors.green.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: _selectedRole == UserRole.churchTreasurer
+                    ? Colors.blue.shade200
+                    : Colors.green.shade200,
+                width: 2,
               ),
-            ],
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _selectedRole == UserRole.churchTreasurer
+                      ? Icons.church
+                      : Icons.add_business,
+                  color: _selectedRole == UserRole.churchTreasurer
+                      ? Colors.blue.shade700
+                      : Colors.green.shade700,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _selectedRole == UserRole.churchTreasurer
+                        ? 'Select the church(es) you will manage financial reports for.'
+                        : 'Create your church(es) below. You can also select existing churches if needed.',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
         const SizedBox(height: 20),
 
         // Selected Churches Summary

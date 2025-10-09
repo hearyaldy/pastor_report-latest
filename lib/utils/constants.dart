@@ -54,8 +54,8 @@ class AppConstants {
       'name': 'North Sabah Mission',
       'code': 'NSM'
     },
-    {'id': 'bwi23rsOpWJLnKcn20WC', 'name': 'Sarawak Mission', 'code': 'SWK'},
-    {'id': 'mpfQa7qEaj0fzuo4xhDN', 'name': 'Peninsular Mission', 'code': 'PEN'},
+    {'id': 'bwi23rsOpWJLnKcn20WC', 'name': 'Peninsular Mission', 'code': 'PEN'},
+    {'id': 'mpfQa7qEaj0fzuo4xhDN', 'name': 'Sarawak Mission', 'code': 'SWK'},
   ];
 
   // Role Options

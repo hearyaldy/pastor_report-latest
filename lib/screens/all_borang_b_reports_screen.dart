@@ -24,6 +24,9 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
   List<BorangBData> _filteredReports = [];
   Map<String, String> _districtNames = {}; // Cache district names
   bool _isLoading = true;
+  bool _isSortExpanded = false; // Add this for collapsible sort section
+  bool _isMissionExpanded = false; // Add this for collapsible mission section
+  bool _isDistrictExpanded = false; // Add this for collapsible district section
   String _searchQuery = '';
   String _sortBy = 'Month (Newest)';
   String _selectedMission = 'All';
@@ -318,63 +321,94 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.deepPurple.shade200),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.sort, color: Colors.deepPurple.shade700, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Sort Reports By',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.deepPurple.shade700,
-                    fontWeight: FontWeight.bold,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isSortExpanded = !_isSortExpanded;
+              });
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Icon(Icons.sort, color: Colors.deepPurple.shade700, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Sort Reports By',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.deepPurple.shade700,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _sortBy,
-              decoration: InputDecoration(
-                labelText: 'Sort By',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                prefixIcon: const Icon(Icons.sort_by_alpha),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  Text(
+                    _sortBy,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.deepPurple.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    _isSortExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: Colors.deepPurple.shade700,
+                    size: 20,
+                  ),
+                ],
               ),
-              isExpanded: true,
-              items: const [
-                DropdownMenuItem(
-                    value: 'Month (Newest)',
-                    child: Text('Month (Newest First)')),
-                DropdownMenuItem(
-                    value: 'Month (Oldest)',
-                    child: Text('Month (Oldest First)')),
-                DropdownMenuItem(
-                    value: 'Name (A-Z)', child: Text('Name (A-Z)')),
-                DropdownMenuItem(
-                    value: 'Name (Z-A)', child: Text('Name (Z-A)')),
-                DropdownMenuItem(value: 'District', child: Text('District')),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _sortBy = value!;
-                  _applyFiltersAndSort();
-                });
-              },
+            ),
+          ),
+          if (_isSortExpanded) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: DropdownButtonFormField<String>(
+                value: _sortBy,
+                decoration: InputDecoration(
+                  labelText: 'Sort By',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  prefixIcon: const Icon(Icons.sort_by_alpha),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                isExpanded: true,
+                items: const [
+                  DropdownMenuItem(
+                      value: 'Month (Newest)',
+                      child: Text('Month (Newest First)')),
+                  DropdownMenuItem(
+                      value: 'Month (Oldest)',
+                      child: Text('Month (Oldest First)')),
+                  DropdownMenuItem(
+                      value: 'Name (A-Z)', child: Text('Name (A-Z)')),
+                  DropdownMenuItem(
+                      value: 'Name (Z-A)', child: Text('Name (Z-A)')),
+                  DropdownMenuItem(value: 'District', child: Text('District')),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _sortBy = value!;
+                    _applyFiltersAndSort();
+                  });
+                },
+              ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -382,11 +416,13 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
   Widget _buildMissionFilter() {
     final authProvider = context.read<AuthProvider>();
     final userMission = authProvider.user?.mission;
-    final isMinisterialSecretary =
-        authProvider.user?.isMinisterialSecretary ?? false;
+    final isMissionLevelStaff =
+        (authProvider.user?.isMinisterialSecretary ?? false) ||
+            (authProvider.user?.isOfficer ?? false) ||
+            (authProvider.user?.isDirector ?? false);
 
-    // If user is ministerial secretary, show read-only mission info
-    if (isMinisterialSecretary && userMission != null) {
+    // If user is mission-level staff (ministerial secretary, officer, or director), show read-only mission info
+    if (isMissionLevelStaff && userMission != null) {
       final missionName = AppConstants.missions.firstWhere(
         (m) => m['id'] == userMission,
         orElse: () => {'name': 'Unknown Mission'},
@@ -435,67 +471,103 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
       );
     }
 
-    // For super admin/admin, show dropdown filter
+    // For super admin/admin, show dropdown filter with collapse
     return Container(
       decoration: BoxDecoration(
         color: Colors.blue.shade50,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.blue.shade200),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.business, color: Colors.blue.shade700, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Filter by Mission',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.blue.shade700,
-                    fontWeight: FontWeight.bold,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isMissionExpanded = !_isMissionExpanded;
+              });
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Icon(Icons.business, color: Colors.blue.shade700, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Filter by Mission',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue.shade700,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _selectedMission,
-              decoration: InputDecoration(
-                labelText: 'Mission',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                prefixIcon: const Icon(Icons.location_city),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  Text(
+                    _selectedMission == 'All'
+                        ? 'All Missions'
+                        : AppConstants.missions.firstWhere(
+                            (m) => m['id'] == _selectedMission,
+                            orElse: () => {'name': _selectedMission},
+                          )['name']!,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.blue.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    _isMissionExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: Colors.blue.shade700,
+                    size: 20,
+                  ),
+                ],
               ),
-              isExpanded: true,
-              items: [
-                const DropdownMenuItem(
-                    value: 'All', child: Text('All Missions')),
-                ...AppConstants.missions.map((m) => DropdownMenuItem(
-                      value: m['id'],
-                      child: Text(m['name']!),
-                    )),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedMission = value!;
-                  _selectedDistrict =
-                      'All'; // Reset district when mission changes
-                  _applyFiltersAndSort();
-                });
-              },
+            ),
+          ),
+          if (_isMissionExpanded) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: DropdownButtonFormField<String>(
+                value: _selectedMission,
+                decoration: InputDecoration(
+                  labelText: 'Mission',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  prefixIcon: const Icon(Icons.location_city),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                isExpanded: true,
+                items: [
+                  const DropdownMenuItem(
+                      value: 'All', child: Text('All Missions')),
+                  ...AppConstants.missions.map((m) => DropdownMenuItem(
+                        value: m['id'],
+                        child: Text(m['name']!),
+                      )),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedMission = value!;
+                    _selectedDistrict =
+                        'All'; // Reset district when mission changes
+                    _applyFiltersAndSort();
+                  });
+                },
+              ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -518,58 +590,92 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.teal.shade200),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.place, color: Colors.teal.shade700, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Filter by District',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.teal.shade700,
-                    fontWeight: FontWeight.bold,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isDistrictExpanded = !_isDistrictExpanded;
+              });
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Icon(Icons.place, color: Colors.teal.shade700, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Filter by District',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.teal.shade700,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _selectedDistrict,
-              decoration: InputDecoration(
-                labelText: 'District',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                prefixIcon: const Icon(Icons.location_on),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  Text(
+                    _selectedDistrict == 'All'
+                        ? 'All Districts'
+                        : availableDistricts[_selectedDistrict] ??
+                            _selectedDistrict,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.teal.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    _isDistrictExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: Colors.teal.shade700,
+                    size: 20,
+                  ),
+                ],
               ),
-              isExpanded: true,
-              items: [
-                const DropdownMenuItem(
-                    value: 'All', child: Text('All Districts')),
-                ...availableDistricts.entries.map((e) => DropdownMenuItem(
-                      value: e.key,
-                      child: Text(e.value),
-                    )),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedDistrict = value!;
-                  _applyFiltersAndSort();
-                });
-              },
+            ),
+          ),
+          if (_isDistrictExpanded) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: DropdownButtonFormField<String>(
+                value: _selectedDistrict,
+                decoration: InputDecoration(
+                  labelText: 'District',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  prefixIcon: const Icon(Icons.location_on),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                isExpanded: true,
+                items: [
+                  const DropdownMenuItem(
+                      value: 'All', child: Text('All Districts')),
+                  ...availableDistricts.entries.map((e) => DropdownMenuItem(
+                        value: e.key,
+                        child: Text(e.value),
+                      )),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedDistrict = value!;
+                    _applyFiltersAndSort();
+                  });
+                },
+              ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -783,7 +889,8 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
   Widget _buildChip(
       String label, IconData icon, Color bgColor, Color textColor) {
     return Container(
-      constraints: const BoxConstraints(maxWidth: 200), // Add max width constraint
+      constraints:
+          const BoxConstraints(maxWidth: 200), // Add max width constraint
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: bgColor,
@@ -794,7 +901,8 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
         children: [
           Icon(icon, size: 12, color: textColor),
           const SizedBox(width: 4),
-          Flexible( // Make text flexible to prevent overflow
+          Flexible(
+            // Make text flexible to prevent overflow
             child: Text(
               label,
               style: TextStyle(

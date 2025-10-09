@@ -4,21 +4,25 @@ import 'package:pastor_report/models/financial_report_model.dart';
 import 'package:pastor_report/models/church_model.dart';
 import 'package:pastor_report/models/district_model.dart';
 import 'package:pastor_report/models/region_model.dart';
+import 'package:pastor_report/models/mission_model.dart';
 import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/services/financial_report_service.dart';
 import 'package:pastor_report/services/church_service.dart';
 import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/services/region_service.dart';
+import 'package:pastor_report/services/mission_service.dart';
+import 'package:pastor_report/services/user_management_service.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:pastor_report/screens/financial_report_edit_screen.dart';
 import 'package:pastor_report/utils/app_colors.dart';
-import 'package:excel/excel.dart';
+import 'package:excel/excel.dart' as excel;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:pastor_report/screens/admin/financial_reports_all_tab.dart';
 
 class FinancialReportsScreen extends StatefulWidget {
   const FinancialReportsScreen({super.key});
@@ -27,19 +31,29 @@ class FinancialReportsScreen extends StatefulWidget {
   State<FinancialReportsScreen> createState() => _FinancialReportsScreenState();
 }
 
-class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
+class _FinancialReportsScreenState extends State<FinancialReportsScreen>
+    with SingleTickerProviderStateMixin {
   final FinancialReportService _reportService = FinancialReportService();
   final ChurchService _churchService = ChurchService();
   final DistrictService _districtService = DistrictService();
   final RegionService _regionService = RegionService();
+  final MissionService _missionService = MissionService();
+  final UserManagementService _userService = UserManagementService();
+
+  TabController? _tabController;
 
   List<FinancialReport> _reports = [];
   List<Church> _churches = [];
   List<District> _districts = [];
   List<Region> _regions = [];
+  List<Mission> _missions = [];
+
+  // Cache for user names to avoid repeated lookups
+  final Map<String, String> _userNameCache = {};
 
   DateTime _selectedMonth =
       DateTime(DateTime.now().year, DateTime.now().month, 1);
+  String? _selectedMissionId;
   String? _selectedRegionId;
   String? _selectedDistrictId;
   String? _selectedChurchId;
@@ -49,17 +63,57 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      _regions = await _regionService.getAllRegions();
-      _districts = await _districtService.getAllDistricts();
-      _churches = await _churchService.getAllChurches();
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final user = authProvider.user;
 
-      // Load reports based on filters
+      // Load missions first
+      _missions = await _missionService.getAllMissions();
+
+      // Load regions, districts, and churches based on user role
+      if (user?.userRole == UserRole.districtPastor) {
+        // District pastors only see their district
+        _regions = await _regionService.getAllRegions();
+        _districts = user?.district != null
+            ? [await _districtService.getDistrictById(user!.district!)]
+                .whereType<District>()
+                .toList()
+            : [];
+        _churches = user?.district != null
+            ? await _churchService.getChurchesByDistrict(user!.district!)
+            : [];
+      } else if (user?.userRole == UserRole.churchTreasurer) {
+        // Church treasurers only see their church
+        _regions = await _regionService.getAllRegions();
+        _districts = await _districtService.getAllDistricts();
+        _churches = user?.churchId != null
+            ? [await _churchService.getChurchById(user!.churchId!)]
+                .whereType<Church>()
+                .toList()
+            : [];
+      } else {
+        // Admins and super admins see everything
+        _regions = await _regionService.getAllRegions();
+        _districts = await _districtService.getAllDistricts();
+        _churches = await _churchService.getAllChurches();
+      }
+
+      // Sort regions naturally (1, 2, 3... not 1, 10, 2, 3)
+      _regions.sort(_naturalSort);
+
+      // Load reports based on filters and user role
       if (_selectedChurchId != null) {
         final report = await _reportService.getReportByChurchAndMonth(
             _selectedChurchId!, _selectedMonth);
@@ -71,6 +125,20 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
           return r.month.year == _selectedMonth.year &&
               r.month.month == _selectedMonth.month;
         }).toList();
+      } else if (user?.userRole == UserRole.districtPastor &&
+          user?.district != null) {
+        // District pastors see reports from their district only
+        _reports = await _reportService.getReportsByDistrict(user!.district!);
+        _reports = _reports.where((r) {
+          return r.month.year == _selectedMonth.year &&
+              r.month.month == _selectedMonth.month;
+        }).toList();
+      } else if (user?.userRole == UserRole.churchTreasurer &&
+          user?.churchId != null) {
+        // Church treasurers see only their church report
+        final report = await _reportService.getReportByChurchAndMonth(
+            user!.churchId!, _selectedMonth);
+        _reports = report != null ? [report] : [];
       } else {
         // Get all churches and their reports for the selected month
         _reports = [];
@@ -145,7 +213,8 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
     if (user == null) return false;
 
     return user.canManageMissions() ||
-        user.userRole == UserRole.churchTreasurer;
+        user.userRole == UserRole.churchTreasurer ||
+        user.userRole == UserRole.districtPastor;
   }
 
   // Check if user can edit or delete reports
@@ -158,14 +227,28 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
       return true;
     }
 
-    // For now, allow churchTreasurer to edit reports if they can access financial reports
-    // In a real implementation, you would check if the churchId matches
+    // District pastors can edit reports in their district
+    if (user.userRole == UserRole.districtPastor) {
+      return report.districtId == user.district;
+    }
+
+    // Church treasurers can edit their own church reports
     if (user.userRole == UserRole.churchTreasurer &&
         user.canAccessFinancialReports) {
-      return true;
+      return report.churchId == user.churchId;
     }
 
     return false;
+  }
+
+  // Check if user can add new reports
+  bool _canAddReport(UserModel? user) {
+    if (user == null) return false;
+
+    return user.userRole == UserRole.admin ||
+        user.userRole == UserRole.superAdmin ||
+        user.userRole == UserRole.districtPastor ||
+        user.userRole == UserRole.churchTreasurer;
   }
 
   @override
@@ -201,6 +284,15 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
       );
     }
 
+    // Check if tab controller is initialized
+    if (_tabController == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     final totalTithe = _reports.fold<double>(0, (sum, r) => sum + r.tithe);
     final totalOfferings =
         _reports.fold<double>(0, (sum, r) => sum + r.offerings);
@@ -210,109 +302,173 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        child: CustomScrollView(
-          slivers: [
-            _buildModernAppBar(),
-            _buildMonthSelector(),
-            _buildFilters(),
-            _buildFinancialSummary(
-                totalTithe, totalOfferings, totalSpecial, grandTotal),
-            _buildReportsList(),
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModernAppBar() {
-    return SliverAppBar(
-      expandedHeight: 160,
-      pinned: true,
-      elevation: 0,
-      backgroundColor: AppColors.primaryLight,
-      foregroundColor: Colors.white,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.primaryLight,
-                AppColors.primaryLight.withValues(alpha: 0.9),
-                AppColors.primaryDark,
+      floatingActionButton: _canAddReport(user)
+          ? FloatingActionButton.extended(
+              onPressed: () => _showAddReportDialog(user),
+              backgroundColor: AppColors.primaryLight,
+              icon: const Icon(Icons.add),
+              label: const Text('Add Report'),
+            )
+          : null,
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverAppBar(
+              expandedHeight: 160,
+              pinned: true,
+              elevation: 0,
+              backgroundColor: AppColors.primaryLight,
+              foregroundColor: Colors.white,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.primaryLight,
+                        AppColors.primaryLight.withValues(alpha: 0.9),
+                        AppColors.primaryDark,
+                      ],
+                    ),
+                  ),
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 60),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(Icons.assessment,
+                                    size: 28, color: Colors.white),
+                              ),
+                              const SizedBox(width: 16),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Financial Reports',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Tithe & offerings analytics',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(56),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: TabBar(
+                      controller: _tabController!,
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      indicator: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      labelColor: AppColors.primaryLight,
+                      unselectedLabelColor: Colors.white,
+                      labelStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      tabs: const [
+                        Tab(
+                          icon: Icon(Icons.dashboard, size: 18),
+                          text: 'Dashboard',
+                          height: 48,
+                        ),
+                        Tab(
+                          icon: Icon(Icons.list_alt, size: 18),
+                          text: 'All Reports',
+                          height: 48,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              actions: [
+                // Export button with loading state
+                _isExporting
+                    ? const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        ),
+                      )
+                    : IconButton(
+                        icon: const Icon(Icons.download),
+                        tooltip: 'Export Reports',
+                        onPressed: _reports.isEmpty ? null : _showExportConfirmation,
+                      ),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Refresh',
+                  onPressed: _loadData,
+                ),
               ],
             ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 60),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.assessment,
-                            size: 28, color: Colors.white),
-                      ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Financial Reports',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            Text(
-                              'Tithe & offerings analytics',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.white70,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Export button
-                      IconButton(
-                        icon: const Icon(
-                          Icons.file_download,
-                          color: Colors.white,
-                        ),
-                        onPressed:
-                            _isExporting ? null : _showExportConfirmation,
-                        tooltip: 'Export Reports',
-                      ),
-                    ],
-                  ),
+          ];
+        },
+        body: TabBarView(
+          controller: _tabController!,
+          children: [
+            // Dashboard Tab (existing content)
+            RefreshIndicator(
+              onRefresh: _loadData,
+              child: CustomScrollView(
+                slivers: [
+                  _buildMonthSelector(),
+                  _buildFilters(),
+                  _buildFinancialSummary(
+                      totalTithe, totalOfferings, totalSpecial, grandTotal),
+                  _buildReportsList(),
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
               ),
             ),
-          ),
+            // All Reports Tab
+            FinancialReportsAllTab(),
+          ],
         ),
       ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.refresh),
-          tooltip: 'Refresh',
-          onPressed: _loadData,
-        ),
-      ],
     );
   }
 
@@ -382,6 +538,30 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           children: [
+            // Mission selector
+            _buildFilterDropdown(
+              'Mission',
+              _selectedMissionId,
+              [
+                const DropdownMenuItem(
+                    value: null, child: Text('All Missions')),
+                ..._missions.map((m) => DropdownMenuItem(
+                      value: m.id,
+                      child: Text(m.name, overflow: TextOverflow.ellipsis),
+                    )),
+              ],
+              (value) {
+                setState(() {
+                  _selectedMissionId = value;
+                  _selectedRegionId = null;
+                  _selectedDistrictId = null;
+                  _selectedChurchId = null;
+                });
+                _loadData();
+              },
+              Icons.business,
+            ),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -391,11 +571,15 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
                     [
                       const DropdownMenuItem(
                           value: null, child: Text('All Regions')),
-                      ..._regions.map((r) => DropdownMenuItem(
-                            value: r.id,
-                            child:
-                                Text(r.name, overflow: TextOverflow.ellipsis),
-                          )),
+                      ..._regions
+                          .where((r) =>
+                              _selectedMissionId == null ||
+                              r.missionId == _selectedMissionId)
+                          .map((r) => DropdownMenuItem(
+                                value: r.id,
+                                child: Text(r.name,
+                                    overflow: TextOverflow.ellipsis),
+                              )),
                     ],
                     (value) {
                       setState(() {
@@ -712,8 +896,11 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
           onTap: () => _showReportDetails(report),
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Row(
+                  children: [
                 // Rank Badge
                 Container(
                   width: 40,
@@ -794,7 +981,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
                         color: AppColors.primaryLight,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
@@ -812,8 +999,210 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
                         ),
                       ),
                     ),
+                    // Submitted by info
+                    const SizedBox(height: 8),
+                    FutureBuilder<String>(
+                      future: _getUserName(report.submittedBy),
+                      builder: (context, snapshot) {
+                        final userName = snapshot.data ?? 'Loading...';
+                        return SizedBox(
+                          width: 120,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.person_outline,
+                                    size: 12,
+                                    color: Colors.grey[500],
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      'Submitted by',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        color: Colors.grey[600],
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                userName,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey[700],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.end,
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    // Last edit info (compact)
+                    if (report.history.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: 120,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.history,
+                                  size: 12,
+                                  color: Colors.grey[500],
+                                ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    report.history.last.action == 'created'
+                                        ? 'Created by'
+                                        : 'Edited by',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      color: Colors.grey[600],
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              report.history.last.editorName,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.end,
+                            ),
+                            Text(
+                              DateFormat('dd MMM, HH:mm').format(report.history.last.editedAt),
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
+                  ],
+                ),
+                // Full edit history section (if more than 1 entry)
+            if (report.history.length > 1) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.timeline, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Edit History (${report.history.length} entries)',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ...report.history.reversed.take(3).map((entry) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              margin: const EdgeInsets.only(top: 5, right: 8),
+                              decoration: BoxDecoration(
+                                color: entry.action == 'created'
+                                    ? Colors.green
+                                    : entry.action == 'approved'
+                                    ? Colors.blue
+                                    : Colors.orange,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${entry.action == 'created' ? '✨ Created' : entry.action == 'approved' ? '✓ Approved' : '✏️ Updated'} by ${entry.editorName}',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey[800],
+                                    ),
+                                  ),
+                                  Text(
+                                    DateFormat('dd MMM yyyy, HH:mm').format(entry.editedAt),
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                  if (entry.changes != null && entry.changes!.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Changed: ${entry.changes!.keys.join(", ")}',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        color: Colors.grey[600],
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    if (report.history.length > 3) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        '+ ${report.history.length - 3} more edits',
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
               ],
             ),
           ),
@@ -1296,34 +1685,34 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
       fileName = '${scope}_Financial_Reports_$monthStr.xlsx';
 
       // Generate Excel file
-      final excel = Excel.createExcel();
-      final Sheet sheet = excel['Financial Reports'];
+      final excelFile = excel.Excel.createExcel();
+      final excel.Sheet sheet = excelFile['Financial Reports'];
 
       // Add headers
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
-          .value = TextCellValue('Church');
+          .cell(excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
+          .value = excel.TextCellValue('Church');
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0))
-          .value = TextCellValue('Month');
+          .cell(excel.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0))
+          .value = excel.TextCellValue('Month');
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0))
-          .value = TextCellValue('Tithe');
+          .cell(excel.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0))
+          .value = excel.TextCellValue('Tithe');
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: 0))
-          .value = TextCellValue('Offerings');
+          .cell(excel.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: 0))
+          .value = excel.TextCellValue('Offerings');
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 0))
-          .value = TextCellValue('Special Offerings');
+          .cell(excel.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 0))
+          .value = excel.TextCellValue('Special Offerings');
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: 0))
-          .value = TextCellValue('Total');
+          .cell(excel.CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: 0))
+          .value = excel.TextCellValue('Total');
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: 0))
-          .value = TextCellValue('Status');
+          .cell(excel.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: 0))
+          .value = excel.TextCellValue('Status');
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: 0))
-          .value = TextCellValue('Notes');
+          .cell(excel.CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: 0))
+          .value = excel.TextCellValue('Notes');
 
       // Add data rows
       for (var i = 0; i < _reports.length; i++) {
@@ -1331,29 +1720,29 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
         final church = _churches.firstWhere((c) => c.id == report.churchId);
 
         sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1))
-            .value = TextCellValue(church.churchName);
+            .cell(excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1))
+            .value = excel.TextCellValue(church.churchName);
         sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1))
-            .value = TextCellValue(DateFormat('MMM yyyy').format(report.month));
+            .cell(excel.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1))
+            .value = excel.TextCellValue(DateFormat('MMM yyyy').format(report.month));
         sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1))
-            .value = DoubleCellValue(report.tithe);
+            .cell(excel.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1))
+            .value = excel.DoubleCellValue(report.tithe);
         sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1))
-            .value = DoubleCellValue(report.offerings);
+            .cell(excel.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1))
+            .value = excel.DoubleCellValue(report.offerings);
         sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1))
-            .value = DoubleCellValue(report.specialOfferings);
+            .cell(excel.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1))
+            .value = excel.DoubleCellValue(report.specialOfferings);
         sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: i + 1))
-            .value = DoubleCellValue(report.totalFinancial);
+            .cell(excel.CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: i + 1))
+            .value = excel.DoubleCellValue(report.totalFinancial);
         sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: i + 1))
-            .value = TextCellValue(report.status);
+            .cell(excel.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: i + 1))
+            .value = excel.TextCellValue(report.status);
         sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: i + 1))
-            .value = TextCellValue(report.notes ?? '');
+            .cell(excel.CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: i + 1))
+            .value = excel.TextCellValue(report.notes ?? '');
       }
 
       // Auto-fit columns
@@ -1376,7 +1765,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
       final filePath = '${directory.path}/$fileName';
 
       // Save the Excel file
-      final fileBytes = excel.save();
+      final fileBytes = excelFile.save();
       if (fileBytes != null) {
         final file = File(filePath);
         await file.writeAsBytes(fileBytes);
@@ -1592,21 +1981,276 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
     }
   }
 
-  Future<void> _showExportConfirmation() async {
-    String scope = 'all churches';
+  Future<Map<String, dynamic>?> _showExportOptionsDialog() async {
+    String selectedFilter = 'current'; // current (filtered), month, region, district, church, all
+    String? selectedRegionId;
+    String? selectedDistrictId;
+    String? selectedChurchId;
+    DateTime? selectedMonth = _selectedMonth;
 
+    return await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          height: MediaQuery.of(context).size.height * 0.75,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.filter_alt,
+                        color: AppColors.primaryLight,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Export Options',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Choose what to export',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // Options list
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    _buildExportOption(
+                      'Current View',
+                      'Export currently filtered/selected data',
+                      Icons.filter_list,
+                      selectedFilter == 'current',
+                      () => setModalState(() => selectedFilter = 'current'),
+                    ),
+                    _buildExportOption(
+                      'Specific Month',
+                      'Export all reports for a specific month',
+                      Icons.calendar_month,
+                      selectedFilter == 'month',
+                      () => setModalState(() => selectedFilter = 'month'),
+                    ),
+                    _buildExportOption(
+                      'By Region',
+                      'Export all reports from a specific region',
+                      Icons.map,
+                      selectedFilter == 'region',
+                      () => setModalState(() => selectedFilter = 'region'),
+                    ),
+                    _buildExportOption(
+                      'By District',
+                      'Export all reports from a specific district',
+                      Icons.location_city,
+                      selectedFilter == 'district',
+                      () => setModalState(() => selectedFilter = 'district'),
+                    ),
+                    _buildExportOption(
+                      'By Church',
+                      'Export reports from a specific church',
+                      Icons.church,
+                      selectedFilter == 'church',
+                      () => setModalState(() => selectedFilter = 'church'),
+                    ),
+                    _buildExportOption(
+                      'All Records',
+                      'Export all available financial reports',
+                      Icons.all_inclusive,
+                      selectedFilter == 'all',
+                      () => setModalState(() => selectedFilter = 'all'),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // Continue button
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      String scope = '';
+                      switch (selectedFilter) {
+                        case 'current':
+                          scope = _getCurrentScopeDescription();
+                          break;
+                        case 'month':
+                          scope = 'Month: ${DateFormat('MMMM yyyy').format(selectedMonth ?? DateTime.now())}';
+                          break;
+                        case 'region':
+                          scope = 'All regions';
+                          break;
+                        case 'district':
+                          scope = 'All districts';
+                          break;
+                        case 'church':
+                          scope = 'All churches';
+                          break;
+                        case 'all':
+                          scope = 'All records';
+                          break;
+                      }
+                      Navigator.pop(context, {
+                        'filter': selectedFilter,
+                        'scope': scope,
+                        'regionId': selectedRegionId,
+                        'districtId': selectedDistrictId,
+                        'churchId': selectedChurchId,
+                        'month': selectedMonth,
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryLight,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('CONTINUE TO EXPORT FORMAT'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExportOption(String title, String subtitle, IconData icon, bool isSelected, VoidCallback onTap) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: isSelected ? 4 : 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isSelected ? AppColors.primaryLight : Colors.grey[300]!,
+          width: isSelected ? 2 : 1,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColors.primaryLight.withValues(alpha: 0.1)
+                      : Colors.grey[200],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  icon,
+                  color: isSelected ? AppColors.primaryLight : Colors.grey[600],
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected ? AppColors.primaryLight : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isSelected)
+                Icon(
+                  Icons.check_circle,
+                  color: AppColors.primaryLight,
+                  size: 24,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getCurrentScopeDescription() {
     if (_selectedChurchId != null) {
       final church = _churches.firstWhere((c) => c.id == _selectedChurchId);
-      scope = church.churchName;
+      return church.churchName;
     } else if (_selectedDistrictId != null) {
-      final district =
-          _districts.firstWhere((d) => d.id == _selectedDistrictId);
-      scope = '${district.name} district';
+      final district = _districts.firstWhere((d) => d.id == _selectedDistrictId);
+      return '${district.name} district';
     } else if (_selectedRegionId != null) {
       final region = _regions.firstWhere((r) => r.id == _selectedRegionId);
-      scope = '${region.name} region';
+      return '${region.name} region';
     }
+    return 'All churches';
+  }
 
+  Future<void> _showExportConfirmation() async {
+    // First, show export options dialog
+    final exportConfig = await _showExportOptionsDialog();
+    if (exportConfig == null) return;
+
+    String scope = exportConfig['scope'] as String;
     final month = DateFormat('MMMM yyyy').format(_selectedMonth);
 
     final exportType = await showModalBottomSheet<String>(
@@ -1852,5 +2496,394 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
         ),
       ),
     );
+  }
+
+  // Show dialog to add new report
+  void _showAddReportDialog(UserModel? user) {
+    if (user == null) return;
+
+    // Determine which churches the user can create reports for
+    List<Church> availableChurches = [];
+
+    if (user.userRole == UserRole.districtPastor && user.district != null) {
+      // District pastors can add reports for any church in their district
+      availableChurches = _churches
+          .where((church) => church.districtId == user.district)
+          .toList();
+    } else if (user.userRole == UserRole.churchTreasurer && user.churchId != null) {
+      // Church treasurers can only add reports for their church
+      availableChurches = _churches
+          .where((church) => church.id == user.churchId)
+          .toList();
+    } else {
+      // Admins and super admins can add reports for any church
+      availableChurches = _churches;
+    }
+
+    if (availableChurches.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No churches available to create reports'),
+        ),
+      );
+      return;
+    }
+
+    // Selected date for the report (defaults to current selected month)
+    DateTime selectedReportDate = _selectedMonth;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Header
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.add_chart,
+                      color: AppColors.primaryLight,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Add Financial Report',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          DateFormat('dd MMM yyyy').format(selectedReportDate),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            // Date selector
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: InkWell(
+                onTap: () async {
+                  final pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: selectedReportDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                    helpText: 'Select Report Date',
+                  );
+                  if (pickedDate != null) {
+                    setModalState(() {
+                      selectedReportDate = pickedDate;
+                    });
+                  }
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.primaryLight.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.calendar_today,
+                          color: AppColors.primaryLight,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Report Date',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              DateFormat('EEEE, dd MMMM yyyy').format(selectedReportDate),
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.edit_calendar,
+                        color: AppColors.primaryLight,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Instruction text
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                'Select a church to create a financial report',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            // Scrollable church list
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: availableChurches.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final church = availableChurches[index];
+                  return Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _navigateToAddReport(church, selectedReportDate);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryLight.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                Icons.church,
+                                color: AppColors.primaryLight,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    church.churchName,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.location_city,
+                                        size: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        _getDistrictName(church.districtId),
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              size: 16,
+                              color: Colors.grey[400],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+      ),
+    );
+  }
+
+  // Navigate to add/edit report screen
+  void _navigateToAddReport(Church church, DateTime reportDate) async {
+    // Normalize the date to the first day of the month for monthly reports
+    // But keep the full date for potential weekly reports
+    final monthDate = DateTime(reportDate.year, reportDate.month, 1);
+
+    // Check if report already exists for this church and month
+    final existingReport = await _reportService.getReportByChurchAndMonth(
+      church.id,
+      monthDate,
+    );
+
+    if (existingReport != null) {
+      // Report exists, navigate to edit screen
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FinancialReportEditScreen(
+              report: existingReport,
+              church: church,
+              onUpdate: _loadData,
+            ),
+          ),
+        );
+      }
+    } else {
+      // Create new report with the selected date
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final currentUser = authProvider.user;
+
+      final newReport = FinancialReport(
+        id: '', // Will be generated by Firestore
+        churchId: church.id,
+        districtId: church.districtId,
+        regionId: church.regionId,
+        missionId: church.missionId,
+        month: reportDate, // Use the selected date instead of _selectedMonth
+        year: reportDate.year,
+        tithe: 0,
+        offerings: 0,
+        specialOfferings: 0,
+        status: 'draft',
+        submittedBy: currentUser?.uid ?? '',
+        submittedAt: DateTime.now(),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FinancialReportEditScreen(
+              report: newReport,
+              church: church,
+              onUpdate: _loadData,
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Natural sort comparison for regions (handles numbers correctly)
+  /// Example: Region 1, Region 2, Region 3... Region 10 (not 1, 10, 2, 3)
+  int _naturalSort(Region a, Region b) {
+    final aName = a.name.toLowerCase();
+    final bName = b.name.toLowerCase();
+
+    // Extract numbers from the names
+    final aMatch = RegExp(r'(\d+)').firstMatch(aName);
+    final bMatch = RegExp(r'(\d+)').firstMatch(bName);
+
+    // If both have numbers, compare numerically
+    if (aMatch != null && bMatch != null) {
+      final aNum = int.parse(aMatch.group(0)!);
+      final bNum = int.parse(bMatch.group(0)!);
+      if (aNum != bNum) {
+        return aNum.compareTo(bNum);
+      }
+    }
+
+    // Fall back to alphabetical comparison
+    return aName.compareTo(bName);
+  }
+
+  /// Get user name from cache or fetch from Firestore
+  Future<String> _getUserName(String userId) async {
+    // Return from cache if available
+    if (_userNameCache.containsKey(userId)) {
+      return _userNameCache[userId]!;
+    }
+
+    // Fetch from Firestore
+    try {
+      final user = await _userService.getUser(userId);
+      final userName = user?.displayName ?? 'Unknown User';
+      _userNameCache[userId] = userName;
+      return userName;
+    } catch (e) {
+      debugPrint('Error fetching user name for $userId: $e');
+      _userNameCache[userId] = 'Unknown User';
+      return 'Unknown User';
+    }
   }
 }

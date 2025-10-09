@@ -15,11 +15,14 @@ class MinisterialSecretaryDashboard extends StatefulWidget {
   const MinisterialSecretaryDashboard({super.key});
 
   @override
-  State<MinisterialSecretaryDashboard> createState() => _MinisterialSecretaryDashboardState();
+  State<MinisterialSecretaryDashboard> createState() =>
+      _MinisterialSecretaryDashboardState();
 }
 
-class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDashboard> {
-  final BorangBFirestoreService _firestoreService = BorangBFirestoreService.instance;
+class _MinisterialSecretaryDashboardState
+    extends State<MinisterialSecretaryDashboard> {
+  final BorangBFirestoreService _firestoreService =
+      BorangBFirestoreService.instance;
   final UserManagementService _userService = UserManagementService();
 
   DateTime _selectedMonth = DateTime.now();
@@ -64,7 +67,8 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
         _selectedMonth.month,
       );
 
-      debugPrint('📊 Loaded ${_reports.length} reports for ${DateFormat('MMM yyyy').format(_selectedMonth)}');
+      debugPrint(
+          '📊 Loaded ${_reports.length} reports for ${DateFormat('MMM yyyy').format(_selectedMonth)}');
       debugPrint('👥 Total staff: ${_allStaff.length}');
     } catch (e) {
       debugPrint('❌ Error loading ministerial data: $e');
@@ -119,7 +123,8 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
 
       await Share.share(
         content,
-        subject: 'Borang B Reports - ${DateFormat('MMMM yyyy').format(_selectedMonth)}',
+        subject:
+            'Borang B Reports - ${DateFormat('MMMM yyyy').format(_selectedMonth)}',
       );
 
       if (mounted) {
@@ -163,7 +168,8 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
 
     if (!user.canAccessBorangBReports) {
       return Scaffold(
-        body: _buildNotAuthorized('You do not have permission to access Borang B reports'),
+        body: _buildNotAuthorized(
+            'You do not have permission to access Borang B reports'),
       );
     }
 
@@ -508,8 +514,9 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: (netMembershipChange >= 0 ? Colors.green : Colors.red)
-                        .withValues(alpha: 0.3),
+                    color:
+                        (netMembershipChange >= 0 ? Colors.green : Colors.red)
+                            .withValues(alpha: 0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -521,7 +528,9 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
                   Row(
                     children: [
                       Icon(
-                        netMembershipChange >= 0 ? Icons.trending_up : Icons.trending_down,
+                        netMembershipChange >= 0
+                            ? Icons.trending_up
+                            : Icons.trending_down,
                         color: Colors.white,
                         size: 32,
                       ),
@@ -553,7 +562,8 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String label, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -596,7 +606,8 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
     );
   }
 
-  Widget _buildFinancialCard(String label, double amount, IconData icon, Color color) {
+  Widget _buildFinancialCard(
+      String label, double amount, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -647,7 +658,8 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
     final totalStaff = _allStaff.length;
     final submitted = submittedUserIds.length;
     final pending = totalStaff - submitted;
-    final submissionRate = totalStaff > 0 ? (submitted / totalStaff * 100).toInt() : 0;
+    final submissionRate =
+        totalStaff > 0 ? (submitted / totalStaff * 100).toInt() : 0;
 
     return SliverToBoxAdapter(
       child: Padding(
@@ -687,7 +699,8 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildSubmissionCount('Submitted', submitted, Colors.green),
+                      _buildSubmissionCount(
+                          'Submitted', submitted, Colors.green),
                       Container(
                         width: 1,
                         height: 40,
@@ -699,7 +712,8 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
                         height: 40,
                         color: Colors.grey[300],
                       ),
-                      _buildSubmissionCount('Total Staff', totalStaff, Colors.blue),
+                      _buildSubmissionCount(
+                          'Total Staff', totalStaff, Colors.blue),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -751,10 +765,15 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
                 child: ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _allStaff.where((s) => !submittedUserIds.contains(s.uid)).length,
-                  separatorBuilder: (_, __) => Divider(height: 1, color: Colors.orange.shade100),
+                  itemCount: _allStaff
+                      .where((s) => !submittedUserIds.contains(s.uid))
+                      .length,
+                  separatorBuilder: (_, __) =>
+                      Divider(height: 1, color: Colors.orange.shade100),
                   itemBuilder: (context, index) {
-                    final pendingStaff = _allStaff.where((s) => !submittedUserIds.contains(s.uid)).toList();
+                    final pendingStaff = _allStaff
+                        .where((s) => !submittedUserIds.contains(s.uid))
+                        .toList();
                     final staff = pendingStaff[index];
                     return ListTile(
                       leading: CircleAvatar(
@@ -769,7 +788,8 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                       subtitle: Text(staff.email),
-                      trailing: const Icon(Icons.pending_actions, color: Colors.orange),
+                      trailing: const Icon(Icons.pending_actions,
+                          color: Colors.orange),
                     );
                   },
                 ),
@@ -885,15 +905,16 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
           onTap: () {
             // Get district and mission names
             final districtName = report.districtId != null
-                ? report.districtId // Will be improved in future with district name loading
+                ? report
+                    .districtId // Will be improved in future with district name loading
                 : null;
             final missionName = report.missionId != null
                 ? (AppConstants.missions.firstWhere(
-                      (m) => m['id'] == report.missionId,
-                      orElse: () => {'name': report.missionId ?? 'Unknown'},
-                    )['name'])
+                    (m) => m['id'] == report.missionId,
+                    orElse: () => {'name': report.missionId ?? 'Unknown'},
+                  )['name'])
                 : null;
-            
+
             // Navigate to report preview
             Navigator.pushNamed(
               context,
@@ -917,7 +938,8 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
                       backgroundColor: AppColors.primaryLight,
                       child: Text(
                         report.userName[0].toUpperCase(),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -951,13 +973,22 @@ class _MinisterialSecretaryDashboardState extends State<MinisterialSecretaryDash
                 Row(
                   children: [
                     Expanded(
-                      child: _buildReportStat('Baptisms', report.baptisms, Icons.water_drop, Colors.blue),
+                      child: _buildReportStat('Baptisms', report.baptisms,
+                          Icons.water_drop, Colors.blue),
                     ),
                     Expanded(
-                      child: _buildReportStat('Visitations', report.totalVisitations, Icons.home_work, Colors.green),
+                      child: _buildReportStat(
+                          'Visitations',
+                          report.totalVisitations,
+                          Icons.home_work,
+                          Colors.green),
                     ),
                     Expanded(
-                      child: _buildReportStat('Literature', report.totalLiterature, Icons.menu_book, Colors.orange),
+                      child: _buildReportStat(
+                          'Literature',
+                          report.totalLiterature,
+                          Icons.menu_book,
+                          Colors.orange),
                     ),
                   ],
                 ),

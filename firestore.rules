@@ -46,6 +46,18 @@ service cloud.firestore {
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ministerialSecretary';
     }
     
+    // Helper function to check if user is an Officer
+    function isOfficer() {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'officer';
+    }
+    
+    // Helper function to check if user is a Director
+    function isDirector() {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'director';
+    }
+    
     // Helper function to check if user is a Super Admin
     function isSuperAdmin() {
       return isAuthenticated() &&
@@ -276,17 +288,19 @@ service cloud.firestore {
     // Borang B Reports (Monthly Ministerial Reports)
     match /borang_b_reports/{reportId} {
       // Allow list/get operations for different user types
-      // - Superadmin/Admin and MinisterialSecretary can read all reports (list and get)
+      // - Superadmin/Admin, MinisterialSecretary, Officer, and Director can read all reports (list and get)
       // - Mission Admins can read reports for their own mission only
       // - Regular users can list/get their own reports (with userId query filter)
       
       // List permission - allows querying the collection
       // Regular users can list if they query with userId filter
-      // Admins/MinisterialSecretary can list all without filter
+      // Admins/Mission-level staff can list all without filter
       allow list: if isAuthenticated() && (
                      isAdmin() ||
                      isSuperAdmin() ||
                      isMinisterialSecretary() ||
+                     isOfficer() ||
+                     isDirector() ||
                      isMissionAdmin() ||
                      // Allow users to query their own reports
                      // Note: This relies on the query including a userId filter
@@ -299,6 +313,8 @@ service cloud.firestore {
                     isAdmin() ||
                     isSuperAdmin() ||
                     isMinisterialSecretary() ||
+                    isOfficer() ||
+                    isDirector() ||
                     (isMissionAdmin() &&
                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.mission == resource.data.missionId)
                   );
@@ -308,14 +324,16 @@ service cloud.firestore {
                       request.resource.data.userId == request.auth.uid;
 
       // Users can update their own reports
-      // Superadmin and MinisterialSecretary can update any report
+      // Superadmin, MinisterialSecretary, Officer, and Director can update any report
       allow update: if isAuthenticated() &&
                       (resource.data.userId == request.auth.uid ||
                        isSuperAdmin() ||
-                       isMinisterialSecretary());
+                       isMinisterialSecretary() ||
+                       isOfficer() ||
+                       isDirector());
 
-      // Only Superadmin and MinisterialSecretary can delete reports
-      allow delete: if isSuperAdmin() || isMinisterialSecretary();
+      // Superadmin, MinisterialSecretary, Officer, and Director can delete reports
+      allow delete: if isSuperAdmin() || isMinisterialSecretary() || isOfficer() || isDirector();
     }
 
     // Admin Activity feed (used by Admin Dashboard Recent Activity)

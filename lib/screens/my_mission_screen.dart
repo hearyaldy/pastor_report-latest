@@ -14,7 +14,7 @@ import 'package:pastor_report/models/church_model.dart';
 import 'package:pastor_report/models/mission_model.dart';
 import 'package:pastor_report/models/financial_report_model.dart';
 import 'package:pastor_report/screens/treasurer/financial_report_form.dart';
-import 'package:pastor_report/screens/financial_reports_list_screen.dart';
+import 'package:pastor_report/screens/admin/financial_reports_screen.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/utils/app_colors.dart' as AppColorUtils;
 
@@ -1282,48 +1282,176 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
             ],
           ),
           const SizedBox(height: 16),
+          // Grand Total Card - Prominent
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.primaryLight,
+                  AppColors.primaryDark,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryLight.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.account_balance,
+                      color: Colors.white.withValues(alpha: 0.9),
+                      size: 24,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Total Collection',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'RM ${NumberFormat('#,##0.00').format(grandTotal)}',
+                  style: const TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  DateFormat('MMMM yyyy').format(_selectedMonth),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.white60,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Breakdown Cards
           Row(
             children: [
               Expanded(
-                child: _buildFinancialCard(
+                child: _buildModernFinancialCard(
                   'Tithe',
                   totalTithe,
                   Icons.volunteer_activism,
                   Colors.green,
+                  grandTotal > 0 ? (totalTithe / grandTotal * 100) : 0,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
-                child: _buildFinancialCard(
+                child: _buildModernFinancialCard(
                   'Offerings',
                   totalOfferings,
                   Icons.card_giftcard,
                   Colors.blue,
+                  grandTotal > 0 ? (totalOfferings / grandTotal * 100) : 0,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
+              const SizedBox(width: 10),
               Expanded(
-                child: _buildFinancialCard(
+                child: _buildModernFinancialCard(
                   'Special',
                   totalSpecial,
                   Icons.stars,
                   Colors.orange,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildFinancialCard(
-                  'Total',
-                  grandTotal,
-                  Icons.account_balance,
-                  Colors.purple,
+                  grandTotal > 0 ? (totalSpecial / grandTotal * 100) : 0,
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModernFinancialCard(
+    String label,
+    double amount,
+    IconData icon,
+    Color color,
+    double percentage,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.grey[700],
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              'RM ${NumberFormat('#,##0').format(amount)}',
+              style: TextStyle(
+                color: color,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '${percentage.toStringAsFixed(1)}%',
+              style: TextStyle(
+                color: color,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -1961,49 +2089,23 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
   }
 
   void _viewFinancialReports(UserModel user) {
-    final manageableChurches = _getManageableChurches(user);
-
-    if (manageableChurches.isEmpty) {
-      _showSnackBar('No churches available for viewing reports', isError: true);
-      return;
-    }
-
-    // Navigate to the financial reports list screen
+    // Navigate to the financial reports management screen
+    // This screen now handles role-based access and filtering
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => FinancialReportsListScreen(
-          churchId: manageableChurches.length == 1
-              ? manageableChurches.first.id
-              : null,
-          churchName: manageableChurches.length == 1
-              ? manageableChurches.first.churchName
-              : null,
-        ),
+        builder: (context) => const FinancialReportsScreen(),
       ),
     );
   }
 
   void _editFinancialReports(UserModel user) {
-    final manageableChurches = _getManageableChurches(user);
-
-    if (manageableChurches.isEmpty) {
-      _showSnackBar('No churches available for editing reports', isError: true);
-      return;
-    }
-
-    // Navigate to the financial reports list screen (same as view, since editing is done in the list)
+    // Navigate to the financial reports management screen
+    // This screen now handles role-based access and filtering
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => FinancialReportsListScreen(
-          churchId: manageableChurches.length == 1
-              ? manageableChurches.first.id
-              : null,
-          churchName: manageableChurches.length == 1
-              ? manageableChurches.first.churchName
-              : null,
-        ),
+        builder: (context) => const FinancialReportsScreen(),
       ),
     );
   }

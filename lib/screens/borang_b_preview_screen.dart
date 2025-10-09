@@ -86,7 +86,8 @@ class _BorangBPreviewScreenState extends State<BorangBPreviewScreen> {
     }
   }
 
-  Future<void> _shareReport(BorangBData data, DateTime month, String format) async {
+  Future<void> _shareReport(
+      BorangBData data, DateTime month, String format) async {
     setState(() => _isExporting = true);
 
     try {
@@ -185,7 +186,8 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
 ''';
   }
 
-  Future<void> _exportReport(BorangBData data, DateTime month, String format) async {
+  Future<void> _exportReport(
+      BorangBData data, DateTime month, String format) async {
     setState(() => _isExporting = true);
 
     try {
@@ -218,7 +220,9 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Borang B exported as ${format.toUpperCase()} successfully')),
+          SnackBar(
+              content: Text(
+                  'Borang B exported as ${format.toUpperCase()} successfully')),
         );
       }
     } catch (e) {
@@ -239,7 +243,8 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
 
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    final args =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     final BorangBData data = args['data'] as BorangBData;
     final DateTime month = args['month'] as DateTime;
     final String? districtName = args['districtName'] as String?;
@@ -253,12 +258,14 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
-            onPressed: _isExporting ? null : () => _showShareOptions(data, month),
+            onPressed:
+                _isExporting ? null : () => _showShareOptions(data, month),
             tooltip: 'Share',
           ),
           IconButton(
             icon: const Icon(Icons.download),
-            onPressed: _isExporting ? null : () => _showExportOptions(data, month),
+            onPressed:
+                _isExporting ? null : () => _showExportOptions(data, month),
             tooltip: 'Export',
           ),
         ],
@@ -361,7 +368,8 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
               Colors.teal,
               [
                 _TableRow('Tithe', 'RM ${data.tithe.toStringAsFixed(2)}'),
-                _TableRow('Offerings', 'RM ${data.offerings.toStringAsFixed(2)}'),
+                _TableRow(
+                    'Offerings', 'RM ${data.offerings.toStringAsFixed(2)}'),
                 _TableRow(
                   'Total',
                   'RM ${(data.tithe + data.offerings).toStringAsFixed(2)}',
@@ -396,7 +404,8 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           FloatingActionButton.extended(
-            onPressed: _isExporting ? null : () => _showShareOptions(data, month),
+            onPressed:
+                _isExporting ? null : () => _showShareOptions(data, month),
             backgroundColor: Colors.blue.shade700,
             heroTag: 'share',
             icon: const Icon(Icons.share),
@@ -404,7 +413,8 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
           ),
           const SizedBox(width: 16),
           FloatingActionButton.extended(
-            onPressed: _isExporting ? null : () => _showExportOptions(data, month),
+            onPressed:
+                _isExporting ? null : () => _showExportOptions(data, month),
             backgroundColor: AppColors.primaryLight,
             heroTag: 'export',
             icon: _isExporting
@@ -424,7 +434,8 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
     );
   }
 
-  Widget _buildHeader(BorangBData data, DateTime month, String? districtName, String? missionName) {
+  Widget _buildHeader(BorangBData data, DateTime month, String? districtName,
+      String? missionName) {
     return Card(
       elevation: 2,
       child: Padding(
@@ -525,7 +536,8 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
                     child: Text(
                       row.label,
                       style: TextStyle(
-                        fontWeight: row.isBold ? FontWeight.bold : FontWeight.normal,
+                        fontWeight:
+                            row.isBold ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                   ),
@@ -535,7 +547,8 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
                       row.value.toString(),
                       textAlign: TextAlign.right,
                       style: TextStyle(
-                        fontWeight: row.isBold ? FontWeight.bold : FontWeight.normal,
+                        fontWeight:
+                            row.isBold ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                   ),

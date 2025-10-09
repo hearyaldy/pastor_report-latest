@@ -964,6 +964,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
     String? selectedDistrictId = church?.districtId;
     String? selectedRegionId = church?.regionId;
     String? selectedMissionId = church?.missionId ?? _selectedMissionId;
+    ChurchStatus selectedStatus = church?.status ?? ChurchStatus.organizedChurch;
 
     // Prepare local selectable options based on current selections
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -1099,16 +1100,23 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                           TextFormField(
                             controller: elderEmailController,
                             decoration: const InputDecoration(
-                              labelText: 'Elder Email',
+                              labelText: 'Elder Email (Optional)',
                               hintText: 'e.g., pastor@church.com',
                               border: OutlineInputBorder(),
+                              helperText: 'Email or phone required',
                             ),
                             keyboardType: TextInputType.emailAddress,
                             validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter elder email';
+                              final email = value?.trim() ?? '';
+                              final phone = elderPhoneController.text.trim();
+
+                              // If both are empty, show error
+                              if (email.isEmpty && phone.isEmpty) {
+                                return 'Please provide email or phone';
                               }
-                              if (!value.contains('@')) {
+
+                              // If email is provided, validate it
+                              if (email.isNotEmpty && !email.contains('@')) {
                                 return 'Please enter a valid email';
                               }
                               return null;
@@ -1118,14 +1126,19 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                           TextFormField(
                             controller: elderPhoneController,
                             decoration: const InputDecoration(
-                              labelText: 'Elder Phone',
+                              labelText: 'Elder Phone (Optional)',
                               hintText: 'e.g., +60123456789',
                               border: OutlineInputBorder(),
+                              helperText: 'Email or phone required',
                             ),
                             keyboardType: TextInputType.phone,
                             validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter elder phone';
+                              final phone = value?.trim() ?? '';
+                              final email = elderEmailController.text.trim();
+
+                              // If both are empty, show error
+                              if (phone.isEmpty && email.isEmpty) {
+                                return 'Please provide email or phone';
                               }
                               return null;
                             },
@@ -1157,6 +1170,37 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                                 }
                               }
                               return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<ChurchStatus>(
+                            value: selectedStatus,
+                            decoration: const InputDecoration(
+                              labelText: 'Church Status',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.label),
+                            ),
+                            isExpanded: true,
+                            items: ChurchStatus.values
+                                .map((status) => DropdownMenuItem(
+                                      value: status,
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            _getStatusIcon(status),
+                                            size: 20,
+                                            color: _getStatusColor(status),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(status.displayName),
+                                        ],
+                                      ),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                setModalState(() => selectedStatus = value);
+                              }
                             },
                           ),
                           const SizedBox(height: 20),
@@ -1363,6 +1407,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                                       ? null
                                       : addressController.text.trim(),
                                   memberCount: memberCount,
+                                  status: selectedStatus,
                                   updatedAt: DateTime.now(),
                                   missionId: selectedMissionId,
                                   regionId: selectedRegionId,
@@ -1401,7 +1446,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                                       ? null
                                       : addressController.text.trim(),
                                   memberCount: memberCount,
-                                  status: ChurchStatus.organizedChurch,
+                                  status: selectedStatus,
                                   createdAt: DateTime.now(),
                                   districtId: selectedDistrictId,
                                   regionId: selectedRegionId,
@@ -1450,6 +1495,28 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
         ),
       ),
     );
+  }
+
+  IconData _getStatusIcon(ChurchStatus status) {
+    switch (status) {
+      case ChurchStatus.organizedChurch:
+        return Icons.church;
+      case ChurchStatus.company:
+        return Icons.group;
+      case ChurchStatus.group:
+        return Icons.groups;
+    }
+  }
+
+  Color _getStatusColor(ChurchStatus status) {
+    switch (status) {
+      case ChurchStatus.organizedChurch:
+        return AppColors.primaryLight;
+      case ChurchStatus.company:
+        return Colors.blue;
+      case ChurchStatus.group:
+        return Colors.green;
+    }
   }
 
   void _deleteChurch(Church church) {

@@ -1085,6 +1085,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Colors.blue;
       case UserRole.ministerialSecretary:
         return Colors.teal;
+      case UserRole.officer:
+        return Colors.cyan;
+      case UserRole.director:
+        return Colors.deepPurple;
       case UserRole.editor:
         return Colors.orange;
       case UserRole.churchTreasurer:
@@ -1106,6 +1110,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Icons.business;
       case UserRole.ministerialSecretary:
         return Icons.book;
+      case UserRole.officer:
+        return Icons.badge;
+      case UserRole.director:
+        return Icons.supervisor_account;
       case UserRole.editor:
         return Icons.edit;
       case UserRole.churchTreasurer:

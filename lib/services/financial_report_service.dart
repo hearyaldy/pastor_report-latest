@@ -309,4 +309,37 @@ class FinancialReportService {
       throw Exception('Failed to count churches with reports: $e');
     }
   }
+
+  /// Get ALL financial reports (for admin view)
+  Future<List<FinancialReport>> getAllReports({
+    String? missionId,
+    String? regionId,
+    String? districtId,
+    int? limit,
+  }) async {
+    try {
+      var query = _firestore.collection(_collectionName).orderBy('submittedAt', descending: true);
+
+      if (missionId != null && missionId.isNotEmpty) {
+        query = query.where('missionId', isEqualTo: missionId);
+      }
+      if (regionId != null && regionId.isNotEmpty) {
+        query = query.where('regionId', isEqualTo: regionId);
+      }
+      if (districtId != null && districtId.isNotEmpty) {
+        query = query.where('districtId', isEqualTo: districtId);
+      }
+      if (limit != null) {
+        query = query.limit(limit);
+      }
+
+      final querySnapshot = await query.get();
+
+      return querySnapshot.docs
+          .map((doc) => FinancialReport.fromSnapshot(doc))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to get all reports: $e');
+    }
+  }
 }

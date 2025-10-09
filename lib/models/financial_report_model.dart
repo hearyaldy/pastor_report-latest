@@ -1,5 +1,42 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Model for tracking edit history of financial reports
+class FinancialReportHistory {
+  final String editedBy; // User ID who made the edit
+  final String editorName; // Name of the user
+  final DateTime editedAt;
+  final String action; // 'created', 'updated', 'approved'
+  final Map<String, dynamic>? changes; // What was changed
+
+  FinancialReportHistory({
+    required this.editedBy,
+    required this.editorName,
+    required this.editedAt,
+    required this.action,
+    this.changes,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'editedBy': editedBy,
+      'editorName': editorName,
+      'editedAt': Timestamp.fromDate(editedAt),
+      'action': action,
+      'changes': changes,
+    };
+  }
+
+  factory FinancialReportHistory.fromMap(Map<String, dynamic> map) {
+    return FinancialReportHistory(
+      editedBy: map['editedBy'] ?? '',
+      editorName: map['editorName'] ?? 'Unknown',
+      editedAt: (map['editedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      action: map['action'] ?? 'updated',
+      changes: map['changes'] as Map<String, dynamic>?,
+    );
+  }
+}
+
 /// Model for tracking tithe and offerings at church level
 /// This data is synced to Firestore for district and mission-level aggregation
 class FinancialReport {
@@ -19,6 +56,8 @@ class FinancialReport {
   final DateTime createdAt;
   final DateTime? updatedAt;
   final String status; // draft, submitted, approved
+  final List<FinancialReportHistory> history; // Edit history
+  final String? editedBy; // Last editor user ID
 
   FinancialReport({
     required this.id,
@@ -37,6 +76,8 @@ class FinancialReport {
     required this.createdAt,
     this.updatedAt,
     this.status = 'draft',
+    this.history = const [],
+    this.editedBy,
   });
 
   /// Calculate total financial
@@ -61,6 +102,8 @@ class FinancialReport {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
       'status': status,
+      'history': history.map((h) => h.toMap()).toList(),
+      'editedBy': editedBy,
     };
   }
 
@@ -83,6 +126,11 @@ class FinancialReport {
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
       status: map['status'] ?? 'draft',
+      history: (map['history'] as List?)
+              ?.map((h) => FinancialReportHistory.fromMap(h as Map<String, dynamic>))
+              .toList() ??
+          [],
+      editedBy: map['editedBy'],
     );
   }
 
@@ -110,6 +158,8 @@ class FinancialReport {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? status,
+    List<FinancialReportHistory>? history,
+    String? editedBy,
   }) {
     return FinancialReport(
       id: id ?? this.id,
@@ -128,6 +178,8 @@ class FinancialReport {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       status: status ?? this.status,
+      history: history ?? this.history,
+      editedBy: editedBy ?? this.editedBy,
     );
   }
 

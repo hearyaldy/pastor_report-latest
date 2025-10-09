@@ -128,12 +128,53 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
       elevation: 0,
       backgroundColor: AppColors.primaryLight,
       actions: [
-        if (user != null)
+        if (user != null) ...[
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                      ),
+                      child: const Text('Logout'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed == true && mounted) {
+                final authProvider =
+                    Provider.of<AuthProvider>(context, listen: false);
+                await authProvider.signOut();
+
+                if (mounted) {
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    AppConstants.routeWelcome,
+                    (route) => false,
+                  );
+                }
+              }
+            },
+            tooltip: 'Logout',
+          ),
           IconButton(
             icon: const Icon(Icons.settings_outlined, color: Colors.white),
             onPressed: () => Navigator.pushNamed(context, '/settings'),
             tooltip: 'Settings',
           ),
+        ],
       ],
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
@@ -150,60 +191,58 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 60), // Reduced from 80 to 60
+              padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment:
-                    MainAxisAlignment.end, // Changed from center to end
-                mainAxisSize: MainAxisSize.min, // Added to minimize space
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   if (user != null) ...[
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Welcome back,',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                user.displayName,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                              const SizedBox(height: 6),
+                              _buildRoleBadge(user),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
                         CircleAvatar(
-                          radius: 24, // Reduced from 28 to save space
+                          radius: 24,
                           backgroundColor: Colors.white,
                           child: Text(
                             user.displayName.isNotEmpty
                                 ? user.displayName[0].toUpperCase()
                                 : 'U',
                             style: TextStyle(
-                              fontSize: 20, // Reduced from 24
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: AppColors.primaryLight,
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 12), // Reduced from 16
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min, // Added
-                            children: [
-                              Text(
-                                'Welcome back,',
-                                style: TextStyle(
-                                  fontSize: 12, // Reduced from 14
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                ),
-                                overflow: TextOverflow.ellipsis, // Added
-                                maxLines: 1, // Added
-                              ),
-                              const SizedBox(height: 2), // Reduced from 4
-                              Text(
-                                user.displayName,
-                                style: const TextStyle(
-                                  fontSize: 18, // Reduced from 22
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                                overflow: TextOverflow.ellipsis, // Added
-                                maxLines: 1, // Added
-                              ),
-                              const SizedBox(height: 6),
-                              _buildRoleBadge(user),
-                            ],
                           ),
                         ),
                       ],
@@ -1328,14 +1367,14 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.deepPurple[400]!,
-              Colors.deepPurple[600]!,
+              Colors.orange[400]!,
+              Colors.orange[600]!,
             ],
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.deepPurple.withValues(alpha: 0.3),
+              color: Colors.orange.withValues(alpha: 0.3),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -2010,6 +2049,10 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         return Colors.blue;
       case UserRole.ministerialSecretary:
         return Colors.teal;
+      case UserRole.officer:
+        return Colors.cyan;
+      case UserRole.director:
+        return Colors.deepPurple;
       case UserRole.editor:
         return Colors.orange;
       case UserRole.churchTreasurer:
@@ -2031,6 +2074,10 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         return Icons.business;
       case UserRole.ministerialSecretary:
         return Icons.book;
+      case UserRole.officer:
+        return Icons.badge;
+      case UserRole.director:
+        return Icons.supervisor_account;
       case UserRole.editor:
         return Icons.edit;
       case UserRole.churchTreasurer:

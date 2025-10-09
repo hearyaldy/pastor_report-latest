@@ -14,8 +14,8 @@ class StaffService {
 
   StaffService._();
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final CollectionReference _staffCollection =
+  // Collection reference for staff
+  final CollectionReference<Map<String, dynamic>> _staffCollection =
       FirebaseFirestore.instance.collection('staff');
 
   /// Stream all staff globally
@@ -216,6 +216,21 @@ class StaffService {
       final id = staff.id.isEmpty ? const Uuid().v4() : staff.id;
       final staffWithId = staff.copyWith(id: id);
 
+      // Check if a staff with same name and role already exists in the same mission
+      final query = await _staffCollection
+          .where('name', isEqualTo: staff.name)
+          .where('role', isEqualTo: staff.role)
+          .where('mission', isEqualTo: staff.mission)
+          .get();
+
+      // If duplicate found, don't add
+      if (query.docs.isNotEmpty) {
+        debugPrint(
+            '⚠️ Duplicate staff entry not added: ${staff.name} - ${staff.role}');
+        return false;
+      }
+
+      // Otherwise, add the staff
       await _staffCollection.doc(id).set(staffWithId.toJson());
       debugPrint('✅ Staff added: ${staff.name}');
       return true;
@@ -432,6 +447,124 @@ class StaffService {
     } catch (e) {
       debugPrint('❌ Error getting statistics: $e');
       return {'totalStaff': 0, 'byRole': {}, 'byDepartment': {}};
+    }
+  }
+
+  /// Check for and remove duplicate staff entries in the database
+  /// Returns a map with statistics about the duplicates found and deleted
+  Future<Map<String, int>> cleanupDuplicateStaff({String? missionId}) async {
+    int duplicatesFound = 0;
+    int duplicatesDeleted = 0;
+    Map<String, List<Staff>> staffGroups = {};
+
+    try {
+      // Get all staff or filter by mission if specified
+      QuerySnapshot snapshot;
+      if (missionId != null) {
+        snapshot =
+            await _staffCollection.where('mission', isEqualTo: missionId).get();
+        debugPrint('🔍 Checking for duplicates in mission: $missionId');
+      } else {
+        snapshot = await _staffCollection.get();
+        debugPrint('🔍 Checking for duplicates across all missions');
+      }
+
+      List<Staff> allStaff =
+          snapshot.docs.map((doc) => Staff.fromFirestore(doc)).toList();
+      debugPrint('📊 Total staff found: ${allStaff.length}');
+
+      // Group staff by name only to find potential duplicates regardless of mission
+      for (var staff in allStaff) {
+        // Use a case-insensitive name comparison
+        String key = staff.name.trim().toLowerCase();
+        staffGroups[key] = [...(staffGroups[key] ?? []), staff];
+      }
+
+      // Find duplicate groups (having more than one entry)
+      List<MapEntry<String, List<Staff>>> duplicateGroups =
+          staffGroups.entries.where((entry) => entry.value.length > 1).toList();
+
+      // Count all duplicates (excluding the one we'll keep in each group)
+      for (var group in duplicateGroups) {
+        duplicatesFound += group.value.length - 1;
+        debugPrint(
+            '⚠️ Found ${group.value.length} duplicates of staff: ${group.key}');
+      }
+
+      // Process duplicates - prioritize keeping North Sabah Mission entries
+      final String northSabahMissionId = 'M89PoDdB5sNCoDl8qTNS';
+      for (var group in duplicateGroups) {
+        List<Staff> staffList = group.value;
+
+        // First, check if any of the entries is from North Sabah Mission
+        int northSabahIndex = staffList
+            .indexWhere((staff) => staff.mission == northSabahMissionId);
+
+        if (northSabahIndex >= 0) {
+          // We found an entry with North Sabah Mission ID - keep this one
+          final Staff keepStaff = staffList[northSabahIndex];
+          debugPrint(
+              '✅ Keeping North Sabah entry: ${keepStaff.name} (${keepStaff.id})');
+
+          // Delete all other entries
+          for (int i = 0; i < staffList.length; i++) {
+            if (i != northSabahIndex) {
+              bool success = await deleteStaff(staffList[i].id);
+              if (success) {
+                duplicatesDeleted++;
+                debugPrint(
+                    '🗑️ Deleted non-North Sabah duplicate: ${staffList[i].name} (${staffList[i].id})');
+              }
+            }
+          }
+        } else {
+          // No North Sabah entries found, just keep the most recently updated one
+          staffList.sort((a, b) {
+            // Get the most recent date for each staff - prefer updatedAt, fallback to createdAt
+            final DateTime aDate =
+                a.updatedAt != null ? a.updatedAt! : a.createdAt;
+            final DateTime bDate =
+                b.updatedAt != null ? b.updatedAt! : b.createdAt;
+            return bDate.compareTo(aDate); // Descending (newest first)
+          });
+
+          // Keep the first (most recently updated) entry, delete the rest
+          for (int i = 1; i < staffList.length; i++) {
+            bool success = await deleteStaff(staffList[i].id);
+            if (success) {
+              duplicatesDeleted++;
+              debugPrint(
+                  '🗑️ Deleted duplicate: ${staffList[i].name} (${staffList[i].id})');
+            }
+          }
+        }
+
+        // Keep the first (most recently updated) entry, delete the rest
+        for (int i = 1; i < staffList.length; i++) {
+          bool success = await deleteStaff(staffList[i].id);
+          if (success) {
+            duplicatesDeleted++;
+            debugPrint(
+                '🗑️ Deleted duplicate: ${staffList[i].name} (${staffList[i].id})');
+          }
+        }
+      }
+
+      return {
+        'totalStaffChecked': allStaff.length,
+        'duplicateGroupsFound': duplicateGroups.length,
+        'duplicatesFound': duplicatesFound,
+        'duplicatesDeleted': duplicatesDeleted,
+      };
+    } catch (e) {
+      debugPrint('❌ Error cleaning up duplicates: $e');
+      return {
+        'totalStaffChecked': 0,
+        'duplicateGroupsFound': 0,
+        'duplicatesFound': 0,
+        'duplicatesDeleted': 0,
+        'error': 1,
+      };
     }
   }
 }

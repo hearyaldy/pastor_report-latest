@@ -7,6 +7,12 @@ import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/providers/mission_provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/services/data_import_service.dart';
+import 'package:pastor_report/utils/fix_staff_region_district.dart';
+import 'package:pastor_report/utils/map_staff_names_to_ids.dart';
+import 'package:pastor_report/utils/diagnose_staff_data.dart';
+import 'package:pastor_report/utils/import_staff_assignments.dart';
+import 'package:pastor_report/utils/check_unmatched_staff.dart';
+import 'package:pastor_report/utils/fix_staff_names.dart';
 
 class AdminUtilitiesScreen extends StatelessWidget {
   const AdminUtilitiesScreen({super.key});
@@ -99,6 +105,729 @@ class AdminUtilitiesScreen extends StatelessWidget {
                         );
                       }
                     }
+                  }
+                },
+              ),
+              const _SectionHeader(title: 'Staff Data Management'),
+              _ActionCard(
+                title: 'Analyze Staff Region/District IDs',
+                description:
+                    'Check all staff records for invalid region/district IDs and show which ones need fixing.',
+                icon: Icons.analytics,
+                color: Colors.purple,
+                onTap: () async {
+                  _showLoadingDialog(context, 'Analyzing staff records...');
+
+                  try {
+                    final results =
+                        await StaffRegionDistrictFixer.analyzeStaffRecords();
+
+                    if (context.mounted) {
+                      Navigator.pop(context); // Close loading
+
+                      final invalidRegions =
+                          (results['invalid_regions'] as List).length;
+                      final invalidDistricts =
+                          (results['invalid_districts'] as List).length;
+
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Analysis Results'),
+                          content: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('Total Staff: ${results['total_staff']}'),
+                                Text(
+                                    'Staff with Region: ${results['staff_with_region']}'),
+                                Text(
+                                    'Staff with District: ${results['staff_with_district']}'),
+                                const Divider(),
+                                Text(
+                                    'Valid Regions: ${results['valid_regions']}',
+                                    style: const TextStyle(color: Colors.green)),
+                                Text(
+                                    'Valid Districts: ${results['valid_districts']}',
+                                    style: const TextStyle(color: Colors.green)),
+                                const Divider(),
+                                Text('Invalid Regions: $invalidRegions',
+                                    style: TextStyle(
+                                        color: invalidRegions > 0
+                                            ? Colors.red
+                                            : Colors.green)),
+                                Text('Invalid Districts: $invalidDistricts',
+                                    style: TextStyle(
+                                        color: invalidDistricts > 0
+                                            ? Colors.red
+                                            : Colors.green)),
+                                if (invalidRegions > 0 || invalidDistricts > 0)
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 16),
+                                    child: Text(
+                                      'Check the console/logs for detailed list of invalid records.',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          fontStyle: FontStyle.italic),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('CLOSE'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      Navigator.pop(context); // Close loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error analyzing staff: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+              _ActionCard(
+                title: 'Clear Invalid Region/District IDs',
+                description:
+                    'Remove invalid region/district IDs from staff records. This will set them to null.',
+                icon: Icons.cleaning_services,
+                color: Colors.red,
+                onTap: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Confirm Cleanup'),
+                      content: const Text(
+                          'This will remove invalid region and district IDs from staff records by setting them to null.\n\n'
+                          'Run "Analyze Staff Region/District IDs" first to see which records will be affected.\n\n'
+                          'Do you want to continue?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('CANCEL'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: TextButton.styleFrom(
+                              foregroundColor: Colors.red),
+                          child: const Text('YES, CLEAR INVALID IDs'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true && context.mounted) {
+                    _showLoadingDialog(context, 'Clearing invalid IDs...');
+
+                    try {
+                      final count =
+                          await StaffRegionDistrictFixer.clearInvalidIds();
+
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close loading
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content:
+                                Text('Successfully cleared $count invalid IDs'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close loading
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error clearing IDs: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+              ),
+              _ActionCard(
+                title: 'List Valid Regions & Districts',
+                description:
+                    'Show all valid region and district IDs organized by mission. Check console for output.',
+                icon: Icons.list_alt,
+                color: Colors.teal,
+                onTap: () async {
+                  _showLoadingDialog(
+                      context, 'Loading regions and districts...');
+
+                  try {
+                    await StaffRegionDistrictFixer
+                        .listValidRegionsAndDistricts();
+
+                    if (context.mounted) {
+                      Navigator.pop(context); // Close loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Check the console/logs for the complete list'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      Navigator.pop(context); // Close loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error listing data: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+              _ActionCard(
+                title: 'Preview Name-to-ID Mapping',
+                description:
+                    'Preview which staff district/region names will be mapped to IDs. No changes made.',
+                icon: Icons.preview,
+                color: Colors.blue,
+                onTap: () async {
+                  _showLoadingDialog(context, 'Analyzing staff records...');
+
+                  try {
+                    await StaffNameToIdMapper.previewMapping();
+
+                    if (context.mounted) {
+                      Navigator.pop(context); // Close loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Preview complete! Check console/logs for details'),
+                          backgroundColor: Colors.blue,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      Navigator.pop(context); // Close loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error previewing: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+              _ActionCard(
+                title: 'Map District/Region Names to IDs',
+                description:
+                    'Convert staff district/region names (like "INANAM") to correct UUIDs. This fixes the display issue!',
+                icon: Icons.transform,
+                color: Colors.green,
+                onTap: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Confirm Mapping'),
+                      content: const Text(
+                          'This will update staff records by converting district/region names to correct Firestore IDs.\n\n'
+                          'Run "Preview Name-to-ID Mapping" first to see what will change.\n\n'
+                          'Do you want to continue?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('CANCEL'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: TextButton.styleFrom(
+                              foregroundColor: Colors.green),
+                          child: const Text('YES, MAP TO IDs'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true && context.mounted) {
+                    _showLoadingDialog(context, 'Mapping names to IDs...');
+
+                    try {
+                      final results =
+                          await StaffNameToIdMapper.mapNamesToIds();
+
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close loading
+
+                        final updated = results['staff_updated'] as int;
+                        final skipped = results['staff_skipped'] as int;
+                        final errors = (results['errors'] as List).length;
+
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Mapping Complete'),
+                            content: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('Total Staff: ${results['total_staff']}'),
+                                Text('Updated: $updated',
+                                    style:
+                                        const TextStyle(color: Colors.green)),
+                                Text('Skipped: $skipped'),
+                                if (errors > 0)
+                                  Text('Errors: $errors',
+                                      style:
+                                          const TextStyle(color: Colors.red)),
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 16),
+                                  child: Text(
+                                    'Staff records now have correct region/district IDs!',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('CLOSE'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close loading
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error mapping: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+              ),
+              _ActionCard(
+                title: 'Fix Staff Name Mismatches',
+                description:
+                    'Correct staff names in Firestore to match churches_SAB.json (e.g., "Jeremiah Sam" → "Jeremiah Sam John").',
+                icon: Icons.edit,
+                color: Colors.teal,
+                onTap: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Fix Staff Names'),
+                      content: const Text(
+                          'This will rename 4 staff members to match the names in churches_SAB.json:\n\n'
+                          '• Jeremiah Sam → Jeremiah Sam John\n'
+                          '• Clario Taipin Gadoit → Cleario Taipin\n'
+                          '• Erick Roy Paul → Erick RoyPaul\n'
+                          '• Micheal Chin Hon Kee → Micheal Chin\n\n'
+                          'After fixing, re-run "Import Staff Assignments" to assign their districts.\n\n'
+                          'Do you want to continue?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('CANCEL'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: TextButton.styleFrom(
+                              foregroundColor: Colors.teal),
+                          child: const Text('YES, FIX NAMES'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true && context.mounted) {
+                    _showLoadingDialog(context, 'Fixing staff names...');
+
+                    try {
+                      final results =
+                          await StaffNameFixer.applyNameCorrections();
+
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close loading
+
+                        final applied = results['applied'] as int;
+                        final notFound =
+                            (results['not_found'] as List).length;
+                        final errors = (results['errors'] as List).length;
+
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Name Corrections Complete'),
+                            content: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                    'Total Corrections: ${results['total_corrections']}'),
+                                const Divider(),
+                                Text('Applied: $applied',
+                                    style: const TextStyle(
+                                        color: Colors.green,
+                                        fontWeight: FontWeight.bold)),
+                                if (notFound > 0)
+                                  Text('Not Found: $notFound',
+                                      style:
+                                          const TextStyle(color: Colors.orange)),
+                                if (errors > 0)
+                                  Text('Errors: $errors',
+                                      style:
+                                          const TextStyle(color: Colors.red)),
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 16),
+                                  child: Text(
+                                    'Now re-run "Import Staff Assignments" to assign districts to the renamed staff.',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('CLOSE'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close loading
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error fixing names: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+              ),
+              _ActionCard(
+                title: 'Preview Staff Assignments Import',
+                description:
+                    'Preview pastor assignments from churches_SAB.json before importing.',
+                icon: Icons.visibility,
+                color: Colors.lightBlue,
+                onTap: () async {
+                  _showLoadingDialog(context, 'Loading preview...');
+
+                  try {
+                    await StaffAssignmentImporter.previewImport();
+
+                    if (context.mounted) {
+                      Navigator.pop(context); // Close loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Preview complete! Check console for pastor assignments.'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      Navigator.pop(context); // Close loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error previewing: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+              _ActionCard(
+                title: 'Import Staff Assignments (Sabah)',
+                description:
+                    'Import pastor district/region assignments from churches_SAB.json. This will update staff records.',
+                icon: Icons.download,
+                color: Colors.deepPurple,
+                onTap: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Confirm Import'),
+                      content: const Text(
+                          'This will import pastor assignments from churches_SAB.json and update staff records with their district and region.\n\n'
+                          'The import will:\n'
+                          '• Match pastors by name\n'
+                          '• Update region and district IDs\n'
+                          '• Only affect Sabah Mission staff\n\n'
+                          'Run "Preview Staff Assignments Import" first to see what will be imported.\n\n'
+                          'Do you want to continue?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('CANCEL'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: TextButton.styleFrom(
+                              foregroundColor: Colors.deepPurple),
+                          child: const Text('YES, IMPORT'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true && context.mounted) {
+                    _showLoadingDialog(context, 'Importing assignments...');
+
+                    try {
+                      final results =
+                          await StaffAssignmentImporter.importFromChurchesJSON();
+
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close loading
+
+                        final matched = results['matched_staff'] as int;
+                        final updated = results['updated_staff'] as int;
+                        final unmatched =
+                            (results['unmatched_staff'] as List).length;
+                        final errors = (results['errors'] as List).length;
+
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Import Complete'),
+                            content: SingleChildScrollView(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                      'Total Pastors in JSON: ${results['total_pastors_in_json']}'),
+                                  const Divider(),
+                                  Text('Matched Staff: $matched',
+                                      style:
+                                          const TextStyle(color: Colors.green)),
+                                  Text('Updated Staff: $updated',
+                                      style: const TextStyle(
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.bold)),
+                                  if (unmatched > 0)
+                                    Text('Unmatched Staff: $unmatched',
+                                        style: const TextStyle(
+                                            color: Colors.orange)),
+                                  if (errors > 0)
+                                    Text('Errors: $errors',
+                                        style:
+                                            const TextStyle(color: Colors.red)),
+                                  if (unmatched > 0 || errors > 0)
+                                    const Padding(
+                                      padding: EdgeInsets.only(top: 16),
+                                      child: Text(
+                                        'Check console for detailed list of unmatched staff and errors.',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontStyle: FontStyle.italic),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('CLOSE'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close loading
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error importing: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+              ),
+              _ActionCard(
+                title: 'Check Unmatched Staff Details',
+                description:
+                    'Show details of the 17 unmatched staff from the last import to understand why they weren\'t matched.',
+                icon: Icons.person_search,
+                color: Colors.brown,
+                onTap: () async {
+                  _showLoadingDialog(context, 'Checking unmatched staff...');
+
+                  final unmatchedStaff = [
+                    'Alexander Maxon Horis',
+                    'Lovell Juil',
+                    'A Harnnie Severinus',
+                    'Timothy Chin Wei Jun',
+                    'Ariman Paulus',
+                    'Justin Wong Chong Yung',
+                    'Jeremiah Sam',
+                    'Clario Taipin Gadoit',
+                    'Melrindro Rojiin Lukas',
+                    'Soliun Sandayan',
+                    'Ronald Longgou',
+                    'Francis Lajanim',
+                    'Adriel Charles Jr',
+                    'Junniel Mac Daniel Gara',
+                    'Erick Roy Paul',
+                    'Micheal Chin Hon Kee',
+                    'Richard Ban Solynsem',
+                  ];
+
+                  try {
+                    await UnmatchedStaffChecker.checkUnmatchedStaff(
+                        unmatchedStaff);
+
+                    if (context.mounted) {
+                      Navigator.pop(context); // Close loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Staff details displayed in console. Check their roles to see if they need district assignments.'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 4),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      Navigator.pop(context); // Close loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error checking staff: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+              const Divider(height: 32),
+              const _SectionHeader(title: 'Staff Data Diagnostics'),
+              _ActionCard(
+                title: 'Show Sample Staff Records',
+                description:
+                    'Display the first 10 staff records with all their fields to understand the data structure.',
+                icon: Icons.preview,
+                color: Colors.indigo,
+                onTap: () async {
+                  _showLoadingDialog(context, 'Loading sample records...');
+
+                  try {
+                    await StaffDataDiagnostics.showSampleStaffRecords(
+                        sampleSize: 10);
+
+                    if (context.mounted) {
+                      Navigator.pop(context); // Close loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Sample records displayed in console. Check logs for details.'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      Navigator.pop(context); // Close loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error showing samples: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+              _ActionCard(
+                title: 'Analyze Staff by Mission',
+                description:
+                    'Count staff by mission and show how many have region/district assignments.',
+                icon: Icons.bar_chart,
+                color: Colors.deepOrange,
+                onTap: () async {
+                  _showLoadingDialog(context, 'Analyzing staff by mission...');
+
+                  try {
+                    await StaffDataDiagnostics.analyzeStaffByMission();
+
+                    if (context.mounted) {
+                      Navigator.pop(context); // Close loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Analysis complete! Check console for detailed breakdown by mission.'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      Navigator.pop(context); // Close loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error analyzing: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+              _ActionCard(
+                title: 'Get Data Source Suggestions',
+                description:
+                    'Show suggestions for how to populate missing staff district/region data.',
+                icon: Icons.lightbulb_outline,
+                color: Colors.amber,
+                onTap: () async {
+                  await StaffDataDiagnostics.suggestDataSources();
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Suggestions displayed in console.'),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
                   }
                 },
               ),

@@ -544,6 +544,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         return Icons.business;
       case UserRole.ministerialSecretary:
         return Icons.book;
+      case UserRole.officer:
+        return Icons.badge;
+      case UserRole.director:
+        return Icons.supervisor_account;
       case UserRole.editor:
         return Icons.edit_note;
       case UserRole.churchTreasurer:
@@ -566,6 +570,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         return Colors.blue.shade700;
       case UserRole.ministerialSecretary:
         return Colors.teal.shade700;
+      case UserRole.officer:
+        return Colors.cyan.shade700;
+      case UserRole.director:
+        return Colors.deepPurple.shade700;
       case UserRole.editor:
         return Colors.green.shade700;
       case UserRole.churchTreasurer:
@@ -1164,6 +1172,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         return 'Manage own mission';
       case UserRole.ministerialSecretary:
         return 'View and manage Borang B reports';
+      case UserRole.officer:
+        return 'Mission-level officer access';
+      case UserRole.director:
+        return 'Mission-level director access';
       case UserRole.editor:
         return 'Edit department URLs';
       case UserRole.churchTreasurer:

@@ -175,6 +175,8 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
               _importSabahMissionData(context, user);
             } else if (value == 'import_nsm_mission') {
               _importNSMMissionData(context, user);
+            } else if (value == 'cleanup_duplicates') {
+              _cleanupDuplicateStaff(context, user);
             } else if (value == 'migrate_missions') {
               // Inline migration logic to update existing staff records from mission names to UUIDs
               () async {
@@ -304,6 +306,19 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                 ],
               ),
             ),
+            if (context.read<AuthProvider>().user?.userRole ==
+                UserRole.superAdmin)
+              const PopupMenuItem(
+                value: 'cleanup_duplicates',
+                child: Row(
+                  children: [
+                    Icon(Icons.cleaning_services,
+                        size: 20, color: Colors.purple),
+                    SizedBox(width: 8),
+                    Text('Clean Up Duplicate Staff'),
+                  ],
+                ),
+              ),
             if (context.read<AuthProvider>().user?.userRole ==
                 UserRole.superAdmin)
               const PopupMenuItem(
@@ -1465,6 +1480,148 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     }
   }
 
+  Future<void> _cleanupDuplicateStaff(
+      BuildContext context, UserModel user) async {
+    // First, ask for confirmation and mission selection
+    final Map<String, dynamic>? result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clean Up Duplicate Staff'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This will identify and remove duplicate staff entries by comparing names. Staff with North Sabah Mission ID will be prioritized and kept, while duplicates with different mission IDs will be removed.',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Select mission to clean up:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            StatefulBuilder(
+              builder: (context, setState) {
+                return DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  value: 'all',
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'all',
+                      child: Text('All Missions'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'M89PoDdB5sNCoDl8qTNS',
+                      child: Text('North Sabah Mission'),
+                    ),
+                  ],
+                  onChanged: (value) {},
+                );
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // We'll use the current value from the StatefulBuilder context
+              String missionId = 'all';
+
+              Navigator.pop(context, {
+                'confirmed': true,
+                'missionId': missionId == 'all' ? null : missionId
+              });
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+            child: const Text('Clean Up'),
+          ),
+        ],
+      ),
+    );
+
+    // If canceled or null
+    if (result == null || result['confirmed'] != true) return;
+
+    // Show progress dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Cleaning up duplicate staff entries...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      // Run the cleanup process
+      final stats = await StaffService.instance.cleanupDuplicateStaff(
+        missionId: result['missionId'],
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close progress dialog
+
+      // Show results dialog
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Cleanup Complete'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Staff entries checked: ${stats['totalStaffChecked']}'),
+              const SizedBox(height: 8),
+              Text('Duplicate groups found: ${stats['duplicateGroupsFound']}'),
+              const SizedBox(height: 8),
+              Text('Duplicate entries found: ${stats['duplicatesFound']}'),
+              const SizedBox(height: 8),
+              Text('Duplicate entries deleted: ${stats['duplicatesDeleted']}'),
+              const SizedBox(height: 16),
+              const Text(
+                'Note: Staff with North Sabah Mission ID were prioritized and kept when duplicates were found.',
+                style: TextStyle(fontStyle: FontStyle.italic, fontSize: 13),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close progress dialog
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error cleaning up duplicates: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Future<void> _importNSMMissionData(
       BuildContext context, UserModel user) async {
     final confirmed = await showDialog<bool>(
@@ -1524,7 +1681,8 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
               '• Districts created: ${result['districtsCreated']}\n'
               '• Staff created: ${result['staffCreated']}\n'
               '• Staff deleted: ${result['staffDeleted']}\n'
-              '• Churches deleted: ${result['churchesDeleted']}\n\n'
+              '• Churches deleted: ${result['churchesDeleted']}\n'
+              '• Duplicates skipped: ${result['duplicatesSkipped']}\n\n'
               'Total imported: ${result['totalImported']}'),
           actions: [
             TextButton(

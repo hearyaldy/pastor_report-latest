@@ -164,8 +164,8 @@ class AuthService {
   Future<void> completeOnboarding({
     required String uid,
     required String missionId,
-    required String region,
-    required String district,
+    String? region,
+    String? district,
     String? churchId,
     List<String>? churchIds,
     UserRole? userRole,
@@ -174,10 +174,16 @@ class AuthService {
     try {
       Map<String, dynamic> updates = {
         'mission': missionId,
-        'region': region,
-        'district': district,
         'onboardingCompleted': true,
       };
+
+      // Only add region and district if they are provided
+      if (region != null) {
+        updates['region'] = region;
+      }
+      if (district != null) {
+        updates['district'] = district;
+      }
 
       // Support both single churchId (backward compatibility) and multiple churchIds
       if (churchIds != null && churchIds.isNotEmpty) {

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // For haptic feedback
+import 'package:provider/provider.dart';
 import 'package:pastor_report/models/financial_report_model.dart';
 import 'package:pastor_report/models/church_model.dart';
+import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/services/financial_report_service.dart';
 import 'package:pastor_report/utils/app_colors.dart';
 import 'package:pastor_report/utils/keyboard_utils.dart';
@@ -10,7 +12,7 @@ import 'package:intl/intl.dart';
 class FinancialReportEditScreen extends StatefulWidget {
   final FinancialReport report;
   final Church church;
-  final Function onUpdate;
+  final VoidCallback onUpdate;
 
   const FinancialReportEditScreen({
     super.key,
@@ -92,13 +94,16 @@ class _FinancialReportEditScreenState extends State<FinancialReportEditScreen> {
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Confirm Changes'),
+            title: Text(widget.report.id.isEmpty ? 'Confirm Create' : 'Confirm Changes'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                    'Are you sure you want to update this financial report?'),
+                Text(
+                  widget.report.id.isEmpty
+                      ? 'Are you sure you want to create this financial report?'
+                      : 'Are you sure you want to update this financial report?',
+                ),
                 const SizedBox(height: 10),
                 Text(
                   'Tithe: RM ${_titheController.text}',
@@ -149,6 +154,52 @@ class _FinancialReportEditScreenState extends State<FinancialReportEditScreen> {
       final specialOfferings = double.parse(_specialOfferingsController.text);
       final notes = _notesController.text.trim();
 
+      debugPrint('💾 Saving report - isNew: ${widget.report.id.isEmpty}');
+      debugPrint('   Church: ${widget.report.churchId}');
+      debugPrint('   Month: ${widget.report.month}');
+      debugPrint('   Tithe: $tithe, Offerings: $offerings, Special: $specialOfferings');
+
+      // Get current user
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final currentUser = authProvider.user;
+
+      // Calculate what changed
+      final changes = <String, dynamic>{};
+      if (widget.report.tithe != tithe) {
+        changes['tithe'] = {'from': widget.report.tithe, 'to': tithe};
+      }
+      if (widget.report.offerings != offerings) {
+        changes['offerings'] = {'from': widget.report.offerings, 'to': offerings};
+      }
+      if (widget.report.specialOfferings != specialOfferings) {
+        changes['specialOfferings'] = {'from': widget.report.specialOfferings, 'to': specialOfferings};
+      }
+      if (widget.report.notes != notes) {
+        changes['notes'] = {'from': widget.report.notes ?? '', 'to': notes};
+      }
+      if (widget.report.status != _status) {
+        changes['status'] = {'from': widget.report.status, 'to': _status};
+      }
+
+      // Create history entry
+      final isNew = widget.report.id.isEmpty;
+      final historyEntry = FinancialReportHistory(
+        editedBy: currentUser?.uid ?? 'unknown',
+        editorName: currentUser?.displayName ?? 'Unknown User',
+        editedAt: DateTime.now(),
+        action: isNew ? 'created' : 'updated',
+        changes: changes.isNotEmpty ? changes : null,
+      );
+
+      // Add history entry to existing history
+      final updatedHistory = [...widget.report.history, historyEntry];
+
+      debugPrint('📜 Adding history entry:');
+      debugPrint('   Action: ${historyEntry.action}');
+      debugPrint('   Editor: ${historyEntry.editorName}');
+      debugPrint('   Changes: ${changes.keys.join(", ")}');
+      debugPrint('   Total history entries: ${updatedHistory.length}');
+
       // Create updated report object
       final updatedReport = widget.report.copyWith(
         tithe: tithe,
@@ -156,18 +207,36 @@ class _FinancialReportEditScreenState extends State<FinancialReportEditScreen> {
         specialOfferings: specialOfferings,
         notes: notes.isNotEmpty ? notes : null,
         status: _status,
+        editedBy: currentUser?.uid,
+        history: updatedHistory,
       );
 
-      // Save to Firestore
-      await FinancialReportService().updateReport(updatedReport);
+      // Save to Firestore - use create for new reports, update for existing
+      if (widget.report.id.isEmpty) {
+        // New report - use create
+        debugPrint('📝 Creating new report...');
+        await FinancialReportService().createReport(updatedReport);
+        debugPrint('✅ Report created successfully');
+      } else {
+        // Existing report - use update
+        debugPrint('📝 Updating existing report...');
+        await FinancialReportService().updateReport(updatedReport);
+        debugPrint('✅ Report updated successfully');
+      }
 
-      // Notify parent of update
-      widget.onUpdate(updatedReport);
+      // Notify parent of update (callback doesn't need arguments)
+      widget.onUpdate();
 
       // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Report updated successfully')),
+          SnackBar(
+            content: Text(
+              widget.report.id.isEmpty
+                  ? 'Report created successfully'
+                  : 'Report updated successfully',
+            ),
+          ),
         );
       }
 
@@ -176,12 +245,17 @@ class _FinancialReportEditScreenState extends State<FinancialReportEditScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
+      // Log the full error
+      debugPrint('❌ Error saving report: $e');
+      debugPrint('   Stack trace: ${StackTrace.current}');
+
       // Show error message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating report: $e'),
+            content: Text('Error saving report: $e'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -335,7 +409,7 @@ class _FinancialReportEditScreenState extends State<FinancialReportEditScreen> {
                               icon: Icons.note_alt,
                               maxLines: 3,
                               focusNode: _notesFocus,
-                              validator: null,
+                              validator: (value) => null, // Explicitly allow empty values
                             ),
                             const SizedBox(height: 32),
                             SizedBox(

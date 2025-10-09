@@ -19,7 +19,8 @@ class BorangBScreen extends StatefulWidget {
 }
 
 class _BorangBScreenState extends State<BorangBScreen> {
-  final BorangBFirestoreService _firestoreService = BorangBFirestoreService.instance;
+  final BorangBFirestoreService _firestoreService =
+      BorangBFirestoreService.instance;
   final BorangBService _exportService = BorangBService.instance;
 
   DateTime _selectedMonth = DateTime.now();
@@ -40,15 +41,33 @@ class _BorangBScreenState extends State<BorangBScreen> {
   void _initializeControllers() {
     // Initialize all controllers
     final fields = [
-      'membersBeginning', 'membersReceived', 'membersTransferredIn',
-      'membersTransferredOut', 'membersDropped', 'membersDeceased', 'membersEnd',
-      'baptisms', 'professionOfFaith',
-      'sabbathServices', 'prayerMeetings', 'bibleStudies', 'evangelisticMeetings',
-      'homeVisitations', 'hospitalVisitations', 'prisonVisitations',
-      'weddings', 'funerals', 'dedications',
-      'booksDistributed', 'magazinesDistributed', 'tractsDistributed',
-      'tithe', 'offerings',
-      'otherActivities', 'challenges', 'remarks',
+      'membersBeginning',
+      'membersReceived',
+      'membersTransferredIn',
+      'membersTransferredOut',
+      'membersDropped',
+      'membersDeceased',
+      'membersEnd',
+      'baptisms',
+      'professionOfFaith',
+      'sabbathServices',
+      'prayerMeetings',
+      'bibleStudies',
+      'evangelisticMeetings',
+      'homeVisitations',
+      'hospitalVisitations',
+      'prisonVisitations',
+      'weddings',
+      'funerals',
+      'dedications',
+      'booksDistributed',
+      'magazinesDistributed',
+      'tractsDistributed',
+      'tithe',
+      'offerings',
+      'otherActivities',
+      'challenges',
+      'remarks',
     ];
 
     for (final field in fields) {
@@ -82,8 +101,10 @@ class _BorangBScreenState extends State<BorangBScreen> {
   void _populateFields(BorangBData data) {
     _controllers['membersBeginning']!.text = data.membersBeginning.toString();
     _controllers['membersReceived']!.text = data.membersReceived.toString();
-    _controllers['membersTransferredIn']!.text = data.membersTransferredIn.toString();
-    _controllers['membersTransferredOut']!.text = data.membersTransferredOut.toString();
+    _controllers['membersTransferredIn']!.text =
+        data.membersTransferredIn.toString();
+    _controllers['membersTransferredOut']!.text =
+        data.membersTransferredOut.toString();
     _controllers['membersDropped']!.text = data.membersDropped.toString();
     _controllers['membersDeceased']!.text = data.membersDeceased.toString();
     _controllers['membersEnd']!.text = data.membersEnd.toString();
@@ -94,10 +115,12 @@ class _BorangBScreenState extends State<BorangBScreen> {
     _controllers['sabbathServices']!.text = data.sabbathServices.toString();
     _controllers['prayerMeetings']!.text = data.prayerMeetings.toString();
     _controllers['bibleStudies']!.text = data.bibleStudies.toString();
-    _controllers['evangelisticMeetings']!.text = data.evangelisticMeetings.toString();
+    _controllers['evangelisticMeetings']!.text =
+        data.evangelisticMeetings.toString();
 
     _controllers['homeVisitations']!.text = data.homeVisitations.toString();
-    _controllers['hospitalVisitations']!.text = data.hospitalVisitations.toString();
+    _controllers['hospitalVisitations']!.text =
+        data.hospitalVisitations.toString();
     _controllers['prisonVisitations']!.text = data.prisonVisitations.toString();
 
     _controllers['weddings']!.text = data.weddings.toString();
@@ -105,7 +128,8 @@ class _BorangBScreenState extends State<BorangBScreen> {
     _controllers['dedications']!.text = data.dedications.toString();
 
     _controllers['booksDistributed']!.text = data.booksDistributed.toString();
-    _controllers['magazinesDistributed']!.text = data.magazinesDistributed.toString();
+    _controllers['magazinesDistributed']!.text =
+        data.magazinesDistributed.toString();
     _controllers['tractsDistributed']!.text = data.tractsDistributed.toString();
 
     _controllers['tithe']!.text = data.tithe.toStringAsFixed(2);
@@ -141,28 +165,38 @@ class _BorangBScreenState extends State<BorangBScreen> {
       missionId: user.mission,
       districtId: user.district,
       churchId: user.churchId,
-      membersBeginning: int.tryParse(_controllers['membersBeginning']!.text) ?? 0,
+      membersBeginning:
+          int.tryParse(_controllers['membersBeginning']!.text) ?? 0,
       membersReceived: int.tryParse(_controllers['membersReceived']!.text) ?? 0,
-      membersTransferredIn: int.tryParse(_controllers['membersTransferredIn']!.text) ?? 0,
-      membersTransferredOut: int.tryParse(_controllers['membersTransferredOut']!.text) ?? 0,
+      membersTransferredIn:
+          int.tryParse(_controllers['membersTransferredIn']!.text) ?? 0,
+      membersTransferredOut:
+          int.tryParse(_controllers['membersTransferredOut']!.text) ?? 0,
       membersDropped: int.tryParse(_controllers['membersDropped']!.text) ?? 0,
       membersDeceased: int.tryParse(_controllers['membersDeceased']!.text) ?? 0,
       membersEnd: int.tryParse(_controllers['membersEnd']!.text) ?? 0,
       baptisms: int.tryParse(_controllers['baptisms']!.text) ?? 0,
-      professionOfFaith: int.tryParse(_controllers['professionOfFaith']!.text) ?? 0,
+      professionOfFaith:
+          int.tryParse(_controllers['professionOfFaith']!.text) ?? 0,
       sabbathServices: int.tryParse(_controllers['sabbathServices']!.text) ?? 0,
       prayerMeetings: int.tryParse(_controllers['prayerMeetings']!.text) ?? 0,
       bibleStudies: int.tryParse(_controllers['bibleStudies']!.text) ?? 0,
-      evangelisticMeetings: int.tryParse(_controllers['evangelisticMeetings']!.text) ?? 0,
+      evangelisticMeetings:
+          int.tryParse(_controllers['evangelisticMeetings']!.text) ?? 0,
       homeVisitations: int.tryParse(_controllers['homeVisitations']!.text) ?? 0,
-      hospitalVisitations: int.tryParse(_controllers['hospitalVisitations']!.text) ?? 0,
-      prisonVisitations: int.tryParse(_controllers['prisonVisitations']!.text) ?? 0,
+      hospitalVisitations:
+          int.tryParse(_controllers['hospitalVisitations']!.text) ?? 0,
+      prisonVisitations:
+          int.tryParse(_controllers['prisonVisitations']!.text) ?? 0,
       weddings: int.tryParse(_controllers['weddings']!.text) ?? 0,
       funerals: int.tryParse(_controllers['funerals']!.text) ?? 0,
       dedications: int.tryParse(_controllers['dedications']!.text) ?? 0,
-      booksDistributed: int.tryParse(_controllers['booksDistributed']!.text) ?? 0,
-      magazinesDistributed: int.tryParse(_controllers['magazinesDistributed']!.text) ?? 0,
-      tractsDistributed: int.tryParse(_controllers['tractsDistributed']!.text) ?? 0,
+      booksDistributed:
+          int.tryParse(_controllers['booksDistributed']!.text) ?? 0,
+      magazinesDistributed:
+          int.tryParse(_controllers['magazinesDistributed']!.text) ?? 0,
+      tractsDistributed:
+          int.tryParse(_controllers['tractsDistributed']!.text) ?? 0,
       tithe: double.tryParse(_controllers['tithe']!.text) ?? 0.0,
       offerings: double.tryParse(_controllers['offerings']!.text) ?? 0.0,
       otherActivities: _controllers['otherActivities']!.text,
@@ -180,7 +214,9 @@ class _BorangBScreenState extends State<BorangBScreen> {
             children: [
               const Icon(Icons.check_circle, color: Colors.white),
               const SizedBox(width: 12),
-              Text(_currentData == null ? 'Report saved successfully' : 'Report updated successfully'),
+              Text(_currentData == null
+                  ? 'Report saved successfully'
+                  : 'Report updated successfully'),
             ],
           ),
           backgroundColor: Colors.green,
@@ -210,13 +246,13 @@ class _BorangBScreenState extends State<BorangBScreen> {
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
-    
+
     // Get mission name from user data
     final missionName = user?.mission != null
         ? (AppConstants.missions.firstWhere(
-              (m) => m['id'] == user?.mission,
-              orElse: () => {'name': user?.mission ?? 'Unknown'},
-            )['name'])
+            (m) => m['id'] == user?.mission,
+            orElse: () => {'name': user?.mission ?? 'Unknown'},
+          )['name'])
         : null;
 
     Navigator.pushNamed(
@@ -439,7 +475,8 @@ class _BorangBScreenState extends State<BorangBScreen> {
     );
   }
 
-  Widget _buildSection(String title, IconData icon, Color color, List<Widget> fields) {
+  Widget _buildSection(
+      String title, IconData icon, Color color, List<Widget> fields) {
     return Card(
       elevation: 2,
       child: Padding(
