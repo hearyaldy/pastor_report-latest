@@ -107,7 +107,8 @@ class DataImportUtil {
     List<dynamic> churches,
     ChurchStatus status,
     String regionId,
-    String regionName, // This parameter is used for logging but not in Church constructor
+    String
+        regionName, // This parameter is used for logging but not in Church constructor
     String districtId,
     String missionId,
     Map<String, dynamic> summary,
@@ -148,7 +149,7 @@ class DataImportUtil {
             id: churchId,
             churchName: churchName,
             // Required fields with default values for new church
-            userId: 'system_import',  // Using a placeholder user ID
+            userId: 'system_import', // Using a placeholder user ID
             elderName: 'To be assigned',
             elderEmail: 'placeholder@example.com',
             elderPhone: '000-000-0000',

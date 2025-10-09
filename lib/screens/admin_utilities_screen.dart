@@ -149,10 +149,12 @@ class AdminUtilitiesScreen extends StatelessWidget {
                                 const Divider(),
                                 Text(
                                     'Valid Regions: ${results['valid_regions']}',
-                                    style: const TextStyle(color: Colors.green)),
+                                    style:
+                                        const TextStyle(color: Colors.green)),
                                 Text(
                                     'Valid Districts: ${results['valid_districts']}',
-                                    style: const TextStyle(color: Colors.green)),
+                                    style:
+                                        const TextStyle(color: Colors.green)),
                                 const Divider(),
                                 Text('Invalid Regions: $invalidRegions',
                                     style: TextStyle(
@@ -221,8 +223,8 @@ class AdminUtilitiesScreen extends StatelessWidget {
                         ),
                         TextButton(
                           onPressed: () => Navigator.pop(context, true),
-                          style: TextButton.styleFrom(
-                              foregroundColor: Colors.red),
+                          style:
+                              TextButton.styleFrom(foregroundColor: Colors.red),
                           child: const Text('YES, CLEAR INVALID IDs'),
                         ),
                       ],
@@ -366,8 +368,7 @@ class AdminUtilitiesScreen extends StatelessWidget {
                     _showLoadingDialog(context, 'Mapping names to IDs...');
 
                     try {
-                      final results =
-                          await StaffNameToIdMapper.mapNamesToIds();
+                      final results = await StaffNameToIdMapper.mapNamesToIds();
 
                       if (context.mounted) {
                         Navigator.pop(context); // Close loading
@@ -471,8 +472,7 @@ class AdminUtilitiesScreen extends StatelessWidget {
                         Navigator.pop(context); // Close loading
 
                         final applied = results['applied'] as int;
-                        final notFound =
-                            (results['not_found'] as List).length;
+                        final notFound = (results['not_found'] as List).length;
                         final errors = (results['errors'] as List).length;
 
                         showDialog(
@@ -492,8 +492,8 @@ class AdminUtilitiesScreen extends StatelessWidget {
                                         fontWeight: FontWeight.bold)),
                                 if (notFound > 0)
                                   Text('Not Found: $notFound',
-                                      style:
-                                          const TextStyle(color: Colors.orange)),
+                                      style: const TextStyle(
+                                          color: Colors.orange)),
                                 if (errors > 0)
                                   Text('Errors: $errors',
                                       style:
@@ -606,8 +606,8 @@ class AdminUtilitiesScreen extends StatelessWidget {
                     _showLoadingDialog(context, 'Importing assignments...');
 
                     try {
-                      final results =
-                          await StaffAssignmentImporter.importFromChurchesJSON();
+                      final results = await StaffAssignmentImporter
+                          .importFromChurchesJSON();
 
                       if (context.mounted) {
                         Navigator.pop(context); // Close loading
@@ -1173,7 +1173,8 @@ class AdminUtilitiesScreen extends StatelessWidget {
                           final userData = userDoc.data();
                           final currentMission = userData['mission'] as String?;
 
-                          if (currentMission == null || currentMission.isEmpty) {
+                          if (currentMission == null ||
+                              currentMission.isEmpty) {
                             skipped++;
                             continue;
                           }
@@ -1246,14 +1247,14 @@ class AdminUtilitiesScreen extends StatelessWidget {
                   if (user == null || user.userRole != UserRole.superAdmin) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content:
-                            Text('Only Super Admins can perform this operation'),
+                        content: Text(
+                            'Only Super Admins can perform this operation'),
                         backgroundColor: Colors.red,
                       ),
                     );
                     return;
                   }
-                  
+
                   final confirmed = await showDialog<bool>(
                     context: context,
                     builder: (context) => AlertDialog(
@@ -1283,12 +1284,13 @@ class AdminUtilitiesScreen extends StatelessWidget {
                           context, 'Importing North Sabah Mission churches...');
 
                       // Import churches
-                      final result = await DataImportUtil.importNSMChurches(context);
+                      final result =
+                          await DataImportUtil.importNSMChurches(context);
 
                       // Hide loading and show success
                       if (context.mounted) {
                         Navigator.pop(context); // Remove loading dialog
-                        
+
                         // Show detailed results dialog
                         showDialog(
                           context: context,
@@ -1315,20 +1317,30 @@ class AdminUtilitiesScreen extends StatelessWidget {
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: ListView.builder(
-                                        itemCount: (result['details'] as List).length,
+                                        itemCount:
+                                            (result['details'] as List).length,
                                         itemBuilder: (context, index) {
-                                          final detail = (result['details'] as List)[index];
+                                          final detail = (result['details']
+                                              as List)[index];
                                           Color color = Colors.black;
-                                          if (detail.toString().startsWith('Created')) {
+                                          if (detail
+                                              .toString()
+                                              .startsWith('Created')) {
                                             color = Colors.green;
-                                          } else if (detail.toString().startsWith('Updated')) {
+                                          } else if (detail
+                                              .toString()
+                                              .startsWith('Updated')) {
                                             color = Colors.blue;
-                                          } else if (detail.toString().startsWith('Error')) {
+                                          } else if (detail
+                                              .toString()
+                                              .startsWith('Error')) {
                                             color = Colors.red;
                                           }
                                           return Padding(
-                                            padding: const EdgeInsets.only(bottom: 4, left: 8),
-                                            child: Text(detail.toString(), style: TextStyle(color: color)),
+                                            padding: const EdgeInsets.only(
+                                                bottom: 4, left: 8),
+                                            child: Text(detail.toString(),
+                                                style: TextStyle(color: color)),
                                           );
                                         },
                                       ),
@@ -1361,7 +1373,6 @@ class AdminUtilitiesScreen extends StatelessWidget {
                   }
                 },
               ),
-
               const _SectionHeader(title: 'Financial Reports'),
               _ActionCard(
                 title: 'Fix Financial Reports Mission IDs',
@@ -1404,9 +1415,8 @@ class AdminUtilitiesScreen extends StatelessWidget {
                       final firestore = FirebaseFirestore.instance;
 
                       // Get all reports (we'll fix both null and incorrect values)
-                      final reportsSnapshot = await firestore
-                          .collection('financial_reports')
-                          .get();
+                      final reportsSnapshot =
+                          await firestore.collection('financial_reports').get();
 
                       int updated = 0;
                       int failed = 0;
@@ -1416,7 +1426,8 @@ class AdminUtilitiesScreen extends StatelessWidget {
                         try {
                           final reportData = reportDoc.data();
                           final churchId = reportData['churchId'] as String?;
-                          final currentMissionId = reportData['missionId'] as String?;
+                          final currentMissionId =
+                              reportData['missionId'] as String?;
 
                           if (churchId == null) {
                             failed++;
@@ -1435,7 +1446,8 @@ class AdminUtilitiesScreen extends StatelessWidget {
                           }
 
                           final churchData = churchDoc.data()!;
-                          final correctMissionId = churchData['missionId'] as String?;
+                          final correctMissionId =
+                              churchData['missionId'] as String?;
 
                           if (correctMissionId == null) {
                             failed++;
@@ -1527,32 +1539,38 @@ class AdminUtilitiesScreen extends StatelessWidget {
                   if (confirmed == true) {
                     try {
                       // Show loading indicator with more detailed message
-                      _showLoadingDialog(context, 'Reseeding data...\nThis may take a moment. Please wait.', name: 'reseed_loading');
+                      _showLoadingDialog(context,
+                          'Reseeding data...\nThis may take a moment. Please wait.',
+                          name: 'reseed_loading');
 
                       // Set a timeout to update the loading message after a few seconds
                       // to reassure the user that the process is still running
                       Future.delayed(const Duration(seconds: 5), () {
                         if (context.mounted) {
                           // Check if the dialog is still showing before updating
-                          _updateLoadingDialog(context, 
+                          _updateLoadingDialog(
+                              context,
                               'Still working...\nDeleting existing data and creating new missions and departments.',
                               'reseed_loading');
                         }
                       });
-                      
+
                       // Add another update after a longer delay
                       Future.delayed(const Duration(seconds: 15), () {
                         if (context.mounted) {
-                          _updateLoadingDialog(context, 
+                          _updateLoadingDialog(
+                              context,
                               'Almost there...\nSetting up new missions and departments structure.',
                               'reseed_loading');
                         }
                       });
 
                       // Reseed all data with a timeout
-                      await missionProvider.reseedAllData()
+                      await missionProvider
+                          .reseedAllData()
                           .timeout(const Duration(seconds: 60), onTimeout: () {
-                        throw TimeoutException('Operation timed out. The database might be too large or there might be connection issues.');
+                        throw TimeoutException(
+                            'Operation timed out. The database might be too large or there might be connection issues.');
                       });
 
                       // Hide loading and show success
@@ -1589,9 +1607,10 @@ class AdminUtilitiesScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   // Show a loading dialog with a message
-  void _showLoadingDialog(BuildContext context, String message, {String name = 'loading_dialog'}) {
+  void _showLoadingDialog(BuildContext context, String message,
+      {String name = 'loading_dialog'}) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1619,21 +1638,22 @@ class AdminUtilitiesScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   // Update an existing loading dialog with a new message
-  void _updateLoadingDialog(BuildContext context, String newMessage, String dialogName) {
+  void _updateLoadingDialog(
+      BuildContext context, String newMessage, String dialogName) {
     // First dismiss any existing dialog
     _dismissLoadingDialog(context);
-    
+
     // Then show a new one with the updated message
     _showLoadingDialog(context, newMessage, name: dialogName);
   }
-  
+
   // Dismiss the loading dialog safely
   void _dismissLoadingDialog(BuildContext context) {
     Navigator.of(context, rootNavigator: true).popUntil((route) {
-      return route.settings.name != 'loading_dialog' && 
-             route.settings.name != 'reseed_loading';
+      return route.settings.name != 'loading_dialog' &&
+          route.settings.name != 'reseed_loading';
     });
   }
 }
