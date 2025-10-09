@@ -1,0 +1,528 @@
+{
+  "summary": {
+    "organized_churches": 58,
+    "companies": 35,
+    "groups": 84,
+    "centers": 0,
+    "field_pastors": 35,
+    "young_missionaries": 2,
+    "officer_pastors": 3
+  },
+  "regions": {
+    "1": {
+      "name": "Region 1",
+      "pastoral_districts": {
+        "BANGGI": {
+          "pastor": "",
+          "phone": "",
+          "organized_churches": [],
+          "companies": [
+            { "name": "Limbuak Agong" },
+            { "name": "Lok Agong" }
+          ],
+          "groups": []
+        },
+        "BANDAU CHINESE": {
+          "pastor": "Brian Lee Tat Kee",
+          "phone": "014-670 6433",
+          "organized_churches": [
+            { "name": "Bandau Chinese" }
+          ],
+          "companies": [],
+          "groups": []
+        },
+        "KUDAT": {
+          "pastor": "Almer John",
+          "phone": "019-538 2845",
+          "organized_churches": [
+            { "name": "Kudat Chinese" },
+            { "name": "Kudat Bahasa Malaysia" }
+          ],
+          "companies": [],
+          "groups": []
+        },
+        "LOTONG": {
+          "pastor": "Julios Ubara",
+          "phone": "019-809 7077",
+          "note": "Effective March 2024",
+          "organized_churches": [
+            { "name": "Lotong" },
+            { "name": "Tagas" }
+          ],
+          "companies": [
+            { "name": "Monopod" },
+            { "name": "Pulutan" },
+            { "name": "Kotud" },
+            { "name": "Talas" }
+          ],
+          "groups": [
+            { "name": "Tonsung" },
+            { "name": "Ramag" }
+          ]
+        },
+        "SIKUATI": {
+          "pastor": "Welfred Johari",
+          "phone": "",
+          "organized_churches": [
+            { "name": "Marabau" }
+          ],
+          "companies": [
+            { "name": "Rampai" }
+          ],
+          "groups": [
+            { "name": "Barambangon" },
+            { "name": "Masangkong" },
+            { "name": "Tiga Papan" },
+            { "name": "Kimihang" }
+          ]
+        },
+        "MARAK-PARAK": {
+          "pastor": "Merddano Madzim",
+          "phone": "",
+          "organized_churches": [
+            { "name": "Talamason" }
+          ],
+          "companies": [
+            { "name": "Pangapuyan Baru" },
+            { "name": "Sorinsim" },
+            { "name": "Sunsui" }
+          ],
+          "groups": [
+            { "name": "Mogis" },
+            { "name": "Paka" },
+            { "name": "Talamason Atas" },
+            { "name": "Kanarom" },
+            { "name": "Talamason Baru" },
+            { "name": "Galamou" }
+          ]
+        },
+        "PARAPAT": {
+          "pastor": "Ferinly Justin",
+          "phone": "014-784 2579",
+          "organized_churches": [
+            { "name": "Tambuluran" },
+            { "name": "Parapat" }
+          ],
+          "companies": [
+            { "name": "Minyak" },
+            { "name": "Terongkongon" }
+          ],
+          "groups": [
+            { "name": "Mimpas" },
+            { "name": "Malamam" },
+            { "name": "Binggolon" },
+            { "name": "Rukom 1" },
+            { "name": "Suvil" },
+            { "name": "Rukom 2" }
+          ]
+        },
+        "BAMBANGAN": {
+          "pastor": "Haiyon John",
+          "phone": "",
+          "organized_churches": [],
+          "companies": [
+            { "name": "Bambangan" }
+          ],
+          "groups": [
+            { "name": "Kaindangan (Bambangan)" },
+            { "name": "Kias" },
+            { "name": "Laguhang" },
+            { "name": "Tungab" }
+          ]
+        },
+        "MATUNGGONG": {
+          "pastor": "Simon Musalim",
+          "phone": "011-1796 5979",
+          "note": "Effective March 2024",
+          "organized_churches": [
+            { "name": "Nangka" },
+            { "name": "Pinawantai" },
+            { "name": "Lampaki" }
+          ],
+          "companies": [
+            { "name": "Lotong Laut" },
+            { "name": "Rondomon" },
+            { "name": "Paradason" }
+          ],
+          "groups": [
+            { "name": "Sumangkap" },
+            { "name": "Garib" },
+            { "name": "Kopunadan" },
+            { "name": "Barangkason" },
+            { "name": "Kandavazon Gunggunon" }
+          ]
+        },
+        "SUMBILINGON": {
+          "pastor": "Raynold Suning",
+          "phone": "",
+          "organized_churches": [
+            { "name": "Sumbilingon" },
+            { "name": "Mangkupa" },
+            { "name": "Radu Darat" },
+            { "name": "Radu Laut" },
+            { "name": "Kampar" },
+            { "name": "Sumbilingon Laut" }
+          ],
+          "companies": [
+            { "name": "Gorontung" }
+          ],
+          "groups": [
+            { "name": "Timbang Batu" },
+            { "name": "Timbang Batu 2" },
+            { "name": "Popok Darat" },
+            { "name": "Popok Laut - 39" },
+            { "name": "Korongkom Laut" }
+          ]
+        }
+      }
+    },
+    "2": {
+      "name": "Region 2",
+      "pastoral_districts": {
+        "GOSHEN / SMAG": {
+          "pastor": "Edwin Roy Dulis",
+          "phone": "",
+          "organized_churches": [
+            { "name": "Goshen" },
+            { "name": "Kokobuan" },
+            { "name": "Bunsadan" }
+          ],
+          "companies": [
+            { "name": "Simpangan" },
+            { "name": "Patiu" }
+          ],
+          "groups": [
+            { "name": "Bunsadan Kokobuan" },
+            { "name": "Pekan Bandau" },
+            { "name": "Bahab" },
+            { "name": "Korumindikot" },
+            { "name": "Sagabon" }
+          ]
+        },
+        "GASS CHAPLAIN": {
+          "pastor": "Rikho Jafry",
+          "phone": "",
+          "organized_churches": [],
+          "companies": [],
+          "groups": []
+        }
+      }
+    },
+    "3": {
+      "name": "Region 3",
+      "pastoral_districts": {
+        "BENGKOKA / TANDEK": {
+          "pastor": "Donny Sungangai",
+          "phone": "019-831 4169",
+          "organized_churches": [
+            { "name": "Kibulu" },
+            { "name": "Rukom" },
+            { "name": "Layung Pusat" }
+          ],
+          "companies": [
+            { "name": "Kabatasan" }
+          ],
+          "groups": [
+            { "name": "Dandun" },
+            { "name": "Kiambalang" },
+            { "name": "Pekan Pitas @ Saab" },
+            { "name": "Singgah Mata" },
+            { "name": "Bobod" },
+            { "name": "Tukar" }
+          ]
+        },
+        "BONGKOL": {
+          "pastor": "Robert Jada",
+          "phone": "",
+          "organized_churches": [],
+          "companies": [],
+          "groups": [
+            { "name": "Bongkol" },
+            { "name": "Liu" },
+            { "name": "Sarupil" },
+            { "name": "Sg Eloi" },
+            { "name": "Mangkapon Radap" }
+          ]
+        },
+        "DAMAI": {
+          "pastor": "Laidis Majingkal",
+          "phone": "",
+          "organized_churches": [
+            { "name": "Damai" },
+            { "name": "Kuranji" }
+          ],
+          "companies": [
+            { "name": "Mongkowosing" },
+            { "name": "Rasak Darat" },
+            { "name": "Trangkapas" }
+          ],
+          "groups": [
+            { "name": "Tinondukan Bodi" },
+            { "name": "Lambang" },
+            { "name": "Mangkalua" },
+            { "name": "Tanah Kampung" }
+          ]
+        },
+        "MOSOLOG": {
+          "pastor": "Jason Jon Johnny",
+          "phone": "",
+          "organized_churches": [
+            { "name": "Mosolog" },
+            { "name": "Talantang II" },
+            { "name": "Ranau I" }
+          ],
+          "companies": [],
+          "groups": [
+            { "name": "Linukaan" },
+            { "name": "Penusukan" },
+            { "name": "Piso" },
+            { "name": "Dalaman Darat (Tempat Baru)" }
+          ]
+        },
+        "GANA": {
+          "pastor": "YM",
+          "phone": "",
+          "organized_churches": [],
+          "companies": [
+            { "name": "Gana/Kipopogong" }
+          ],
+          "groups": [
+            { "name": "Gouton" }
+          ]
+        },
+        "KINADAAN": {
+          "pastor": "Tongming Marting",
+          "phone": "019-531 7461",
+          "organized_churches": [
+            { "name": "Kinadaan" }
+          ],
+          "companies": [],
+          "groups": [
+            { "name": "Impas" },
+            { "name": "Teliduson" },
+            { "name": "Kaiboton" }
+          ]
+        },
+        "KOIBOTON": {
+          "pastor": "Amos Gunggut",
+          "phone": "016-918 0490",
+          "organized_churches": [],
+          "companies": [],
+          "groups": [
+            { "name": "Sokoon Paitan" },
+            { "name": "Penubukan Tangkarason" },
+            { "name": "Pinangkau" },
+            { "name": "Kaiboton" }
+          ]
+        },
+        "MAPAD": {
+          "pastor": "Pr Webesterlong Bin Gorikin",
+          "phone": "",
+          "organized_churches": [],
+          "companies": [],
+          "groups": [
+            { "name": "Mapad" },
+            { "name": "Layang" },
+            { "name": "Pantai Golom" },
+            { "name": "Kanibongan" },
+            { "name": "Taradas" }
+          ]
+        },
+        "MEMPAKAD": {
+          "pastor": "Majiri Jaipol",
+          "phone": "013-636 0321",
+          "organized_churches": [],
+          "companies": [
+            { "name": "Mempakad" }
+          ],
+          "groups": [
+            { "name": "Gudang Limau" },
+            { "name": "Mantus" }
+          ]
+        },
+        "MORION": {
+          "pastor": "Lambrin Mabin",
+          "phone": "014-932 1564",
+          "organized_churches": [
+            { "name": "Morion" },
+            { "name": "Nolotan" },
+            { "name": "Salimandut" }
+          ],
+          "companies": [
+            { "name": "Botition" },
+            { "name": "Monguow" },
+            { "name": "Nibang" }
+          ],
+          "groups": [
+            { "name": "Miahau Sahap" },
+            { "name": "Mintangah" }
+          ]
+        },
+        "TANDEK": {
+          "pastor": "Raypalmer Suning",
+          "phone": "",
+          "organized_churches": [
+            { "name": "Pekan Tandek" },
+            { "name": "Tingkalanon" },
+            { "name": "Liabas-Kokol" }
+          ],
+          "companies": [
+            { "name": "Liabas Darat" },
+            { "name": "Masin Asin" }
+          ],
+          "groups": [
+            { "name": "Koromoko" },
+            { "name": "Togudon" },
+            { "name": "Mombu (Mother church: Tingkalanon)" }
+          ]
+        },
+        "SAMPARITA": {
+          "pastor": "Junus Epol",
+          "phone": "014-848 8216",
+          "organized_churches": [
+            { "name": "Samparita Pusat" }
+          ],
+          "companies": [
+            { "name": "Samparita Tengah" }
+          ],
+          "groups": [
+            { "name": "Tinogu" },
+            { "name": "Tinogu Ulu" },
+            { "name": "Bombong I" }
+          ]
+        },
+        "SONSOGON-MAGANDAI": {
+          "pastor": "Vely Mosidin",
+          "phone": "019-379 2142",
+          "organized_churches": [],
+          "companies": [],
+          "groups": [
+            { "name": "Minisulang" },
+            { "name": "Magandai" }
+          ]
+        },
+        "PALIU": {
+          "pastor": "YM Jhonny Majion",
+          "phone": "",
+          "organized_churches": [
+            { "name": "Paliu" }
+          ],
+          "companies": [],
+          "groups": []
+        }
+      }
+    },
+    "4": {
+      "name": "Region 4",
+      "pastoral_districts": {
+        "LANGKON / TAGAROH": {
+          "pastor": "Jered Johan",
+          "phone": "011-3142 2289",
+          "organized_churches": [
+            { "name": "Bintasan Tengah" }
+          ],
+          "companies": [
+            { "name": "Minansad" }
+          ],
+          "groups": [
+            { "name": "Gosusu" },
+            { "name": "Bintasan I" },
+            { "name": "Boluot" },
+            { "name": "Mangin" },
+            { "name": "Batutai" }
+          ]
+        },
+        "RASAK": {
+          "pastor": "Fredinus Julis",
+          "phone": "019-534 1475",
+          "organized_churches": [],
+          "companies": [
+            { "name": "Toporoi" }
+          ],
+          "groups": [
+            { "name": "Kirangawan" },
+            { "name": "Ontolob" },
+            { "name": "Sampir" },
+            { "name": "Rasak Tigaman" },
+            { "name": "Tulid" }
+          ]
+        },
+        "MANGARIS": {
+          "pastor": "Janson Tongkiang",
+          "phone": "013-490 2988",
+          "organized_churches": [
+            { "name": "Bukit Lalang" }
+          ],
+          "companies": [
+            { "name": "Tonsom" },
+            { "name": "Mangaris Darat" },
+            { "name": "Mangaris Laut" }
+          ],
+          "groups": [
+            { "name": "Bukit Kudus" },
+            { "name": "Menggaris Tengah" }
+          ]
+        },
+        "TAGAROH": {
+          "pastor": "Enos Hitler",
+          "phone": "",
+          "organized_churches": [
+            { "name": "Pinatau" },
+            { "name": "Togop" },
+            { "name": "Sungoi Laut" },
+            { "name": "Garden Groove (Tagaroh)" },
+            { "name": "Taginambur" }
+          ],
+          "companies": [
+            { "name": "Bt Lalang" },
+            { "name": "Sungoi Darat" }
+          ],
+          "groups": [
+            { "name": "Pinatau II (Toud)" },
+            { "name": "Wani" },
+            { "name": "Konsolung" }
+          ]
+        },
+        "TAIWAN": {
+          "pastor": "Jerry Siming",
+          "phone": "012-817 7386",
+          "organized_churches": [
+            { "name": "Taiwan" },
+            { "name": "Lamma" },
+            { "name": "Renahaan" },
+            { "name": "Panaitan" },
+            { "name": "Pandawar" },
+            { "name": "Kandawayon" }
+          ],
+          "companies": [
+            { "name": "Soronsob" }
+          ],
+          "groups": [
+            { "name": "Marudu Darat" },
+            { "name": "Batangaon" },
+            { "name": "Tunggung" }
+          ]
+        },
+        "RUGADING": {
+          "pastor": "Axworthy Daryl Samuel Terrence",
+          "phone": "",
+          "organized_churches": [
+            { "name": "Rugading" },
+            { "name": "Luba Polumpung", "doc": "1/7/2013" },
+            { "name": "Lampada" }
+          ],
+          "companies": [
+            { "name": "Toboliung" },
+            { "name": "Torintidon" }
+          ],
+          "groups": [
+            { "name": "Gontoi" },
+            { "name": "Pampang Poring" },
+            { "name": "Stamping" },
+            { "name": "Maligai" }
+          ]
+        }
+      }
+    }
+  }
+}
