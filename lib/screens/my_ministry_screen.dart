@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/models/church_model.dart';
 import 'package:pastor_report/models/mission_model.dart';
+import 'package:pastor_report/models/resource_model.dart';
 import 'package:pastor_report/models/staff_model.dart';
 import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/services/church_storage_service.dart';
 import 'package:pastor_report/services/church_service.dart';
+import 'package:pastor_report/services/resource_service.dart';
 import 'package:pastor_report/services/staff_service.dart';
 import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/services/region_service.dart';
@@ -44,7 +47,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       setState(() {}); // Rebuild to update FAB when tab changes
     });
@@ -163,6 +166,91 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
       return 'Not assigned';
     }
     return _districtNames[districtId] ?? districtId;
+  }
+
+  // Helper methods for modern staff cards
+  Color _getRoleColor(String role) {
+    switch (role.toLowerCase()) {
+      case 'district pastor':
+        return Colors.blue;
+      case 'mission officer':
+        return Colors.green;
+      case 'assistant pastor':
+        return Colors.orange;
+      case 'youth pastor':
+        return Colors.purple;
+      case 'children pastor':
+        return Colors.pink;
+      case 'worship pastor':
+        return Colors.teal;
+      case 'pastor':
+        return Colors.indigo;
+      case 'president':
+        return Colors.red;
+      case 'secretary':
+        return Colors.brown;
+      case 'treasurer':
+        return Colors.amber.shade700;
+      default:
+        return Colors.grey.shade700;
+    }
+  }
+
+  IconData _getRoleIcon(String role) {
+    switch (role.toLowerCase()) {
+      case 'district pastor':
+        return Icons.business;
+      case 'mission officer':
+        return Icons.group_work;
+      case 'assistant pastor':
+        return Icons.person;
+      case 'youth pastor':
+        return Icons.sports_soccer;
+      case 'children pastor':
+        return Icons.child_care;
+      case 'worship pastor':
+        return Icons.music_note;
+      case 'pastor':
+        return Icons.person;
+      case 'president':
+        return Icons.star;
+      case 'secretary':
+        return Icons.edit_document;
+      case 'treasurer':
+        return Icons.account_balance_wallet;
+      default:
+        return Icons.work;
+    }
+  }
+
+  Widget _buildChip(
+      String label, IconData icon, Color backgroundColor, Color textColor) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 200), // Limit chip width
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: textColor),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: textColor,
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   String _getMissionName(String? missionId) {
@@ -360,76 +448,325 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
 
   // Note: Delete Church action removed; churches are managed via Admin Dashboard.
 
+  Widget _buildModernStaffCard(Staff staff, bool canEdit, UserModel user) {
+    final roleColor = _getRoleColor(staff.role);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: roleColor.withValues(alpha: 0.3), width: 1.5),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: roleColor.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: Stack(
+          children: [
+            // Role indicator in top right corner
+            Positioned(
+              top: 0,
+              right: 0,
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: roleColor,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    _getRoleIcon(staff.role),
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+              ),
+            ),
+            InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => _showStaffDetails(staff),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    // Avatar
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            roleColor.withValues(alpha: 0.8),
+                            roleColor,
+                          ],
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _getRoleIcon(staff.role),
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Staff info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            staff.name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            staff.email.isNotEmpty
+                                ? staff.email
+                                : (staff.phone.isNotEmpty
+                                    ? staff.phone
+                                    : "No contact info"),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              _buildChip(
+                                staff.role,
+                                _getRoleIcon(staff.role),
+                                roleColor.withValues(alpha: 0.1),
+                                roleColor,
+                              ),
+                              _buildChip(
+                                _getMissionName(staff.mission),
+                                Icons.business,
+                                Colors.blue.shade100,
+                                Colors.blue.shade700,
+                              ),
+                              if (staff.department != null &&
+                                  staff.department!.isNotEmpty)
+                                _buildChip(
+                                  staff.department!,
+                                  Icons.groups,
+                                  Colors.teal.shade100,
+                                  Colors.teal.shade700,
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Action buttons
+                    if (canEdit)
+                      SizedBox(
+                        width: 96,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.edit,
+                                color: AppColors.primaryLight,
+                              ),
+                              iconSize: 20,
+                              padding: const EdgeInsets.all(4),
+                              onPressed: () => _editStaff(staff, user),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete,
+                                color: Colors.red.shade400,
+                              ),
+                              iconSize: 20,
+                              padding: const EdgeInsets.all(4),
+                              onPressed: () => _deleteStaff(staff),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text('My Ministry'),
-        backgroundColor: AppColors.primaryLight,
-        foregroundColor: Colors.white,
-        // Use a simpler bottom with just the tab bar
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primaryLight,
-                  AppColors.primaryLight.withValues(alpha: 0.8),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) {
+                return [
+                  _buildModernAppBar(),
+                ];
+              },
+              body: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildChurchesTab(),
+                  _buildTeamTab(),
+                  _buildResourcesTab(),
                 ],
               ),
             ),
-            child: Column(
-              children: [
-                // Clean tab bar for navigation
-                TabBar(
-                  controller: _tabController,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.white60,
-                  labelStyle: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+    );
+  }
+
+  Widget _buildModernAppBar() {
+    return SliverAppBar(
+      expandedHeight: 200,
+      floating: false,
+      pinned: true,
+      backgroundColor: AppColors.primaryLight,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+      flexibleSpace: FlexibleSpaceBar(
+        title: const Text(
+          'My Ministry',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.primaryLight,
+                AppColors.primaryDark,
+              ],
+            ),
+          ),
+          child: Stack(
+            children: [
+              // Decorative circles
+              Positioned(
+                right: -30,
+                top: -30,
+                child: Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.1),
                   ),
-                  unselectedLabelStyle: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.normal,
+                ),
+              ),
+              Positioned(
+                left: -20,
+                bottom: -20,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.1),
                   ),
-                  indicator: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              // Icon overlay
+              Center(
+                child: Icon(
+                  Icons.church,
+                  size: 80,
+                  color: Colors.white.withValues(alpha: 0.2),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(56),
+        child: Container(
+          color: AppColors.primaryLight,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white60,
+              labelStyle: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+              indicator: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
                   ),
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorPadding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  tabs: const [
-                    Tab(
-                      icon: Icon(Icons.church, size: 24),
-                      text: 'My Churches',
-                    ),
-                    Tab(
-                      icon: Icon(Icons.people, size: 24),
-                      text: 'Staff Directory',
-                    ),
-                  ],
+                ],
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicatorPadding:
+                  const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              dividerColor: Colors.transparent,
+              tabs: const [
+                Tab(
+                  icon: Icon(Icons.church, size: 18),
+                  text: 'Churches',
+                  height: 48,
+                ),
+                Tab(
+                  icon: Icon(Icons.people, size: 18),
+                  text: 'Staff',
+                  height: 48,
+                ),
+                Tab(
+                  icon: Icon(Icons.folder_open, size: 18),
+                  text: 'Resources',
+                  height: 48,
                 ),
               ],
             ),
           ),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildChurchesTab(),
-                _buildTeamTab(),
-              ],
-            ),
     );
   }
 
@@ -606,6 +943,24 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                 Text('Elder Name',
                                     style: TextStyle(
                                         fontWeight: _churchSortBy == 'elder'
+                                            ? FontWeight.bold
+                                            : FontWeight.normal)),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'status',
+                            child: Row(
+                              children: [
+                                Icon(Icons.label,
+                                    size: 20,
+                                    color: _churchSortBy == 'status'
+                                        ? AppColors.primaryLight
+                                        : Colors.grey),
+                                const SizedBox(width: 8),
+                                Text('Status',
+                                    style: TextStyle(
+                                        fontWeight: _churchSortBy == 'status'
                                             ? FontWeight.bold
                                             : FontWeight.normal)),
                               ],
@@ -1432,97 +1787,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                               itemCount: filteredStaff.length,
                               itemBuilder: (context, index) {
                                 final staff = filteredStaff[index];
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: AppColors.primaryLight
-                                          .withValues(alpha: 0.25),
-                                      width: 1.2,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppColors.primaryLight
-                                            .withValues(alpha: 0.08),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ListTile(
-                                    leading: CircleAvatar(
-                                      backgroundColor: AppColors.primaryLight,
-                                      child: Text(
-                                        staff.name
-                                            .substring(0, 1)
-                                            .toUpperCase(),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    title: Text(
-                                      staff.name,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    subtitle: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(staff.role),
-                                        Text(
-                                          _getMissionName(staff.mission),
-                                          style: TextStyle(
-                                            color: AppColors.primaryLight,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        if (isMissionAdmin) ...[
-                                          IconButton(
-                                            icon: const Icon(Icons.edit,
-                                                color: Colors.blue),
-                                            onPressed: () =>
-                                                _editStaff(staff, user!),
-                                            tooltip: 'Edit',
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.delete,
-                                                color: Colors.red),
-                                            onPressed: () =>
-                                                _deleteStaff(staff),
-                                            tooltip: 'Delete',
-                                          ),
-                                        ] else ...[
-                                          IconButton(
-                                            icon: const Icon(Icons.phone,
-                                                color: Colors.green),
-                                            onPressed: () =>
-                                                _makePhoneCall(staff.phone),
-                                            tooltip: 'Call',
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.email,
-                                                color: Colors.blue),
-                                            onPressed: () =>
-                                                _sendEmail(staff.email),
-                                            tooltip: 'Email',
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                    onTap: () => _showStaffDetails(staff),
-                                    isThreeLine: true,
-                                  ),
-                                );
+                                return _buildModernStaffCard(
+                                    staff, isMissionAdmin, user!);
                               },
                             ),
                     ),
@@ -1601,55 +1867,45 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
   Stream<List<Staff>> _getStaffStream(UserModel? user) {
     if (user == null) return Stream.value([]);
 
-    // SuperAdmin and Admin see all staff
-    if (user.userRole == UserRole.superAdmin ||
-        user.userRole == UserRole.admin) {
-      return StaffService.instance.streamAllStaff();
-    }
-
-    // District Pastor sees all staff from their mission
-    if (user.userRole == UserRole.districtPastor &&
-        user.mission != null &&
-        user.mission!.isNotEmpty) {
-      return StaffService.instance.streamStaffByMission(user.mission!);
-    }
-
-    // Regular users see staff from their district only (more restrictive than mission)
-    if (user.district != null && user.district!.isNotEmpty) {
-      return StaffService.instance.streamStaffByDistrict(user.district!);
-    }
-
-    // Fallback: see staff from their mission if no district assigned
+    // All users should only see staff from their assigned mission
     if (user.mission != null && user.mission!.isNotEmpty) {
       return StaffService.instance.streamStaffByMission(user.mission!);
     }
 
+    // If no mission is assigned, return empty list
     return Stream.value([]);
   }
 
   void _showStaffDetails(Staff staff) async {
     // Fetch district and region names if IDs are present
-    String? districtName;
-    String? regionName;
+    String districtName = '';
+    String regionName = '';
+    String districtId = staff.district ?? '';
+    String regionId = staff.region ?? '';
+    String missionId = staff.mission;
 
-    if (staff.district != null) {
-      try {
-        final district =
-            await DistrictService.instance.getDistrictById(staff.district!);
-        districtName = district?.name ?? staff.district;
-      } catch (e) {
-        districtName = staff.district;
-      }
+    print(
+        'Staff details - mission: $missionId, district: $districtId, region: $regionId');
+
+    // Special handling for Sabah Mission Staff
+    bool isSabahMission = staff.mission.toLowerCase().contains('sabah') ||
+        _getMissionName(staff.mission).toLowerCase().contains('sabah');
+
+    if (isSabahMission) {
+      print('Found Sabah Mission Staff: ${staff.name}');
     }
 
-    if (staff.region != null) {
-      try {
-        final region =
-            await RegionService.instance.getRegionById(staff.region!);
-        regionName = region?.name ?? staff.region;
-      } catch (e) {
-        regionName = staff.region;
-      }
+    // Use the new resolver methods for better results
+    if (districtId.isNotEmpty) {
+      districtName = await DistrictService.instance
+          .resolveDistrictName(districtId, missionId: missionId);
+      print('Resolved district name: $districtName for ID: $districtId');
+    }
+
+    if (regionId.isNotEmpty) {
+      regionName = await RegionService.instance
+          .resolveRegionName(regionId, missionId: missionId);
+      print('Resolved region name: $regionName for ID: $regionId');
     }
 
     if (!mounted) return;
@@ -1691,12 +1947,12 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
               const SizedBox(height: 24),
               _detailRow(
                   Icons.business, 'Mission', _getMissionName(staff.mission)),
-              if (staff.department != null)
+              if (staff.department != null && staff.department!.isNotEmpty)
                 _detailRow(Icons.category, 'Department', staff.department!),
-              if (districtName != null)
-                _detailRow(Icons.location_on, 'District', districtName),
-              if (regionName != null)
+              if (regionName.isNotEmpty)
                 _detailRow(Icons.map, 'Region', regionName),
+              if (districtName.isNotEmpty)
+                _detailRow(Icons.location_on, 'District', districtName),
               _detailRow(Icons.email, 'Email', staff.email),
               _detailRow(Icons.phone, 'Phone', staff.phone),
               if (staff.notes != null && staff.notes!.isNotEmpty)
@@ -1733,6 +1989,331 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildResourcesTab() {
+    return FutureBuilder<List<Resource>>(
+      future: _loadResources(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Error loading resources: ${snapshot.error}'),
+          );
+        }
+
+        final resources = snapshot.data ?? [];
+
+        if (resources.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.folder_off,
+                    size: 80,
+                    color: Colors.grey.shade300,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No Resources Available',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Your mission admin hasn\'t uploaded\nany resources yet',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // Group resources by category
+        final groupedResources = <ResourceCategory, List<Resource>>{};
+        for (var resource in resources) {
+          if (!groupedResources.containsKey(resource.category)) {
+            groupedResources[resource.category] = [];
+          }
+          groupedResources[resource.category]!.add(resource);
+        }
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Summary Card
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.folder_open, color: AppColors.primaryLight),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Available Resources',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '${resources.length} files shared by your mission',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Resources by category
+            ...groupedResources.entries.map((entry) {
+              return _buildResourceCategorySection(
+                entry.key,
+                entry.value,
+              );
+            }),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<List<Resource>> _loadResources() async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final user = authProvider.user;
+
+      if (user?.mission == null) return [];
+
+      final resourceService = ResourceService();
+      return await resourceService.getResourcesByMission(user!.mission!);
+    } catch (e) {
+      debugPrint('Error loading resources: $e');
+      return [];
+    }
+  }
+
+  Widget _buildResourceCategorySection(
+    ResourceCategory category,
+    List<Resource> resources,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              Icon(
+                _getCategoryIcon(category),
+                size: 20,
+                color: _getCategoryColor(category),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                category.displayName,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _getCategoryColor(category).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${resources.length}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: _getCategoryColor(category),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        ...resources.map((resource) => _buildResourceItem(resource)),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildResourceItem(Resource resource) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _getCategoryColor(resource.category).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            _getCategoryIcon(resource.category),
+            color: _getCategoryColor(resource.category),
+          ),
+        ),
+        title: Text(
+          resource.name,
+          style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              resource.description,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.data_usage, size: 12, color: Colors.grey.shade600),
+                const SizedBox(width: 4),
+                Text(
+                  resource.fileSizeFormatted,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
+                const SizedBox(width: 12),
+                Icon(Icons.access_time, size: 12, color: Colors.grey.shade600),
+                const SizedBox(width: 4),
+                Text(
+                  DateFormat('dd MMM yyyy').format(resource.uploadedAt),
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ],
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.download),
+          onPressed: () => _downloadResource(resource),
+        ),
+        onTap: () => _downloadResource(resource),
+      ),
+    );
+  }
+
+  IconData _getCategoryIcon(ResourceCategory category) {
+    switch (category) {
+      case ResourceCategory.document:
+        return Icons.description;
+      case ResourceCategory.presentation:
+        return Icons.slideshow;
+      case ResourceCategory.spreadsheet:
+        return Icons.table_chart;
+      case ResourceCategory.image:
+        return Icons.image;
+      case ResourceCategory.video:
+        return Icons.video_library;
+      case ResourceCategory.audio:
+        return Icons.audiotrack;
+      case ResourceCategory.other:
+      default:
+        return Icons.insert_drive_file;
+    }
+  }
+
+  Color _getCategoryColor(ResourceCategory category) {
+    switch (category) {
+      case ResourceCategory.document:
+        return Colors.blue;
+      case ResourceCategory.presentation:
+        return Colors.orange;
+      case ResourceCategory.spreadsheet:
+        return Colors.green;
+      case ResourceCategory.image:
+        return Colors.purple;
+      case ResourceCategory.video:
+        return Colors.red;
+      case ResourceCategory.audio:
+        return Colors.teal;
+      case ResourceCategory.other:
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Future<void> _downloadResource(Resource resource) async {
+    final url = Uri.parse(resource.fileUrl);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open resource')),
+        );
+      }
+    }
+  }
+
+  Widget _buildResourceFeature(IconData icon, String title, String subtitle) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.accent.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: AppColors.accent, size: 24),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

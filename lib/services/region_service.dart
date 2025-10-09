@@ -9,6 +9,11 @@ class RegionService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collectionName = 'regions';
 
+  // Cache for region names by ID
+  final Map<String, String> _regionNameCache = {};
+  // Cache for regions by mission
+  final Map<String, List<Region>> _missionRegionsCache = {};
+
   // Create a new region
   Future<void> createRegion(Region region) async {
     try {
@@ -279,11 +284,112 @@ class RegionService {
     }
 
     try {
+      // First try direct lookup
       final region = await getRegionById(regionId);
-      return region?.name ?? "Unknown Region";
+      if (region != null) {
+        return region.name;
+      }
+
+      // Try to find in all regions
+      final regions = await getAllRegions();
+      for (final r in regions) {
+        if (r.id == regionId) {
+          return r.name;
+        }
+      }
+
+      // If still not found, return the ID as a last resort
+      print(
+          'RegionService: Could not find region name for ID $regionId, returning ID');
+      return regionId;
     } catch (e) {
       print('RegionService: Error getting region name for ID $regionId: $e');
       return "Unknown Region";
     }
+  }
+
+  // Get a region name safely, trying multiple approaches
+  Future<String> resolveRegionName(String? regionId,
+      {String? missionId}) async {
+    if (regionId == null || regionId.isEmpty) {
+      return "";
+    }
+
+    // Check cache first
+    if (_regionNameCache.containsKey(regionId)) {
+      print(
+          'RegionService: Using cached region name: ${_regionNameCache[regionId]} for ID: $regionId');
+      return _regionNameCache[regionId]!;
+    }
+
+    try {
+      // Step 1: Try direct lookup by ID
+      final region = await getRegionById(regionId);
+      if (region != null) {
+        print('RegionService: Found region by direct lookup: ${region.name}');
+        _regionNameCache[regionId] = region.name; // Cache result
+        return region.name;
+      }
+
+      // Step 2: Search in all regions
+      final allRegions = await getAllRegions();
+      for (final r in allRegions) {
+        if (r.id == regionId) {
+          print('RegionService: Found region in all regions: ${r.name}');
+          _regionNameCache[regionId] = r.name; // Cache result
+          return r.name;
+        }
+      }
+
+      // Step 3: If missionId is provided, try to find regions for this mission
+      if (missionId != null && missionId.isNotEmpty) {
+        print('RegionService: Trying to find region by mission: $missionId');
+
+        List<Region> missionRegions;
+        if (_missionRegionsCache.containsKey(missionId)) {
+          missionRegions = _missionRegionsCache[missionId]!;
+          print(
+              'RegionService: Using cached mission regions (${missionRegions.length}) for mission: $missionId');
+        } else {
+          missionRegions = await getRegionsByMission(missionId);
+          _missionRegionsCache[missionId] = missionRegions; // Cache result
+        }
+
+        if (missionRegions.isNotEmpty) {
+          // If mission has only one region, use that as a fallback
+          if (missionRegions.length == 1) {
+            print(
+                'RegionService: Using mission\'s sole region: ${missionRegions[0].name}');
+            _regionNameCache[regionId] = missionRegions[0].name; // Cache result
+            return missionRegions[0].name;
+          }
+
+          // Try to find a region with a similar ID or name
+          for (final r in missionRegions) {
+            if (r.id == regionId ||
+                r.id.contains(regionId) ||
+                regionId.contains(r.id) ||
+                r.name.toLowerCase().contains(regionId.toLowerCase())) {
+              print('RegionService: Found similar region: ${r.name}');
+              _regionNameCache[regionId] = r.name; // Cache result
+              return r.name;
+            }
+          }
+        }
+      }
+
+      // Step 4: If all else fails, use the ID
+      _regionNameCache[regionId] = regionId; // Cache the fallback
+      return regionId;
+    } catch (e) {
+      print('RegionService: Error resolving region name: $e');
+      return regionId;
+    }
+  }
+
+  // Clear all caches
+  void clearCaches() {
+    _regionNameCache.clear();
+    _missionRegionsCache.clear();
   }
 }

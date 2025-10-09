@@ -90,6 +90,14 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           // Modern App Bar with gradient
           _buildModernAppBar(user),
 
+          // Search Bar Section
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: _buildSearchBar(),
+            ),
+          ),
+
           // Quick Stats Overview
           _buildQuickStats(user),
 
@@ -114,7 +122,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
 
   Widget _buildModernAppBar(UserModel? user) {
     return SliverAppBar(
-      expandedHeight: 180,
+      expandedHeight: 160, // Increased from 150 to accommodate content
       floating: false,
       pinned: true,
       elevation: 0,
@@ -142,14 +150,16 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 60),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 60), // Reduced from 80 to 60
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end, // Changed from center to end
+                mainAxisAlignment:
+                    MainAxisAlignment.end, // Changed from center to end
                 mainAxisSize: MainAxisSize.min, // Added to minimize space
                 children: [
                   if (user != null) ...[
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         CircleAvatar(
                           radius: 24, // Reduced from 28 to save space
@@ -191,10 +201,11 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                                 overflow: TextOverflow.ellipsis, // Added
                                 maxLines: 1, // Added
                               ),
+                              const SizedBox(height: 6),
+                              _buildRoleBadge(user),
                             ],
                           ),
                         ),
-                        _buildRoleBadge(user),
                       ],
                     ),
                   ] else ...[
@@ -219,13 +230,6 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
               ),
             ),
           ),
-        ),
-      ),
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(60),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: _buildSearchBar(),
         ),
       ),
     );

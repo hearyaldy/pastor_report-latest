@@ -9,6 +9,11 @@ class DistrictService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collectionName = 'districts';
 
+  // Cache for district names by ID
+  final Map<String, String> _districtNameCache = {};
+  // Cache for districts by mission
+  final Map<String, List<District>> _missionDistrictsCache = {};
+
   // Create a new district
   Future<void> createDistrict(District district) async {
     try {
@@ -250,12 +255,116 @@ class DistrictService {
     }
 
     try {
+      // First try direct lookup
       final district = await getDistrictById(districtId);
-      return district?.name ?? "Unknown District";
+      if (district != null) {
+        return district.name;
+      }
+
+      // Try to find in all districts
+      final districts = await getAllDistricts();
+      for (final d in districts) {
+        if (d.id == districtId) {
+          return d.name;
+        }
+      }
+
+      // If still not found, return the ID as a last resort
+      print(
+          'DistrictService: Could not find district name for ID $districtId, returning ID');
+      return districtId;
     } catch (e) {
       print(
           'DistrictService: Error getting district name for ID $districtId: $e');
       return "Unknown District";
     }
+  }
+
+  // Get a district name safely, trying multiple approaches
+  Future<String> resolveDistrictName(String? districtId,
+      {String? missionId}) async {
+    if (districtId == null || districtId.isEmpty) {
+      return "";
+    }
+
+    // Check cache first
+    if (_districtNameCache.containsKey(districtId)) {
+      print(
+          'DistrictService: Using cached district name: ${_districtNameCache[districtId]} for ID: $districtId');
+      return _districtNameCache[districtId]!;
+    }
+
+    try {
+      // Step 1: Try direct lookup by ID
+      final district = await getDistrictById(districtId);
+      if (district != null) {
+        print(
+            'DistrictService: Found district by direct lookup: ${district.name}');
+        _districtNameCache[districtId] = district.name; // Cache result
+        return district.name;
+      }
+
+      // Step 2: Search in all districts
+      final allDistricts = await getAllDistricts();
+      for (final d in allDistricts) {
+        if (d.id == districtId) {
+          print('DistrictService: Found district in all districts: ${d.name}');
+          _districtNameCache[districtId] = d.name; // Cache result
+          return d.name;
+        }
+      }
+
+      // Step 3: If missionId is provided, try to find districts for this mission
+      if (missionId != null && missionId.isNotEmpty) {
+        print(
+            'DistrictService: Trying to find district by mission: $missionId');
+
+        List<District> missionDistricts;
+        if (_missionDistrictsCache.containsKey(missionId)) {
+          missionDistricts = _missionDistrictsCache[missionId]!;
+          print(
+              'DistrictService: Using cached mission districts (${missionDistricts.length}) for mission: $missionId');
+        } else {
+          missionDistricts = await getDistrictsByMission(missionId);
+          _missionDistrictsCache[missionId] = missionDistricts; // Cache result
+        }
+
+        if (missionDistricts.isNotEmpty) {
+          // If mission has only one district, use that as a fallback
+          if (missionDistricts.length == 1) {
+            print(
+                'DistrictService: Using mission\'s sole district: ${missionDistricts[0].name}');
+            _districtNameCache[districtId] =
+                missionDistricts[0].name; // Cache result
+            return missionDistricts[0].name;
+          }
+
+          // Try to find a district with a similar ID or name
+          for (final d in missionDistricts) {
+            if (d.id == districtId ||
+                d.id.contains(districtId) ||
+                districtId.contains(d.id) ||
+                d.name.toLowerCase().contains(districtId.toLowerCase())) {
+              print('DistrictService: Found similar district: ${d.name}');
+              _districtNameCache[districtId] = d.name; // Cache result
+              return d.name;
+            }
+          }
+        }
+      }
+
+      // Step 4: If all else fails, use the ID
+      _districtNameCache[districtId] = districtId; // Cache the fallback
+      return districtId;
+    } catch (e) {
+      print('DistrictService: Error resolving district name: $e');
+      return districtId;
+    }
+  }
+
+  // Clear all caches
+  void clearCaches() {
+    _districtNameCache.clear();
+    _missionDistrictsCache.clear();
   }
 }
