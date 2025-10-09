@@ -7,12 +7,14 @@ import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/providers/mission_provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/services/data_import_service.dart';
+import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/utils/fix_staff_region_district.dart';
 import 'package:pastor_report/utils/map_staff_names_to_ids.dart';
 import 'package:pastor_report/utils/diagnose_staff_data.dart';
 import 'package:pastor_report/utils/import_staff_assignments.dart';
 import 'package:pastor_report/utils/check_unmatched_staff.dart';
 import 'package:pastor_report/utils/fix_staff_names.dart';
+import 'package:pastor_report/utils/data_import_util.dart';
 
 class AdminUtilitiesScreen extends StatelessWidget {
   const AdminUtilitiesScreen({super.key});
@@ -1230,6 +1232,136 @@ class AdminUtilitiesScreen extends StatelessWidget {
                   }
                 },
               ),
+              const _SectionHeader(title: 'Church Data Management'),
+              _ActionCard(
+                title: 'Import North Sabah Mission Churches',
+                description:
+                    'Update Firebase database with churches from NSM_Churches_Updated.json file.',
+                icon: Icons.church,
+                color: Colors.indigo,
+                onTap: () async {
+                  final authProvider = context.read<AuthProvider>();
+                  final user = authProvider.user;
+
+                  if (user == null || user.userRole != UserRole.superAdmin) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content:
+                            Text('Only Super Admins can perform this operation'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+                  
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Import NSM Churches'),
+                      content: const Text(
+                          'This will import churches from NSM_Churches_Updated.json to Firebase.\n\n'
+                          'Existing churches with the same name and district will be updated.\n'
+                          'New churches will be created.\n\n'
+                          'Do you want to continue?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('CANCEL'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('YES, IMPORT CHURCHES'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true) {
+                    try {
+                      // Show loading indicator
+                      _showLoadingDialog(
+                          context, 'Importing North Sabah Mission churches...');
+
+                      // Import churches
+                      final result = await DataImportUtil.importNSMChurches(context);
+
+                      // Hide loading and show success
+                      if (context.mounted) {
+                        Navigator.pop(context); // Remove loading dialog
+                        
+                        // Show detailed results dialog
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Import Results'),
+                            content: SizedBox(
+                              width: double.maxFinite,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Total processed: ${result['total']}'),
+                                  Text('Created: ${result['created']}'),
+                                  Text('Updated: ${result['updated']}'),
+                                  Text('Errors: ${result['errors']}'),
+                                  const SizedBox(height: 16),
+                                  const Text('Details:'),
+                                  const SizedBox(height: 8),
+                                  Flexible(
+                                    child: Container(
+                                      height: 300,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: Colors.grey),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: ListView.builder(
+                                        itemCount: (result['details'] as List).length,
+                                        itemBuilder: (context, index) {
+                                          final detail = (result['details'] as List)[index];
+                                          Color color = Colors.black;
+                                          if (detail.toString().startsWith('Created')) {
+                                            color = Colors.green;
+                                          } else if (detail.toString().startsWith('Updated')) {
+                                            color = Colors.blue;
+                                          } else if (detail.toString().startsWith('Error')) {
+                                            color = Colors.red;
+                                          }
+                                          return Padding(
+                                            padding: const EdgeInsets.only(bottom: 4, left: 8),
+                                            child: Text(detail.toString(), style: TextStyle(color: color)),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('CLOSE'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      // Hide loading and show error
+                      if (context.mounted) {
+                        Navigator.pop(context); // Remove loading dialog
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error importing churches: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+              ),
+
               const _SectionHeader(title: 'Financial Reports'),
               _ActionCard(
                 title: 'Fix Financial Reports Mission IDs',
