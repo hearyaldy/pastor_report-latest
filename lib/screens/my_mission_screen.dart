@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:excel/excel.dart' as excel_pkg;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:io';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/services/financial_report_service.dart';
 import 'package:pastor_report/services/district_service.dart';
@@ -8,11 +12,13 @@ import 'package:pastor_report/services/church_service.dart';
 import 'package:pastor_report/services/staff_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/services/optimized_data_service.dart';
+import 'package:pastor_report/services/borang_b_firestore_service.dart';
 import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/models/district_model.dart';
 import 'package:pastor_report/models/church_model.dart';
 import 'package:pastor_report/models/mission_model.dart';
 import 'package:pastor_report/models/financial_report_model.dart';
+import 'package:pastor_report/models/borang_b_model.dart';
 import 'package:pastor_report/screens/treasurer/financial_report_form.dart';
 import 'package:pastor_report/screens/admin/financial_reports_screen.dart';
 import 'package:pastor_report/utils/constants.dart';
@@ -33,16 +39,35 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
   final DistrictService _districtService = DistrictService.instance;
   final ChurchService _churchService = ChurchService.instance;
   final StaffService _staffService = StaffService.instance;
+  final BorangBFirestoreService _borangBService =
+      BorangBFirestoreService.instance;
 
   bool _isLoading = false;
   bool _dataLoaded = false;
   Map<String, double> _financialData = {};
+  Map<String, double> _borangBFinancialData = {};
+  int _totalBorangBReports = 0;
   int _totalDistricts = 0;
   int _totalChurches = 0;
   int _totalStaff = 0;
   int _totalMembers = 0;
   int _churchesWithReports = 0;
   DateTime _selectedMonth = DateTime.now();
+
+  // Detailed discrepancy tracking
+  List<Map<String, dynamic>> _churchDiscrepancies = [];
+  int _churchesWithBothReports = 0;
+  int _churchesWithOnlyTreasurer = 0;
+  int _churchesWithOnlyBorangB = 0;
+  int _churchesWithDiscrepancies = 0;
+
+  // Borang B Ministry Statistics
+  int _totalBaptisms = 0;
+  int _totalProfessions = 0;
+  int _totalVisitations = 0;
+  int _totalLiterature = 0;
+  int _totalSabbathServices = 0;
+  int _totalBibleStudies = 0;
 
   // View level controls
   ViewLevel _viewLevel = ViewLevel.mission;
@@ -122,10 +147,16 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final authProvider = Provider.of<AuthProvider>(context);
+    final isAuthenticated = authProvider.isAuthenticated;
+
     debugPrint(
-        '🔄 MyMissionScreen: didChangeDependencies called - _dataLoaded: $_dataLoaded, _isLoading: $_isLoading');
-    // Load data when dependencies are ready and data hasn't been loaded yet
-    if (!_dataLoaded) {
+        '🔄 MyMissionScreen: didChangeDependencies called - _dataLoaded: $_dataLoaded, _isLoading: $_isLoading, authenticated: $isAuthenticated');
+
+    // Load data when dependencies are ready and either:
+    // 1. Data hasn't been loaded yet, OR
+    // 2. User just authenticated and data was previously skipped
+    if (!_dataLoaded || (isAuthenticated && !_isLoading)) {
       debugPrint('🚀 MyMissionScreen: Starting data load');
       _loadMissionData();
     } else {
@@ -158,7 +189,10 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
 
       if (!isAuthenticated || user == null) {
         debugPrint('❌ MyMissionScreen: User not authenticated or user is null');
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          // DON'T set _dataLoaded = true here, so it will retry when user logs in
+        });
         return;
       }
       // Use override mission if set (for super admin), otherwise use user's mission
@@ -188,17 +222,17 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       // Load districts and churches based on user permissions and assignments
       if (user.isSuperAdmin) {
         // Super admin sees all districts and churches in the mission
-        _allDistricts =
-            await _districtService.getDistrictsByMission(activeMissionId);
+        // Load districts and churches in parallel for better performance
+        final results = await Future.wait([
+          _districtService.getDistrictsByMission(activeMissionId),
+          _churchService.getChurchesByMission(activeMissionId),
+        ]);
+
+        _allDistricts = results[0] as List<District>;
+        _allChurches = results[1] as List<Church>;
+
         debugPrint(
             '📍 Found ${_allDistricts.length} districts for mission $activeMissionId');
-
-        _allChurches = [];
-        for (var district in _allDistricts) {
-          final churches =
-              await _churchService.getChurchesByDistrict(district.id);
-          _allChurches.addAll(churches);
-        }
         debugPrint('⛪ Found ${_allChurches.length} churches total');
       } else {
         // Regular users see data based on their assignments
@@ -314,14 +348,18 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
           await _loadChurchLevelData();
           break;
       }
+
+      // Only mark as loaded if we successfully completed
+      if (mounted) {
+        _dataLoaded = true; // Mark data as loaded to prevent re-loading
+        debugPrint(
+            '✅✅✅ MyMissionScreen: Data loading COMPLETED - _dataLoaded: $_dataLoaded, _isLoading: $_isLoading ✅✅✅');
+      }
     } catch (e) {
       debugPrint('❌ Error loading mission data: $e');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
-        _dataLoaded = true; // Mark data as loaded to prevent re-loading
-        debugPrint(
-            '✅✅✅ MyMissionScreen: Data loading COMPLETED - _dataLoaded: $_dataLoaded, _isLoading: $_isLoading ✅✅✅');
       }
     }
   }
@@ -353,15 +391,44 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
     }
     _churchesWithReports = reportedChurches;
 
-    // Load financial data
+    // Load financial data from TREASURER reports and BORANG B reports in parallel
     try {
       debugPrint(
           '🔍 Querying financial data for missionId: $missionId, month: $_selectedMonth');
-      _financialData = await _financialService.getMissionAggregateByMonth(
-        missionId,
-        _selectedMonth,
-      );
-      debugPrint('✅ Financial data loaded: $_financialData');
+      debugPrint('🔍 Month for query: year=${_selectedMonth.year}, month=${_selectedMonth.month}');
+
+      final results = await Future.wait([
+        _financialService.getMissionAggregateByMonth(missionId, _selectedMonth),
+        _borangBService.getMissionFinancialByMonth(missionId, _selectedMonth.year, _selectedMonth.month),
+        _financialService.getReportsByMonth(_selectedMonth, missionId: missionId),
+        _borangBService.getReportsByMissionAndMonth(missionId, _selectedMonth.year, _selectedMonth.month),
+      ]);
+
+      _financialData = results[0] as Map<String, double>;
+      _borangBFinancialData = results[1] as Map<String, double>;
+      final treasurerReports = results[2] as List<FinancialReport>;
+      final borangBReports = results[3] as List<BorangBData>;
+
+      debugPrint('✅ Treasurer Financial data loaded: $_financialData');
+      debugPrint('✅ Borang B Financial data loaded: $_borangBFinancialData');
+      debugPrint('📊 Treasurer reports count: ${treasurerReports.length}');
+      debugPrint('📊 Borang B reports raw count: ${borangBReports.length}');
+
+      _totalBorangBReports = borangBReports.length;
+      debugPrint('📋 Total Borang B reports set to: $_totalBorangBReports');
+
+      // Aggregate Borang B ministry statistics
+      _totalBaptisms = borangBReports.fold<int>(0, (sum, r) => sum + r.baptisms);
+      _totalProfessions = borangBReports.fold<int>(0, (sum, r) => sum + r.professionOfFaith);
+      _totalVisitations = borangBReports.fold<int>(0, (sum, r) => sum + r.totalVisitations);
+      _totalLiterature = borangBReports.fold<int>(0, (sum, r) => sum + r.totalLiterature);
+      _totalSabbathServices = borangBReports.fold<int>(0, (sum, r) => sum + r.sabbathServices);
+      _totalBibleStudies = borangBReports.fold<int>(0, (sum, r) => sum + r.bibleStudies);
+
+      debugPrint('📊 Borang B Stats - Baptisms: $_totalBaptisms, Professions: $_totalProfessions, Visitations: $_totalVisitations');
+
+      // Analyze church-by-church discrepancies
+      await _analyzeChurchDiscrepancies(treasurerReports, borangBReports);
     } catch (e) {
       debugPrint('⚠️ Could not load financial data: $e');
       _financialData = {
@@ -370,7 +437,165 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
         'specialOfferings': 0.0,
         'total': 0.0
       };
+      _borangBFinancialData = {
+        'tithe': 0.0,
+        'offerings': 0.0,
+        'total': 0.0
+      };
+      _totalBorangBReports = 0;
+      _churchDiscrepancies = [];
     }
+  }
+
+  Future<void> _analyzeChurchDiscrepancies(
+    List<FinancialReport> treasurerReports,
+    List borangBReports,
+  ) async {
+    _churchDiscrepancies.clear();
+    _churchesWithBothReports = 0;
+    _churchesWithOnlyTreasurer = 0;
+    _churchesWithOnlyBorangB = 0;
+    _churchesWithDiscrepancies = 0;
+
+    // Create maps for quick lookup
+    final treasurerByChurch = <String, FinancialReport>{};
+    for (var report in treasurerReports) {
+      treasurerByChurch[report.churchId] = report;
+    }
+
+    final borangBByChurch = <String, dynamic>{};
+    for (var report in borangBReports) {
+      if (report.churchId != null) {
+        borangBByChurch[report.churchId!] = report;
+      }
+    }
+
+    // Analyze each church
+    for (var church in _allChurches) {
+      final treasurerReport = treasurerByChurch[church.id];
+      final borangBReport = borangBByChurch[church.id];
+
+      if (treasurerReport != null && borangBReport != null) {
+        // Both reports exist
+        _churchesWithBothReports++;
+
+        final treasurerTotal = treasurerReport.tithe + treasurerReport.offerings;
+        final borangBTotal = borangBReport.tithe + borangBReport.offerings;
+        final difference = (treasurerTotal - borangBTotal).abs();
+        final hasDiscrepancy = difference > 0.01; // More than 1 cent difference
+
+        if (hasDiscrepancy) {
+          _churchesWithDiscrepancies++;
+        }
+
+        final discrepancyPercent = borangBTotal > 0
+            ? ((treasurerTotal - borangBTotal) / borangBTotal * 100).abs()
+            : 0.0;
+
+        _churchDiscrepancies.add({
+          'church': church,
+          'district': _allDistricts.firstWhere(
+            (d) => d.id == church.districtId,
+            orElse: () => District(
+              id: '',
+              name: 'Unknown',
+              code: '',
+              regionId: '',
+              missionId: '',
+              createdBy: '',
+              createdAt: DateTime.now(),
+            ),
+          ),
+          'hasTreasurer': true,
+          'hasBorangB': true,
+          'treasurerTithe': treasurerReport.tithe,
+          'treasurerOfferings': treasurerReport.offerings,
+          'treasurerTotal': treasurerTotal,
+          'borangBTithe': borangBReport.tithe,
+          'borangBOfferings': borangBReport.offerings,
+          'borangBTotal': borangBTotal,
+          'difference': difference,
+          'discrepancyPercent': discrepancyPercent,
+          'hasDiscrepancy': hasDiscrepancy,
+          'status': hasDiscrepancy ? 'discrepancy' : 'match',
+        });
+      } else if (treasurerReport != null) {
+        // Only treasurer report
+        _churchesWithOnlyTreasurer++;
+        final treasurerTotal = treasurerReport.tithe + treasurerReport.offerings;
+
+        _churchDiscrepancies.add({
+          'church': church,
+          'district': _allDistricts.firstWhere(
+            (d) => d.id == church.districtId,
+            orElse: () => District(
+              id: '',
+              name: 'Unknown',
+              code: '',
+              regionId: '',
+              missionId: '',
+              createdBy: '',
+              createdAt: DateTime.now(),
+            ),
+          ),
+          'hasTreasurer': true,
+          'hasBorangB': false,
+          'treasurerTithe': treasurerReport.tithe,
+          'treasurerOfferings': treasurerReport.offerings,
+          'treasurerTotal': treasurerTotal,
+          'borangBTithe': 0.0,
+          'borangBOfferings': 0.0,
+          'borangBTotal': 0.0,
+          'difference': treasurerTotal,
+          'discrepancyPercent': 100.0,
+          'hasDiscrepancy': true,
+          'status': 'missing_borangb',
+        });
+      } else if (borangBReport != null) {
+        // Only Borang B report
+        _churchesWithOnlyBorangB++;
+        final borangBTotal = borangBReport.tithe + borangBReport.offerings;
+
+        _churchDiscrepancies.add({
+          'church': church,
+          'district': _allDistricts.firstWhere(
+            (d) => d.id == church.districtId,
+            orElse: () => District(
+              id: '',
+              name: 'Unknown',
+              code: '',
+              regionId: '',
+              missionId: '',
+              createdBy: '',
+              createdAt: DateTime.now(),
+            ),
+          ),
+          'hasTreasurer': false,
+          'hasBorangB': true,
+          'treasurerTithe': 0.0,
+          'treasurerOfferings': 0.0,
+          'treasurerTotal': 0.0,
+          'borangBTithe': borangBReport.tithe,
+          'borangBOfferings': borangBReport.offerings,
+          'borangBTotal': borangBTotal,
+          'difference': borangBTotal,
+          'discrepancyPercent': 100.0,
+          'hasDiscrepancy': true,
+          'status': 'missing_treasurer',
+        });
+      }
+    }
+
+    // Sort by discrepancy percentage (highest first)
+    _churchDiscrepancies.sort((a, b) =>
+      (b['discrepancyPercent'] as double).compareTo(a['discrepancyPercent'] as double)
+    );
+
+    debugPrint('📊 Discrepancy Analysis Complete:');
+    debugPrint('   - Churches with both reports: $_churchesWithBothReports');
+    debugPrint('   - Churches with only treasurer: $_churchesWithOnlyTreasurer');
+    debugPrint('   - Churches with only Borang B: $_churchesWithOnlyBorangB');
+    debugPrint('   - Churches with discrepancies: $_churchesWithDiscrepancies');
   }
 
   Future<void> _loadDistrictLevelData() async {
@@ -401,12 +626,30 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       _churchesWithReports = 0;
     }
 
-    // Load financial data
+    // Load financial data from both Treasurer reports and Borang B reports in parallel
     try {
-      _financialData = await _financialService.getDistrictAggregateByMonth(
+      final results = await Future.wait([
+        _financialService.getDistrictAggregateByMonth(
+          _selectedDistrictId!,
+          _selectedMonth,
+        ),
+        _borangBService.getDistrictFinancialByMonth(
+          _selectedDistrictId!,
+          _selectedMonth.year,
+          _selectedMonth.month,
+        ),
+      ]);
+
+      _financialData = results[0] as Map<String, double>;
+      _borangBFinancialData = results[1] as Map<String, double>;
+
+      // Get Borang B report count for this district
+      final reports = await _borangBService.getReportsByDistrictAndMonth(
         _selectedDistrictId!,
-        _selectedMonth,
+        _selectedMonth.year,
+        _selectedMonth.month,
       );
+      _totalBorangBReports = reports.length;
     } catch (e) {
       _financialData = {
         'tithe': 0.0,
@@ -414,6 +657,12 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
         'specialOfferings': 0.0,
         'total': 0.0
       };
+      _borangBFinancialData = {
+        'tithe': 0.0,
+        'offerings': 0.0,
+        'total': 0.0
+      };
+      _totalBorangBReports = 0;
     }
   }
 
@@ -587,6 +836,10 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
               child: Column(
                 children: [
                   _buildFinancialSummary(),
+                  if (_canViewBorangBComparison(user))
+                    _buildFinancialComparison(),
+                  if (_canViewBorangBComparison(user))
+                    _buildBorangBStats(),
                   _buildOrganizationalStats(),
                   _buildReportingStatus(),
                   const SizedBox(height: 80),
@@ -1713,6 +1966,493 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
     );
   }
 
+  Widget _buildFinancialComparison() {
+    final treasurerTithe = _financialData['tithe'] ?? 0.0;
+    final treasurerOfferings = _financialData['offerings'] ?? 0.0;
+    final treasurerTotal = _financialData['total'] ?? 0.0;
+
+    final borangBTithe = _borangBFinancialData['tithe'] ?? 0.0;
+    final borangBOfferings = _borangBFinancialData['offerings'] ?? 0.0;
+    final borangBTotal = _borangBFinancialData['total'] ?? 0.0;
+
+    // Calculate discrepancies
+    final titheDiff = treasurerTithe - borangBTithe;
+    final offeringsDiff = treasurerOfferings - borangBOfferings;
+    final totalDiff = treasurerTotal - borangBTotal;
+
+    // Calculate percentage discrepancies
+    final titheDiscrepancy = borangBTithe > 0
+        ? ((titheDiff / borangBTithe) * 100).abs()
+        : 0.0;
+    final offeringsDiscrepancy = borangBOfferings > 0
+        ? ((offeringsDiff / borangBOfferings) * 100).abs()
+        : 0.0;
+    final totalDiscrepancy = borangBTotal > 0
+        ? ((totalDiff / borangBTotal) * 100).abs()
+        : 0.0;
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.compare_arrows, color: AppColors.primaryLight),
+                    const SizedBox(width: 8),
+                    const Flexible(
+                      child: Text(
+                        'Financial Comparison',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton.icon(
+                onPressed: _showDetailedDiscrepancyReport,
+                icon: const Icon(Icons.assignment, size: 18),
+                label: const Text('Details'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryLight,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Treasurer Reports vs Borang B Reports',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Summary statistics
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildSummaryStat(
+                  'Both Reports',
+                  _churchesWithBothReports.toString(),
+                  Icons.check_circle,
+                  Colors.green,
+                ),
+                _buildSummaryStat(
+                  'Only Treasurer',
+                  _churchesWithOnlyTreasurer.toString(),
+                  Icons.warning,
+                  Colors.orange,
+                ),
+                _buildSummaryStat(
+                  'Only Borang B',
+                  _churchesWithOnlyBorangB.toString(),
+                  Icons.warning,
+                  Colors.orange,
+                ),
+                _buildSummaryStat(
+                  'Discrepancies',
+                  _churchesWithDiscrepancies.toString(),
+                  Icons.error,
+                  Colors.red,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildComparisonCard('Tithe', treasurerTithe, borangBTithe, titheDiscrepancy),
+          const SizedBox(height: 12),
+          _buildComparisonCard('Offerings', treasurerOfferings, borangBOfferings, offeringsDiscrepancy),
+          const SizedBox(height: 12),
+          _buildComparisonCard('Total', treasurerTotal, borangBTotal, totalDiscrepancy),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryStat(String label, String value, IconData icon, Color color) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 24),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey[700],
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildComparisonCard(String label, double treasurerAmount, double borangBAmount, double discrepancyPercent) {
+    final difference = treasurerAmount - borangBAmount;
+    final isMatch = difference.abs() < 0.01; // Consider equal if difference < 1 cent
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isMatch ? Colors.green.shade50 : Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isMatch ? Colors.green.shade200 : Colors.orange.shade200,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isMatch ? Colors.green : Colors.orange,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  isMatch ? 'MATCH' : '${discrepancyPercent.toStringAsFixed(1)}% DIFF',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Treasurer',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'RM ${NumberFormat('#,##0.00').format(treasurerAmount)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                isMatch ? Icons.check_circle : Icons.warning,
+                color: isMatch ? Colors.green : Colors.orange,
+                size: 24,
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Borang B',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'RM ${NumberFormat('#,##0.00').format(borangBAmount)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (!isMatch) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    difference > 0 ? Icons.arrow_upward : Icons.arrow_downward,
+                    size: 16,
+                    color: difference > 0 ? Colors.red : Colors.blue,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Difference: RM ${NumberFormat('#,##0.00').format(difference.abs())}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: difference > 0 ? Colors.red : Colors.blue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBorangBStats() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Icon(Icons.assessment, color: AppColors.primaryDark, size: 28),
+              const SizedBox(width: 12),
+              const Text(
+                'Ministry Activities Summary',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Based on $_totalBorangBReports Borang B reports submitted',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Soul Winning Section
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.green.shade400, Colors.green.shade600],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.green.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.people, color: Colors.white, size: 24),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Soul Winning',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildBorangBStatCard(
+                        'Baptisms',
+                        _totalBaptisms,
+                        Icons.water_drop,
+                        Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildBorangBStatCard(
+                        'Professions',
+                        _totalProfessions,
+                        Icons.favorite,
+                        Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Ministry Activities Grid
+          Row(
+            children: [
+              Expanded(
+                child: _buildMiniStatCard(
+                  'Sabbath Services',
+                  _totalSabbathServices,
+                  Icons.church,
+                  Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildMiniStatCard(
+                  'Bible Studies',
+                  _totalBibleStudies,
+                  Icons.menu_book,
+                  Colors.orange,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildMiniStatCard(
+                  'Visitations',
+                  _totalVisitations,
+                  Icons.home,
+                  Colors.purple,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildMiniStatCard(
+                  'Literature',
+                  _totalLiterature,
+                  Icons.library_books,
+                  Colors.teal,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBorangBStatCard(String label, int value, IconData icon, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: textColor, size: 32),
+          const SizedBox(height: 8),
+          Text(
+            '$value',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: textColor.withValues(alpha: 0.9),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniStatCard(String label, int value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(height: 8),
+          Text(
+            '$value',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMissionSelector() {
     return SliverToBoxAdapter(
       child: Container(
@@ -1877,6 +2617,29 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       return true;
     }
 
+    return false;
+  }
+
+  // Check if user can view Borang B comparison data
+  // Only mission admin, director, officer, ministerial secretary, and super admin
+  // District pastors cannot see this feature
+  bool _canViewBorangBComparison(UserModel user) {
+    // Super admin can view everything
+    if (user.isSuperAdmin) {
+      return true;
+    }
+
+    // Mission admins can view
+    if (user.canManageMissions()) {
+      return true;
+    }
+
+    // Directors, Officers, and Ministerial Secretary can view
+    if (user.isDirector || user.isOfficer || user.isMinisterialSecretary) {
+      return true;
+    }
+
+    // District pastors and regular users cannot view
     return false;
   }
 
@@ -2294,5 +3057,483 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
         ),
       ),
     );
+  }
+
+  void _showDetailedDiscrepancyReport() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Financial Discrepancy Report',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryDark,
+                          ),
+                        ),
+                        Text(
+                          DateFormat('MMMM yyyy').format(_selectedMonth),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.file_download),
+                          onPressed: _exportDiscrepanciesToExcel,
+                          tooltip: 'Export to Excel',
+                          color: AppColors.primaryDark,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // Church list
+              Expanded(
+                child: _churchDiscrepancies.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.check_circle_outline,
+                              size: 64,
+                              color: Colors.green.shade300,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No discrepancies found',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        controller: scrollController,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _churchDiscrepancies.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final item = _churchDiscrepancies[index];
+                          final church = item['church'] as Church;
+                          final district = item['district'] as District;
+                          final status = item['status'] as String;
+                          final hasTreasurer = item['hasTreasurer'] as bool;
+                          final hasBorangB = item['hasBorangB'] as bool;
+                          final discrepancyPercent = item['discrepancyPercent'] as double;
+                          final difference = item['difference'] as double;
+
+                          Color statusColor;
+                          IconData statusIcon;
+                          String statusText;
+
+                          switch (status) {
+                            case 'match':
+                              statusColor = Colors.green;
+                              statusIcon = Icons.check_circle;
+                              statusText = 'MATCH';
+                              break;
+                            case 'discrepancy':
+                              statusColor = Colors.orange;
+                              statusIcon = Icons.warning;
+                              statusText = '${discrepancyPercent.toStringAsFixed(1)}% DIFF';
+                              break;
+                            case 'missing_borangb':
+                              statusColor = Colors.red;
+                              statusIcon = Icons.error;
+                              statusText = 'NO BORANG B';
+                              break;
+                            case 'missing_treasurer':
+                              statusColor = Colors.red;
+                              statusIcon = Icons.error;
+                              statusText = 'NO TREASURER';
+                              break;
+                            default:
+                              statusColor = Colors.grey;
+                              statusIcon = Icons.help;
+                              statusText = 'UNKNOWN';
+                          }
+
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: statusColor.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: ExpansionTile(
+                              leading: Icon(statusIcon, color: statusColor),
+                              title: Text(
+                                church.churchName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '${district.name} - $statusText',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: statusColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    children: [
+                                      if (hasTreasurer) ...[
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            const Text(
+                                              'Treasurer Report',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            const Text('Tithe:'),
+                                            Text(
+                                              'RM ${NumberFormat('#,##0.00').format(item['treasurerTithe'])}',
+                                              style: const TextStyle(fontWeight: FontWeight.w600),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            const Text('Offerings:'),
+                                            Text(
+                                              'RM ${NumberFormat('#,##0.00').format(item['treasurerOfferings'])}',
+                                              style: const TextStyle(fontWeight: FontWeight.w600),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            const Text('Total:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                            Text(
+                                              'RM ${NumberFormat('#,##0.00').format(item['treasurerTotal'])}',
+                                              style: const TextStyle(fontWeight: FontWeight.bold),
+                                            ),
+                                          ],
+                                        ),
+                                        const Divider(height: 24),
+                                      ],
+                                      if (hasBorangB) ...[
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            const Text(
+                                              'Borang B Report',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            const Text('Tithe:'),
+                                            Text(
+                                              'RM ${NumberFormat('#,##0.00').format(item['borangBTithe'])}',
+                                              style: const TextStyle(fontWeight: FontWeight.w600),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            const Text('Offerings:'),
+                                            Text(
+                                              'RM ${NumberFormat('#,##0.00').format(item['borangBOfferings'])}',
+                                              style: const TextStyle(fontWeight: FontWeight.w600),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            const Text('Total:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                            Text(
+                                              'RM ${NumberFormat('#,##0.00').format(item['borangBTotal'])}',
+                                              style: const TextStyle(fontWeight: FontWeight.bold),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                      if (!hasTreasurer) ...[
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.shade50,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.warning, color: Colors.red.shade700, size: 20),
+                                              const SizedBox(width: 8),
+                                              const Expanded(
+                                                child: Text(
+                                                  'Treasurer report not submitted',
+                                                  style: TextStyle(color: Colors.red),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                      if (!hasBorangB) ...[
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.shade50,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.warning, color: Colors.red.shade700, size: 20),
+                                              const SizedBox(width: 8),
+                                              const Expanded(
+                                                child: Text(
+                                                  'Borang B report not submitted',
+                                                  style: TextStyle(color: Colors.red),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                      if (hasTreasurer && hasBorangB && difference > 0.01) ...[
+                                        const Divider(height: 24),
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: Colors.orange.shade50,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              const Text(
+                                                'Difference:',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              Text(
+                                                'RM ${NumberFormat('#,##0.00').format(difference)} (${discrepancyPercent.toStringAsFixed(1)}%)',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.orange.shade900,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _exportDiscrepanciesToExcel() async {
+    try {
+      // Create Excel workbook
+      final excel = excel_pkg.Excel.createExcel();
+      final sheet = excel['Financial Discrepancies'];
+
+      // Headers
+      final headers = [
+        'Church Name',
+        'District',
+        'Status',
+        'Treasurer Tithe (RM)',
+        'Treasurer Offerings (RM)',
+        'Treasurer Total (RM)',
+        'Borang B Tithe (RM)',
+        'Borang B Offerings (RM)',
+        'Borang B Total (RM)',
+        'Difference (RM)',
+        'Discrepancy %',
+      ];
+
+      // Add headers
+      for (var i = 0; i < headers.length; i++) {
+        final cell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+        cell.value = excel_pkg.TextCellValue(headers[i]);
+      }
+
+      // Add data rows
+      int rowIndex = 1;
+      for (var item in _churchDiscrepancies) {
+        final church = item['church'] as Church;
+        final district = item['district'] as District;
+        final status = item['status'] as String;
+        final hasTreasurer = item['hasTreasurer'] as bool;
+        final hasBorangB = item['hasBorangB'] as bool;
+
+        final row = [
+          church.churchName,
+          district.name,
+          _getStatusText(status),
+          hasTreasurer ? (item['treasurerTithe'] as num).toDouble() : 0.0,
+          hasTreasurer ? (item['treasurerOfferings'] as num).toDouble() : 0.0,
+          hasTreasurer ? (item['treasurerTotal'] as num).toDouble() : 0.0,
+          hasBorangB ? (item['borangBTithe'] as num).toDouble() : 0.0,
+          hasBorangB ? (item['borangBOfferings'] as num).toDouble() : 0.0,
+          hasBorangB ? (item['borangBTotal'] as num).toDouble() : 0.0,
+          (item['difference'] as num?)?.toDouble() ?? 0.0,
+          (item['discrepancyPercent'] as num?)?.toDouble() ?? 0.0,
+        ];
+
+        for (var i = 0; i < row.length; i++) {
+          final cell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: rowIndex));
+          final value = row[i];
+          if (value is String) {
+            cell.value = excel_pkg.TextCellValue(value);
+          } else if (value is num) {
+            cell.value = excel_pkg.DoubleCellValue(value.toDouble());
+          }
+        }
+        rowIndex++;
+      }
+
+      // Generate file
+      final bytes = excel.encode();
+      if (bytes == null) {
+        debugPrint('❌ Failed to encode Excel file');
+        return;
+      }
+
+      // Save file to device
+      final directory = await getApplicationDocumentsDirectory();
+      final fileName = 'Financial_Discrepancies_${DateFormat('yyyy-MM').format(_selectedMonth)}.xlsx';
+      final filePath = '${directory.path}/$fileName';
+      final file = File(filePath);
+      await file.writeAsBytes(bytes);
+
+      // Share the file
+      await Share.shareXFiles(
+        [XFile(filePath)],
+        text: 'Financial Discrepancies Report',
+        subject: 'Financial Discrepancies ${DateFormat('yyyy-MM').format(_selectedMonth)}',
+      );
+
+      debugPrint('✅ Excel file exported successfully');
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Excel file downloaded successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Error exporting to Excel: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error exporting: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  String _getStatusText(String status) {
+    switch (status) {
+      case 'match':
+        return 'MATCH';
+      case 'discrepancy':
+        return 'DISCREPANCY';
+      case 'missing_borangb':
+        return 'NO BORANG B';
+      case 'missing_treasurer':
+        return 'NO TREASURER';
+      default:
+        return 'UNKNOWN';
+    }
   }
 }
