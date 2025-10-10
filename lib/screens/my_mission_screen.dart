@@ -395,13 +395,17 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
     try {
       debugPrint(
           '🔍 Querying financial data for missionId: $missionId, month: $_selectedMonth');
-      debugPrint('🔍 Month for query: year=${_selectedMonth.year}, month=${_selectedMonth.month}');
+      debugPrint(
+          '🔍 Month for query: year=${_selectedMonth.year}, month=${_selectedMonth.month}');
 
       final results = await Future.wait([
         _financialService.getMissionAggregateByMonth(missionId, _selectedMonth),
-        _borangBService.getMissionFinancialByMonth(missionId, _selectedMonth.year, _selectedMonth.month),
-        _financialService.getReportsByMonth(_selectedMonth, missionId: missionId),
-        _borangBService.getReportsByMissionAndMonth(missionId, _selectedMonth.year, _selectedMonth.month),
+        _borangBService.getMissionFinancialByMonth(
+            missionId, _selectedMonth.year, _selectedMonth.month),
+        _financialService.getReportsByMonth(_selectedMonth,
+            missionId: missionId),
+        _borangBService.getReportsByMissionAndMonth(
+            missionId, _selectedMonth.year, _selectedMonth.month),
       ]);
 
       _financialData = results[0] as Map<String, double>;
@@ -418,14 +422,21 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       debugPrint('📋 Total Borang B reports set to: $_totalBorangBReports');
 
       // Aggregate Borang B ministry statistics
-      _totalBaptisms = borangBReports.fold<int>(0, (sum, r) => sum + r.baptisms);
-      _totalProfessions = borangBReports.fold<int>(0, (sum, r) => sum + r.professionOfFaith);
-      _totalVisitations = borangBReports.fold<int>(0, (sum, r) => sum + r.totalVisitations);
-      _totalLiterature = borangBReports.fold<int>(0, (sum, r) => sum + r.totalLiterature);
-      _totalSabbathServices = borangBReports.fold<int>(0, (sum, r) => sum + r.sabbathServices);
-      _totalBibleStudies = borangBReports.fold<int>(0, (sum, r) => sum + r.bibleStudies);
+      _totalBaptisms =
+          borangBReports.fold<int>(0, (sum, r) => sum + r.baptisms);
+      _totalProfessions =
+          borangBReports.fold<int>(0, (sum, r) => sum + r.professionOfFaith);
+      _totalVisitations =
+          borangBReports.fold<int>(0, (sum, r) => sum + r.totalVisitations);
+      _totalLiterature =
+          borangBReports.fold<int>(0, (sum, r) => sum + r.totalLiterature);
+      _totalSabbathServices =
+          borangBReports.fold<int>(0, (sum, r) => sum + r.sabbathServices);
+      _totalBibleStudies =
+          borangBReports.fold<int>(0, (sum, r) => sum + r.bibleStudies);
 
-      debugPrint('📊 Borang B Stats - Baptisms: $_totalBaptisms, Professions: $_totalProfessions, Visitations: $_totalVisitations');
+      debugPrint(
+          '📊 Borang B Stats - Baptisms: $_totalBaptisms, Professions: $_totalProfessions, Visitations: $_totalVisitations');
 
       // Analyze church-by-church discrepancies
       await _analyzeChurchDiscrepancies(treasurerReports, borangBReports);
@@ -437,11 +448,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
         'specialOfferings': 0.0,
         'total': 0.0
       };
-      _borangBFinancialData = {
-        'tithe': 0.0,
-        'offerings': 0.0,
-        'total': 0.0
-      };
+      _borangBFinancialData = {'tithe': 0.0, 'offerings': 0.0, 'total': 0.0};
       _totalBorangBReports = 0;
       _churchDiscrepancies = [];
     }
@@ -479,7 +486,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
         // Both reports exist
         _churchesWithBothReports++;
 
-        final treasurerTotal = treasurerReport.tithe + treasurerReport.offerings;
+        final treasurerTotal =
+            treasurerReport.tithe + treasurerReport.offerings;
         final borangBTotal = borangBReport.tithe + borangBReport.offerings;
         final difference = (treasurerTotal - borangBTotal).abs();
         final hasDiscrepancy = difference > 0.01; // More than 1 cent difference
@@ -522,7 +530,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       } else if (treasurerReport != null) {
         // Only treasurer report
         _churchesWithOnlyTreasurer++;
-        final treasurerTotal = treasurerReport.tithe + treasurerReport.offerings;
+        final treasurerTotal =
+            treasurerReport.tithe + treasurerReport.offerings;
 
         _churchDiscrepancies.add({
           'church': church,
@@ -587,13 +596,13 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
     }
 
     // Sort by discrepancy percentage (highest first)
-    _churchDiscrepancies.sort((a, b) =>
-      (b['discrepancyPercent'] as double).compareTo(a['discrepancyPercent'] as double)
-    );
+    _churchDiscrepancies.sort((a, b) => (b['discrepancyPercent'] as double)
+        .compareTo(a['discrepancyPercent'] as double));
 
     debugPrint('📊 Discrepancy Analysis Complete:');
     debugPrint('   - Churches with both reports: $_churchesWithBothReports');
-    debugPrint('   - Churches with only treasurer: $_churchesWithOnlyTreasurer');
+    debugPrint(
+        '   - Churches with only treasurer: $_churchesWithOnlyTreasurer');
     debugPrint('   - Churches with only Borang B: $_churchesWithOnlyBorangB');
     debugPrint('   - Churches with discrepancies: $_churchesWithDiscrepancies');
   }
@@ -657,11 +666,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
         'specialOfferings': 0.0,
         'total': 0.0
       };
-      _borangBFinancialData = {
-        'tithe': 0.0,
-        'offerings': 0.0,
-        'total': 0.0
-      };
+      _borangBFinancialData = {'tithe': 0.0, 'offerings': 0.0, 'total': 0.0};
       _totalBorangBReports = 0;
     }
   }
@@ -838,8 +843,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                   _buildFinancialSummary(),
                   if (_canViewBorangBComparison(user))
                     _buildFinancialComparison(),
-                  if (_canViewBorangBComparison(user))
-                    _buildBorangBStats(),
+                  if (_canViewBorangBComparison(user)) _buildBorangBStats(),
                   _buildOrganizationalStats(),
                   _buildReportingStatus(),
                   const SizedBox(height: 80),
@@ -1981,15 +1985,13 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
     final totalDiff = treasurerTotal - borangBTotal;
 
     // Calculate percentage discrepancies
-    final titheDiscrepancy = borangBTithe > 0
-        ? ((titheDiff / borangBTithe) * 100).abs()
-        : 0.0;
+    final titheDiscrepancy =
+        borangBTithe > 0 ? ((titheDiff / borangBTithe) * 100).abs() : 0.0;
     final offeringsDiscrepancy = borangBOfferings > 0
         ? ((offeringsDiff / borangBOfferings) * 100).abs()
         : 0.0;
-    final totalDiscrepancy = borangBTotal > 0
-        ? ((totalDiff / borangBTotal) * 100).abs()
-        : 0.0;
+    final totalDiscrepancy =
+        borangBTotal > 0 ? ((totalDiff / borangBTotal) * 100).abs() : 0.0;
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -2025,7 +2027,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryLight,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
               ),
             ],
@@ -2078,17 +2081,21 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildComparisonCard('Tithe', treasurerTithe, borangBTithe, titheDiscrepancy),
+          _buildComparisonCard(
+              'Tithe', treasurerTithe, borangBTithe, titheDiscrepancy),
           const SizedBox(height: 12),
-          _buildComparisonCard('Offerings', treasurerOfferings, borangBOfferings, offeringsDiscrepancy),
+          _buildComparisonCard('Offerings', treasurerOfferings,
+              borangBOfferings, offeringsDiscrepancy),
           const SizedBox(height: 12),
-          _buildComparisonCard('Total', treasurerTotal, borangBTotal, totalDiscrepancy),
+          _buildComparisonCard(
+              'Total', treasurerTotal, borangBTotal, totalDiscrepancy),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryStat(String label, String value, IconData icon, Color color) {
+  Widget _buildSummaryStat(
+      String label, String value, IconData icon, Color color) {
     return Column(
       children: [
         Icon(icon, color: color, size: 24),
@@ -2113,9 +2120,11 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
     );
   }
 
-  Widget _buildComparisonCard(String label, double treasurerAmount, double borangBAmount, double discrepancyPercent) {
+  Widget _buildComparisonCard(String label, double treasurerAmount,
+      double borangBAmount, double discrepancyPercent) {
     final difference = treasurerAmount - borangBAmount;
-    final isMatch = difference.abs() < 0.01; // Consider equal if difference < 1 cent
+    final isMatch =
+        difference.abs() < 0.01; // Consider equal if difference < 1 cent
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -2146,7 +2155,9 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  isMatch ? 'MATCH' : '${discrepancyPercent.toStringAsFixed(1)}% DIFF',
+                  isMatch
+                      ? 'MATCH'
+                      : '${discrepancyPercent.toStringAsFixed(1)}% DIFF',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
@@ -2385,7 +2396,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
     );
   }
 
-  Widget _buildBorangBStatCard(String label, int value, IconData icon, Color textColor) {
+  Widget _buildBorangBStatCard(
+      String label, int value, IconData icon, Color textColor) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -2418,7 +2430,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
     );
   }
 
-  Widget _buildMiniStatCard(String label, int value, IconData icon, Color color) {
+  Widget _buildMiniStatCard(
+      String label, int value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -3117,19 +3130,27 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                         ],
                       ),
                     ),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.file_download),
-                          onPressed: _exportDiscrepanciesToExcel,
-                          tooltip: 'Export to Excel',
-                          color: AppColors.primaryDark,
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: 100),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.file_download),
+                            onPressed: _exportDiscrepanciesToExcel,
+                            tooltip: 'Export to Excel',
+                            color: AppColors.primaryDark,
+                            padding: EdgeInsets.zero,
+                            constraints: BoxConstraints(maxWidth: 40),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(context),
+                            padding: EdgeInsets.zero,
+                            constraints: BoxConstraints(maxWidth: 40),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -3162,7 +3183,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                         controller: scrollController,
                         padding: const EdgeInsets.all(16),
                         itemCount: _churchDiscrepancies.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 12),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 12),
                         itemBuilder: (context, index) {
                           final item = _churchDiscrepancies[index];
                           final church = item['church'] as Church;
@@ -3170,7 +3192,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                           final status = item['status'] as String;
                           final hasTreasurer = item['hasTreasurer'] as bool;
                           final hasBorangB = item['hasBorangB'] as bool;
-                          final discrepancyPercent = item['discrepancyPercent'] as double;
+                          final discrepancyPercent =
+                              item['discrepancyPercent'] as double;
                           final difference = item['difference'] as double;
 
                           Color statusColor;
@@ -3186,7 +3209,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                             case 'discrepancy':
                               statusColor = Colors.orange;
                               statusIcon = Icons.warning;
-                              statusText = '${discrepancyPercent.toStringAsFixed(1)}% DIFF';
+                              statusText =
+                                  '${discrepancyPercent.toStringAsFixed(1)}% DIFF';
                               break;
                             case 'missing_borangb':
                               statusColor = Colors.red;
@@ -3235,7 +3259,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                                     children: [
                                       if (hasTreasurer) ...[
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             const Text(
                                               'Treasurer Report',
@@ -3244,39 +3269,49 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                                                 fontSize: 14,
                                               ),
                                             ),
-                                            const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                                            const Icon(Icons.check_circle,
+                                                color: Colors.green, size: 16),
                                           ],
                                         ),
                                         const SizedBox(height: 8),
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             const Text('Tithe:'),
                                             Text(
                                               'RM ${NumberFormat('#,##0.00').format(item['treasurerTithe'])}',
-                                              style: const TextStyle(fontWeight: FontWeight.w600),
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.w600),
                                             ),
                                           ],
                                         ),
                                         const SizedBox(height: 4),
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             const Text('Offerings:'),
                                             Text(
                                               'RM ${NumberFormat('#,##0.00').format(item['treasurerOfferings'])}',
-                                              style: const TextStyle(fontWeight: FontWeight.w600),
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.w600),
                                             ),
                                           ],
                                         ),
                                         const SizedBox(height: 4),
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
-                                            const Text('Total:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                            const Text('Total:',
+                                                style: TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold)),
                                             Text(
                                               'RM ${NumberFormat('#,##0.00').format(item['treasurerTotal'])}',
-                                              style: const TextStyle(fontWeight: FontWeight.bold),
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold),
                                             ),
                                           ],
                                         ),
@@ -3284,7 +3319,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                                       ],
                                       if (hasBorangB) ...[
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             const Text(
                                               'Borang B Report',
@@ -3293,39 +3329,49 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                                                 fontSize: 14,
                                               ),
                                             ),
-                                            const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                                            const Icon(Icons.check_circle,
+                                                color: Colors.green, size: 16),
                                           ],
                                         ),
                                         const SizedBox(height: 8),
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             const Text('Tithe:'),
                                             Text(
                                               'RM ${NumberFormat('#,##0.00').format(item['borangBTithe'])}',
-                                              style: const TextStyle(fontWeight: FontWeight.w600),
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.w600),
                                             ),
                                           ],
                                         ),
                                         const SizedBox(height: 4),
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             const Text('Offerings:'),
                                             Text(
                                               'RM ${NumberFormat('#,##0.00').format(item['borangBOfferings'])}',
-                                              style: const TextStyle(fontWeight: FontWeight.w600),
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.w600),
                                             ),
                                           ],
                                         ),
                                         const SizedBox(height: 4),
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
-                                            const Text('Total:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                            const Text('Total:',
+                                                style: TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold)),
                                             Text(
                                               'RM ${NumberFormat('#,##0.00').format(item['borangBTotal'])}',
-                                              style: const TextStyle(fontWeight: FontWeight.bold),
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold),
                                             ),
                                           ],
                                         ),
@@ -3335,16 +3381,20 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                                           padding: const EdgeInsets.all(12),
                                           decoration: BoxDecoration(
                                             color: Colors.red.shade50,
-                                            borderRadius: BorderRadius.circular(8),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
                                           ),
                                           child: Row(
                                             children: [
-                                              Icon(Icons.warning, color: Colors.red.shade700, size: 20),
+                                              Icon(Icons.warning,
+                                                  color: Colors.red.shade700,
+                                                  size: 20),
                                               const SizedBox(width: 8),
                                               const Expanded(
                                                 child: Text(
                                                   'Treasurer report not submitted',
-                                                  style: TextStyle(color: Colors.red),
+                                                  style: TextStyle(
+                                                      color: Colors.red),
                                                 ),
                                               ),
                                             ],
@@ -3356,32 +3406,40 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                                           padding: const EdgeInsets.all(12),
                                           decoration: BoxDecoration(
                                             color: Colors.red.shade50,
-                                            borderRadius: BorderRadius.circular(8),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
                                           ),
                                           child: Row(
                                             children: [
-                                              Icon(Icons.warning, color: Colors.red.shade700, size: 20),
+                                              Icon(Icons.warning,
+                                                  color: Colors.red.shade700,
+                                                  size: 20),
                                               const SizedBox(width: 8),
                                               const Expanded(
                                                 child: Text(
                                                   'Borang B report not submitted',
-                                                  style: TextStyle(color: Colors.red),
+                                                  style: TextStyle(
+                                                      color: Colors.red),
                                                 ),
                                               ),
                                             ],
                                           ),
                                         ),
                                       ],
-                                      if (hasTreasurer && hasBorangB && difference > 0.01) ...[
+                                      if (hasTreasurer &&
+                                          hasBorangB &&
+                                          difference > 0.01) ...[
                                         const Divider(height: 24),
                                         Container(
                                           padding: const EdgeInsets.all(12),
                                           decoration: BoxDecoration(
                                             color: Colors.orange.shade50,
-                                            borderRadius: BorderRadius.circular(8),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
                                           ),
                                           child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
                                             children: [
                                               const Text(
                                                 'Difference:',
@@ -3439,7 +3497,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
 
       // Add headers
       for (var i = 0; i < headers.length; i++) {
-        final cell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+        final cell = sheet.cell(
+            excel_pkg.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
         cell.value = excel_pkg.TextCellValue(headers[i]);
       }
 
@@ -3467,7 +3526,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
         ];
 
         for (var i = 0; i < row.length; i++) {
-          final cell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: rowIndex));
+          final cell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(
+              columnIndex: i, rowIndex: rowIndex));
           final value = row[i];
           if (value is String) {
             cell.value = excel_pkg.TextCellValue(value);
@@ -3487,7 +3547,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
 
       // Save file to device
       final directory = await getApplicationDocumentsDirectory();
-      final fileName = 'Financial_Discrepancies_${DateFormat('yyyy-MM').format(_selectedMonth)}.xlsx';
+      final fileName =
+          'Financial_Discrepancies_${DateFormat('yyyy-MM').format(_selectedMonth)}.xlsx';
       final filePath = '${directory.path}/$fileName';
       final file = File(filePath);
       await file.writeAsBytes(bytes);
@@ -3496,7 +3557,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       await Share.shareXFiles(
         [XFile(filePath)],
         text: 'Financial Discrepancies Report',
-        subject: 'Financial Discrepancies ${DateFormat('yyyy-MM').format(_selectedMonth)}',
+        subject:
+            'Financial Discrepancies ${DateFormat('yyyy-MM').format(_selectedMonth)}',
       );
 
       debugPrint('✅ Excel file exported successfully');
