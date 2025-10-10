@@ -332,8 +332,15 @@ service cloud.firestore {
                        isOfficer() ||
                        isDirector());
 
-      // Superadmin, MinisterialSecretary, Officer, and Director can delete reports
-      allow delete: if isSuperAdmin() || isMinisterialSecretary() || isOfficer() || isDirector();
+      // Users can delete their own reports
+      // Superadmin, Admin, MinisterialSecretary, Officer, and Director can delete any reports
+      allow delete: if isAuthenticated() &&
+                      (resource.data.userId == request.auth.uid ||
+                       isSuperAdmin() ||
+                       isAdmin() ||
+                       isMinisterialSecretary() ||
+                       isOfficer() ||
+                       isDirector());
     }
 
     // Admin Activity feed (used by Admin Dashboard Recent Activity)

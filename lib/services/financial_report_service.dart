@@ -342,4 +342,46 @@ class FinancialReportService {
       throw Exception('Failed to get all reports: $e');
     }
   }
+
+  /// Get all reports for a specific month (optimized for loading reports by month)
+  Future<List<FinancialReport>> getReportsByMonth(
+    DateTime month, {
+    String? missionId,
+    String? regionId,
+    String? districtId,
+  }) async {
+    try {
+      final startOfMonth = DateTime(month.year, month.month, 1);
+      final endOfMonth = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
+
+      var query = _firestore
+          .collection(_collectionName)
+          .where('month', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+          .where('month', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth));
+
+      if (missionId != null && missionId.isNotEmpty) {
+        query = query.where('missionId', isEqualTo: missionId);
+      }
+      if (districtId != null && districtId.isNotEmpty) {
+        query = query.where('districtId', isEqualTo: districtId);
+      }
+      // Note: Can't filter by regionId here due to Firestore's limitation on range queries
+      // We'll filter in memory if needed
+
+      final querySnapshot = await query.get();
+
+      var reports = querySnapshot.docs
+          .map((doc) => FinancialReport.fromSnapshot(doc))
+          .toList();
+
+      // Filter by region in memory if needed
+      if (regionId != null && regionId.isNotEmpty) {
+        reports = reports.where((r) => r.regionId == regionId).toList();
+      }
+
+      return reports;
+    } catch (e) {
+      throw Exception('Failed to get reports by month: $e');
+    }
+  }
 }

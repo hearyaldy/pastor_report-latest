@@ -140,6 +140,9 @@ class BorangBFirestoreService {
       final startDate = DateTime(year, month, 1);
       final endDate = DateTime(year, month + 1, 1);
 
+      debugPrint('🔎 Borang B Query - missionId: $missionId, year: $year, month: $month');
+      debugPrint('🔎 Date range: ${startDate.toIso8601String()} to ${endDate.toIso8601String()}');
+
       final querySnapshot = await _firestore
           .collection(_collection)
           .where('missionId', isEqualTo: missionId)
@@ -147,6 +150,16 @@ class BorangBFirestoreService {
           .where('month', isLessThan: endDate.toIso8601String())
           .orderBy('month', descending: true)
           .get();
+
+      debugPrint('✅ Borang B found ${querySnapshot.docs.length} reports');
+
+      if (querySnapshot.docs.isNotEmpty) {
+        debugPrint('📋 Sample report data:');
+        for (var doc in querySnapshot.docs.take(3)) {
+          final data = doc.data();
+          debugPrint('  - ID: ${doc.id}, missionId: ${data['missionId']}, month: ${data['month']}, tithe: ${data['tithe']}, offerings: ${data['offerings']}');
+        }
+      }
 
       return querySnapshot.docs
           .map((doc) => BorangBData.fromJson(doc.data()))
@@ -249,6 +262,103 @@ class BorangBFirestoreService {
     } catch (e) {
       debugPrint('❌ Error getting mission stats: $e');
       return {};
+    }
+  }
+
+  /// Get reports by district and month
+  Future<List<BorangBData>> getReportsByDistrictAndMonth(
+    String districtId,
+    int year,
+    int month,
+  ) async {
+    try {
+      final startDate = DateTime(year, month, 1);
+      final endDate = DateTime(year, month + 1, 1);
+
+      final querySnapshot = await _firestore
+          .collection(_collection)
+          .where('districtId', isEqualTo: districtId)
+          .where('month', isGreaterThanOrEqualTo: startDate.toIso8601String())
+          .where('month', isLessThan: endDate.toIso8601String())
+          .orderBy('month', descending: true)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => BorangBData.fromJson(doc.data()))
+          .toList();
+    } catch (e) {
+      debugPrint('❌ Error getting Borang B reports by district and month: $e');
+      return [];
+    }
+  }
+
+  /// Get aggregate financial data for a district and month
+  Future<Map<String, double>> getDistrictFinancialByMonth(
+    String districtId,
+    int year,
+    int month,
+  ) async {
+    try {
+      final reports = await getReportsByDistrictAndMonth(districtId, year, month);
+
+      if (reports.isEmpty) {
+        return {
+          'tithe': 0.0,
+          'offerings': 0.0,
+          'total': 0.0,
+        };
+      }
+
+      final totalTithe = reports.fold<double>(0.0, (total, r) => total + r.tithe);
+      final totalOfferings = reports.fold<double>(0.0, (total, r) => total + r.offerings);
+
+      return {
+        'tithe': totalTithe,
+        'offerings': totalOfferings,
+        'total': totalTithe + totalOfferings,
+      };
+    } catch (e) {
+      debugPrint('❌ Error getting district financial data: $e');
+      return {
+        'tithe': 0.0,
+        'offerings': 0.0,
+        'total': 0.0,
+      };
+    }
+  }
+
+  /// Get aggregate financial data for a mission and month
+  Future<Map<String, double>> getMissionFinancialByMonth(
+    String missionId,
+    int year,
+    int month,
+  ) async {
+    try {
+      final reports = await getReportsByMissionAndMonth(missionId, year, month);
+
+      if (reports.isEmpty) {
+        return {
+          'tithe': 0.0,
+          'offerings': 0.0,
+          'total': 0.0,
+        };
+      }
+
+      final totalTithe = reports.fold<double>(0.0, (total, r) => total + r.tithe);
+      final totalOfferings = reports.fold<double>(0.0, (total, r) => total + r.offerings);
+
+      return {
+        'tithe': totalTithe,
+        'offerings': totalOfferings,
+        'total': totalTithe + totalOfferings,
+      };
+    } catch (e) {
+      debugPrint('❌ Error getting mission financial data: $e');
+      return {
+        'tithe': 0.0,
+        'offerings': 0.0,
+        'total': 0.0,
+      };
     }
   }
 

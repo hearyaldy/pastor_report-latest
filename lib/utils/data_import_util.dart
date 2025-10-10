@@ -20,10 +20,16 @@ class DataImportUtil {
   static Future<Map<String, dynamic>> importNSMChurches(
       BuildContext context) async {
     try {
+      print('DataImportUtil: Starting NSM Churches import...');
+      
       // Load the JSON file
+      print('DataImportUtil: Loading NSM_Churches_Updated.json');
       final jsonString =
           await rootBundle.loadString('assets/NSM_Churches_Updated.json');
+      print('DataImportUtil: JSON file loaded successfully. Length: ${jsonString.length}');
+      
       final jsonData = json.decode(jsonString) as Map<String, dynamic>;
+      print('DataImportUtil: JSON parsed successfully');
 
       // Summary data for tracking
       final summary = {
@@ -39,20 +45,27 @@ class DataImportUtil {
           "North Sabah Mission"; // Update this if your ID is different
 
       // Access the regions in the JSON
+      print('DataImportUtil: Accessing regions from JSON data');
       final regions = jsonData['regions'] as Map<String, dynamic>;
+      print('DataImportUtil: Found ${regions.length} regions to process');
 
       // Process each region
       for (final regionEntry in regions.entries) {
         final regionId = regionEntry.key;
         final regionData = regionEntry.value as Map<String, dynamic>;
         final regionName = regionData['name'] as String;
+        print('DataImportUtil: Processing region $regionId: $regionName');
 
         // Process each district in the region
+        print('DataImportUtil: Getting pastoral_districts for region $regionId');
         final districts =
             regionData['pastoral_districts'] as Map<String, dynamic>;
+        print('DataImportUtil: Found ${districts.length} districts in region $regionId');
+        
         for (final districtEntry in districts.entries) {
           final districtId = districtEntry.key;
           final districtData = districtEntry.value as Map<String, dynamic>;
+          print('DataImportUtil: Processing district $districtId in region $regionId');
 
           // Process organized churches
           await _processChurches(
@@ -90,14 +103,15 @@ class DataImportUtil {
       }
 
       return summary;
-    } catch (e) {
-      print('Error importing NSM churches: $e');
+    } catch (e, stackTrace) {
+      print('ERROR importing NSM churches: $e');
+      print('Stack trace: $stackTrace');
       return {
         'total': 0,
         'created': 0,
         'updated': 0,
         'errors': 1,
-        'details': ['Error: $e'],
+        'details': ['Error: $e', 'StackTrace: $stackTrace'],
       };
     }
   }
@@ -113,17 +127,22 @@ class DataImportUtil {
     String missionId,
     Map<String, dynamic> summary,
   ) async {
+    print('DataImportUtil: Processing ${churches.length} churches with status ${status.name} in district $districtId, region $regionId');
+    
     for (final churchData in churches) {
       final churchName = churchData['name'] as String;
       summary['total'] = summary['total'] + 1;
+      print('DataImportUtil: Processing church: $churchName');
 
       try {
         // Check if the church already exists
+        print('DataImportUtil: Checking if church "$churchName" already exists in district "$districtId"');
         final existingChurches = await _firestore
             .collection('churches')
             .where('churchName', isEqualTo: churchName)
             .where('districtId', isEqualTo: districtId)
             .get();
+        print('DataImportUtil: Found ${existingChurches.docs.length} existing churches matching "$churchName" in district "$districtId"');
 
         if (existingChurches.docs.isNotEmpty) {
           // Update existing church
@@ -166,7 +185,9 @@ class DataImportUtil {
           summary['created'] = summary['created'] + 1;
           summary['details'].add('Created: $churchName');
         }
-      } catch (e) {
+      } catch (e, stackTrace) {
+        print('ERROR processing church $churchName: $e');
+        print('Stack trace: $stackTrace');
         summary['errors'] = summary['errors'] + 1;
         summary['details'].add('Error with $churchName: $e');
       }

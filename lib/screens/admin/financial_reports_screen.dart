@@ -79,60 +79,75 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final user = authProvider.user;
 
-      // Load missions first
-      _missions = await _missionService.getAllMissions();
-
-      // Load regions, districts, and churches based on user role
+      // OPTIMIZED: Load data in parallel instead of sequentially
       if (user?.userRole == UserRole.districtPastor) {
-        // District pastors only see their district
-        _regions = await _regionService.getAllRegions();
-        _districts = user?.district != null
-            ? [await _districtService.getDistrictById(user!.district!)]
-                .whereType<District>()
-                .toList()
-            : [];
-        _churches = user?.district != null
-            ? await _churchService.getChurchesByDistrict(user!.district!)
-            : [];
+        // District pastors only see their district - parallel loading
+        final futures = await Future.wait([
+          _missionService.getAllMissions(),
+          _regionService.getAllRegions(),
+          user?.district != null
+              ? _districtService.getDistrictById(user!.district!)
+              : Future.value(null),
+          user?.district != null
+              ? _churchService.getChurchesByDistrict(user!.district!)
+              : Future.value(<Church>[]),
+        ]);
+
+        _missions = futures[0] as List<Mission>;
+        _regions = futures[1] as List<Region>;
+        _districts = futures[2] != null ? [futures[2] as District] : [];
+        _churches = futures[3] as List<Church>;
       } else if (user?.userRole == UserRole.churchTreasurer) {
-        // Church treasurers only see their church
-        _regions = await _regionService.getAllRegions();
-        _districts = await _districtService.getAllDistricts();
-        _churches = user?.churchId != null
-            ? [await _churchService.getChurchById(user!.churchId!)]
-                .whereType<Church>()
-                .toList()
-            : [];
+        // Church treasurers only see their church - parallel loading
+        final futures = await Future.wait([
+          _missionService.getAllMissions(),
+          _regionService.getAllRegions(),
+          _districtService.getAllDistricts(),
+          user?.churchId != null
+              ? _churchService.getChurchById(user!.churchId!)
+              : Future.value(null),
+        ]);
+
+        _missions = futures[0] as List<Mission>;
+        _regions = futures[1] as List<Region>;
+        _districts = futures[2] as List<District>;
+        _churches = futures[3] != null ? [futures[3] as Church] : [];
       } else {
-        // Admins and super admins see everything
-        _regions = await _regionService.getAllRegions();
-        _districts = await _districtService.getAllDistricts();
-        _churches = await _churchService.getAllChurches();
+        // Admins and super admins see everything - parallel loading
+        final futures = await Future.wait([
+          _missionService.getAllMissions(),
+          _regionService.getAllRegions(),
+          _districtService.getAllDistricts(),
+          _churchService.getAllChurches(),
+        ]);
+
+        _missions = futures[0] as List<Mission>;
+        _regions = futures[1] as List<Region>;
+        _districts = futures[2] as List<District>;
+        _churches = futures[3] as List<Church>;
       }
 
       // Sort regions naturally (1, 2, 3... not 1, 10, 2, 3)
       _regions.sort(_naturalSort);
 
-      // Load reports based on filters and user role
+      // Load reports based on filters and user role - OPTIMIZED
       if (_selectedChurchId != null) {
         final report = await _reportService.getReportByChurchAndMonth(
             _selectedChurchId!, _selectedMonth);
         _reports = report != null ? [report] : [];
       } else if (_selectedDistrictId != null) {
-        _reports =
-            await _reportService.getReportsByDistrict(_selectedDistrictId!);
-        _reports = _reports.where((r) {
-          return r.month.year == _selectedMonth.year &&
-              r.month.month == _selectedMonth.month;
-        }).toList();
+        // Use optimized month query instead of filtering all district reports
+        _reports = await _reportService.getReportsByMonth(
+          _selectedMonth,
+          districtId: _selectedDistrictId,
+        );
       } else if (user?.userRole == UserRole.districtPastor &&
           user?.district != null) {
-        // District pastors see reports from their district only
-        _reports = await _reportService.getReportsByDistrict(user!.district!);
-        _reports = _reports.where((r) {
-          return r.month.year == _selectedMonth.year &&
-              r.month.month == _selectedMonth.month;
-        }).toList();
+        // District pastors see reports from their district only - optimized
+        _reports = await _reportService.getReportsByMonth(
+          _selectedMonth,
+          districtId: user!.district,
+        );
       } else if (user?.userRole == UserRole.churchTreasurer &&
           user?.churchId != null) {
         // Church treasurers see only their church report
@@ -140,15 +155,14 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
             user!.churchId!, _selectedMonth);
         _reports = report != null ? [report] : [];
       } else {
-        // Get all churches and their reports for the selected month
-        _reports = [];
-        for (var church in _churches) {
-          final report = await _reportService.getReportByChurchAndMonth(
-              church.id, _selectedMonth);
-          if (report != null) {
-            _reports.add(report);
-          }
-        }
+        // OPTIMIZED: Use single query to get all reports for the month
+        // Filter by mission/region/district if selected
+        _reports = await _reportService.getReportsByMonth(
+          _selectedMonth,
+          missionId: _selectedMissionId,
+          regionId: _selectedRegionId,
+          districtId: _selectedDistrictId,
+        );
       }
 
       _reports.sort((a, b) => b.totalFinancial.compareTo(a.totalFinancial));

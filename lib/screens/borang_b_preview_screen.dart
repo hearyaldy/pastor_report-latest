@@ -6,6 +6,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:pastor_report/models/borang_b_model.dart';
 import 'package:pastor_report/services/borang_b_service.dart';
 import 'package:pastor_report/services/borang_b_firestore_service.dart';
+import 'package:pastor_report/services/district_service.dart';
+import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/constants.dart';
 
@@ -247,8 +249,8 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     final BorangBData data = args['data'] as BorangBData;
     final DateTime month = args['month'] as DateTime;
-    final String? districtName = args['districtName'] as String?;
-    final String? missionName = args['missionName'] as String?;
+    final String? districtId = args['districtId'] as String?;
+    final String? missionId = args['missionId'] as String?;
 
     return Scaffold(
       appBar: AppBar(
@@ -276,7 +278,7 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-            _buildHeader(data, month, districtName, missionName),
+            _buildHeader(data, month, districtId, missionId),
             const SizedBox(height: 24),
 
             // Church Membership Statistics
@@ -434,8 +436,8 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
     );
   }
 
-  Widget _buildHeader(BorangBData data, DateTime month, String? districtName,
-      String? missionName) {
+  Widget _buildHeader(BorangBData data, DateTime month, String? districtId,
+      String? missionId) {
     return Card(
       elevation: 2,
       child: Padding(
@@ -454,8 +456,25 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
             const Divider(),
             const SizedBox(height: 8),
             _buildInfoRow('Pastor', data.userName),
-            _buildInfoRow('Mission', missionName ?? data.missionId ?? 'N/A'),
-            _buildInfoRow('District', districtName ?? data.districtId ?? 'N/A'),
+            // Mission name - synchronous lookup
+            _buildInfoRow(
+              'Mission',
+              missionId != null
+                  ? MissionService().getMissionNameById(missionId)
+                  : 'N/A',
+            ),
+            // District name with FutureBuilder
+            FutureBuilder<String>(
+              future: districtId != null
+                  ? DistrictService().getDistrictNameById(districtId)
+                  : Future.value('N/A'),
+              builder: (context, snapshot) {
+                return _buildInfoRow(
+                  'District',
+                  snapshot.data ?? districtId ?? 'N/A',
+                );
+              },
+            ),
             _buildInfoRow('Month', DateFormat('MMMM yyyy').format(month)),
           ],
         ),

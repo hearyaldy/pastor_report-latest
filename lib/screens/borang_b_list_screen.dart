@@ -107,26 +107,15 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
   }
 
   void _viewReport(BorangBData report) {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final user = authProvider.user;
-
-    // Get mission and district names from user data
-    final missionName = user?.mission != null
-        ? (AppConstants.missions.firstWhere(
-            (m) => m['id'] == user?.mission,
-            orElse: () => {'name': user?.mission ?? 'Unknown'},
-          )['name'])
-        : null;
-
     Navigator.pushNamed(
       context,
       '/borang-b-preview',
       arguments: {
         'data': report,
         'month': report.month,
-        'districtName':
-            user?.district, // May still be ID, but will be better than nothing
-        'missionName': missionName,
+        // Pass IDs - the preview screen will handle name resolution
+        'districtId': report.districtId,
+        'missionId': report.missionId,
       },
     );
   }

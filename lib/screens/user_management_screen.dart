@@ -1009,7 +1009,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'This action cannot be undone. The user will be removed from the system.',
+              'This action cannot be undone. The user and all their Borang B reports will be permanently removed from the system.',
               style: TextStyle(
                 color: Colors.red.shade700,
                 fontSize: 13,
@@ -1057,7 +1057,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  '⚠️ Note: Firebase Auth account remains. Delete manually from Firebase Console > Authentication',
+                  '✅ User document deleted\n✅ All Borang B reports deleted',
+                  style: TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '⚠️ Firebase Auth account remains - delete manually from Firebase Console > Authentication',
                   style: TextStyle(fontSize: 12, color: Colors.white70),
                 ),
               ],
