@@ -23,10 +23,9 @@ android {
     }
     
     // Add support for 16 KB memory page sizes (Android 15+ requirement)
-    buildFeatures {
-        androidResources {
-            // Support for 16 KB memory page sizes
-            noCompress += ['so']
+    packagingOptions {
+        resources {
+            excludes += ['META-INF/NOTICE.txt', 'META-INF/LICENSE.txt']
         }
     }
 

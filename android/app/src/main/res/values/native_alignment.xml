@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/native_library_alignment_config">
+    <string-array name="native_library_alignment_config">
+        <item>16384</item> <!-- 16 KB alignment -->
+    </string-array>
+</resources>
