@@ -1,20 +1,22 @@
-# Pastor Report App - Release Notes v3.0.1
+# Version 3.0.1 Release Notes
 
-**Release Date:** October 9, 2025
+## Overview
+This release includes important bug fixes and performance improvements for the Pastor Report app.
 
-## What's New
-- **Enhanced Data Standardization**: Updated North Sabah Mission churches list to match the newer format structure, improving consistency across the app.
-- **Fixed Display Issues**: Resolved an issue where Sabah Mission Staff were showing UIDs instead of proper names for Region and District in the bottom sheet.
-- **UI Improvements**: 
-  - Fixed dashboard app bar content overflow when collapsed
-  - Fixed chip text overflow in Borang B reports list
-- **Financial Reports**: Enhanced finance report functionality for better tracking and reporting
+## Bug Fixes
+- Fixed RenderFlex overflow in the financial discrepancy report modal
+- Resolved mobile compatibility issues in the mission dashboard screen
+- Fixed Excel report generation and sharing for mobile platforms
 
-## Technical Improvements
-- Added caching mechanisms for district and region data, improving app performance
-- Standardized data structure across mission organizations
-- Improved error handling for data resolution
+## Improvements
+- Optimized UI layouts for better display on smaller screens
+- Improved performance of financial reporting features
+- Enhanced mobile sharing capabilities for reports
+
+## Technical Updates
+- Updated build number from 11 to 12
+- Updated version from 3.0.0 to 3.0.1
+- Implemented platform-specific file sharing methods
 
 ---
-
-Thank you for using Pastor Report! This update focuses on data consistency, UI fixes, and performance improvements to make your reporting experience smoother and more efficient.
+*Release Date: October 10, 2025*
