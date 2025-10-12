@@ -352,5 +352,64 @@ service cloud.firestore {
       // Optionally, you can further restrict to Cloud Functions by checking request.auth.token.firebase.sign_in_provider
       allow create, update, delete: if isAdmin();
     }
+
+    // ===== Personal Data Collections (User-scoped) =====
+    
+    // Activities collection - pastor's daily activities
+    match /activities/{activityId} {
+      // Users can only read their own activities
+      allow read: if isAuthenticated() && 
+                    resource.data.userId == request.auth.uid;
+      
+      // Users can only create their own activities
+      allow create: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid;
+      
+      // Users can only update their own activities
+      allow update: if isAuthenticated() && 
+                      resource.data.userId == request.auth.uid;
+      
+      // Users can only delete their own activities
+      allow delete: if isAuthenticated() && 
+                      resource.data.userId == request.auth.uid;
+    }
+
+    // Todos collection - personal todo list
+    match /todos/{todoId} {
+      // Users can only read their own todos
+      allow read: if isAuthenticated() && 
+                    resource.data.userId == request.auth.uid;
+      
+      // Users can only create their own todos
+      allow create: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid;
+      
+      // Users can only update their own todos
+      allow update: if isAuthenticated() && 
+                      resource.data.userId == request.auth.uid;
+      
+      // Users can only delete their own todos
+      allow delete: if isAuthenticated() && 
+                      resource.data.userId == request.auth.uid;
+    }
+
+    // Appointments collection - personal appointments
+    match /appointments/{appointmentId} {
+      // Users can only read their own appointments
+      allow read: if isAuthenticated() && 
+                    resource.data.userId == request.auth.uid;
+      
+      // Users can only create their own appointments
+      allow create: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid;
+      
+      // Users can only update their own appointments
+      allow update: if isAuthenticated() && 
+                      resource.data.userId == request.auth.uid;
+      
+      // Users can only delete their own appointments
+      allow delete: if isAuthenticated() && 
+                      resource.data.userId == request.auth.uid;
+    }
   }
 }

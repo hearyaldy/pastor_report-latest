@@ -1,82 +1,188 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pastor_report/models/todo_model.dart';
 
+/// Cloud storage service for todos using Firebase Firestore
 class TodoStorageService {
-  static const String _todosKey = 'todos';
+  static const String _todosCollection = 'todos';
   static final TodoStorageService instance = TodoStorageService._();
 
   TodoStorageService._();
 
-  SharedPreferences? _prefs;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  /// Get current user's ID
+  String? get _userId => _auth.currentUser?.uid;
 
   Future<void> initialize() async {
-    _prefs = await SharedPreferences.getInstance();
+    debugPrint('✅ TodoStorageService initialized with Firestore');
   }
 
+  /// Get all todos
   Future<List<Todo>> getTodos() async {
-    if (_prefs == null) await initialize();
+    try {
+      if (_userId == null) {
+        debugPrint('⚠️ No user logged in');
+        return [];
+      }
 
-    final todosJson = _prefs!.getString(_todosKey);
-    if (todosJson == null) return [];
+      final snapshot = await _firestore
+          .collection(_todosCollection)
+          .where('userId', isEqualTo: _userId)
+          .orderBy('createdAt', descending: true)
+          .get();
 
-    final List<dynamic> decoded = json.decode(todosJson);
-    return decoded.map((json) => Todo.fromJson(json)).toList();
+      return snapshot.docs
+          .map((doc) => Todo.fromJson({...doc.data(), 'id': doc.id}))
+          .toList();
+    } catch (e) {
+      debugPrint('❌ Error loading todos: $e');
+      return [];
+    }
   }
 
-  Future<void> saveTodo(Todo todo) async {
-    final todos = await getTodos();
-
-    // Check if todo already exists
-    final index = todos.indexWhere((t) => t.id == todo.id);
-    if (index != -1) {
-      todos[index] = todo;
-    } else {
-      todos.add(todo);
+  /// Get todos stream for real-time updates
+  Stream<List<Todo>> getTodosStream() {
+    if (_userId == null) {
+      return Stream.value([]);
     }
 
-    await _saveTodos(todos);
+    return _firestore
+        .collection(_todosCollection)
+        .where('userId', isEqualTo: _userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Todo.fromJson({...doc.data(), 'id': doc.id}))
+            .toList());
   }
 
+  /// Save or update a todo
+  Future<void> saveTodo(Todo todo) async {
+    try {
+      if (_userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final todoData = todo.toJson();
+      todoData['userId'] = _userId;
+      todoData['updatedAt'] = FieldValue.serverTimestamp();
+
+      if (todo.id.isEmpty) {
+        // New todo
+        todoData['createdAt'] = FieldValue.serverTimestamp();
+        await _firestore.collection(_todosCollection).add(todoData);
+        debugPrint('✅ Todo added');
+      } else {
+        // Update existing todo
+        await _firestore
+            .collection(_todosCollection)
+            .doc(todo.id)
+            .update(todoData);
+        debugPrint('✅ Todo updated: ${todo.id}');
+      }
+    } catch (e) {
+      debugPrint('❌ Error saving todo: $e');
+      rethrow;
+    }
+  }
+
+  /// Delete a todo
   Future<void> deleteTodo(String id) async {
-    final todos = await getTodos();
-    todos.removeWhere((todo) => todo.id == id);
-    await _saveTodos(todos);
+    try {
+      if (_userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      await _firestore.collection(_todosCollection).doc(id).delete();
+      debugPrint('✅ Todo deleted: $id');
+    } catch (e) {
+      debugPrint('❌ Error deleting todo: $e');
+      rethrow;
+    }
   }
 
+  /// Toggle todo completion status
   Future<void> toggleTodoComplete(String id) async {
-    final todos = await getTodos();
-    final index = todos.indexWhere((todo) => todo.id == id);
+    try {
+      if (_userId == null) {
+        throw Exception('User not authenticated');
+      }
 
-    if (index != -1) {
-      final todo = todos[index];
-      todos[index] = todo.copyWith(
+      final docRef = _firestore.collection(_todosCollection).doc(id);
+      final docSnap = await docRef.get();
+
+      if (!docSnap.exists) {
+        throw Exception('Todo not found');
+      }
+
+      final todo = Todo.fromJson({...docSnap.data()!, 'id': docSnap.id});
+      final updatedTodo = todo.copyWith(
         isCompleted: !todo.isCompleted,
         completedAt: !todo.isCompleted ? DateTime.now() : null,
       );
-      await _saveTodos(todos);
+
+      await docRef.update({
+        'isCompleted': updatedTodo.isCompleted,
+        'completedAt': updatedTodo.completedAt?.toIso8601String(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      debugPrint('✅ Todo toggled: $id');
+    } catch (e) {
+      debugPrint('❌ Error toggling todo: $e');
+      rethrow;
     }
   }
 
-  Future<void> _saveTodos(List<Todo> todos) async {
-    if (_prefs == null) await initialize();
-
-    final encoded = json.encode(todos.map((t) => t.toJson()).toList());
-    await _prefs!.setString(_todosKey, encoded);
-  }
-
-  // Get incomplete todos
+  /// Get incomplete todos
   Future<List<Todo>> getIncompleteTodos() async {
-    final todos = await getTodos();
-    return todos.where((todo) => !todo.isCompleted).toList()
-      ..sort((a, b) => b.priority.compareTo(a.priority)); // High priority first
+    try {
+      if (_userId == null) {
+        debugPrint('⚠️ No user logged in');
+        return [];
+      }
+
+      final snapshot = await _firestore
+          .collection(_todosCollection)
+          .where('userId', isEqualTo: _userId)
+          .where('isCompleted', isEqualTo: false)
+          .orderBy('priority', descending: true) // High priority first
+          .orderBy('createdAt', descending: false)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => Todo.fromJson({...doc.data(), 'id': doc.id}))
+          .toList();
+    } catch (e) {
+      debugPrint('❌ Error loading incomplete todos: $e');
+      return [];
+    }
   }
 
-  // Get completed todos
+  /// Get completed todos
   Future<List<Todo>> getCompletedTodos() async {
-    final todos = await getTodos();
-    return todos.where((todo) => todo.isCompleted).toList()
-      ..sort((a, b) => (b.completedAt ?? b.createdAt)
-          .compareTo(a.completedAt ?? a.createdAt)); // Recent first
+    try {
+      if (_userId == null) {
+        debugPrint('⚠️ No user logged in');
+        return [];
+      }
+
+      final snapshot = await _firestore
+          .collection(_todosCollection)
+          .where('userId', isEqualTo: _userId)
+          .where('isCompleted', isEqualTo: true)
+          .orderBy('completedAt', descending: true) // Recent first
+          .get();
+
+      return snapshot.docs
+          .map((doc) => Todo.fromJson({...doc.data(), 'id': doc.id}))
+          .toList();
+    } catch (e) {
+      debugPrint('❌ Error loading completed todos: $e');
+      return [];
+    }
   }
 }
