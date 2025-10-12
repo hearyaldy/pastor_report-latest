@@ -1,4 +1,5 @@
 // lib/models/activity_model.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Model for pastor's daily activities
 class Activity {
@@ -24,17 +25,24 @@ class Activity {
 
   /// Create Activity from JSON
   factory Activity.fromJson(Map<String, dynamic> json) {
+    // Helper function to convert Timestamp or String to DateTime
+    DateTime parseDateTime(dynamic value) {
+      if (value == null) return DateTime.now();
+      if (value is Timestamp) return value.toDate();
+      if (value is String) return DateTime.parse(value);
+      return DateTime.now();
+    }
+
     return Activity(
       id: json['id'] as String,
-      date: DateTime.parse(json['date'] as String),
+      date: parseDateTime(json['date']),
       activities: json['activities'] as String,
       mileage: (json['mileage'] as num).toDouble(),
       note: json['note'] as String? ?? '',
       location: json['location'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'] as String)
-          : null,
+      createdAt: parseDateTime(json['createdAt']),
+      updatedAt:
+          json['updatedAt'] != null ? parseDateTime(json['updatedAt']) : null,
     );
   }
 

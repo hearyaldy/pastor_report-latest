@@ -76,7 +76,8 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
       if (user != null && user.userRole != UserRole.superAdmin) {
         // Non-superAdmin users: filter by their mission only
         _selectedMissionId = user.mission;
-        debugPrint('   User role: ${user.userRole.name}, filtering by mission: ${user.mission}');
+        debugPrint(
+            '   User role: ${user.userRole.name}, filtering by mission: ${user.mission}');
       } else {
         debugPrint('   User role: superAdmin, showing all missions');
       }
@@ -106,7 +107,8 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
         missionId: _selectedMissionId,
       );
 
-      debugPrint('   Total reports loaded from Firestore: ${_allReports.length}');
+      debugPrint(
+          '   Total reports loaded from Firestore: ${_allReports.length}');
 
       // Apply search filter
       if (_searchQuery.isNotEmpty) {
@@ -123,7 +125,8 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
               regionName.contains(query) ||
               status.contains(query);
         }).toList();
-        debugPrint('   After search filter: ${_allReports.length} (filtered ${beforeSearch - _allReports.length})');
+        debugPrint(
+            '   After search filter: ${_allReports.length} (filtered ${beforeSearch - _allReports.length})');
       }
 
       _sortReports();
@@ -146,8 +149,8 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
       int compare = 0;
       switch (_sortColumn) {
         case 'church':
-          compare = _getChurchName(a.churchId)
-              .compareTo(_getChurchName(b.churchId));
+          compare =
+              _getChurchName(a.churchId).compareTo(_getChurchName(b.churchId));
           break;
         case 'district':
           compare = _getDistrictName(a.districtId)
@@ -271,8 +274,11 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
                   hintText: 'Search by church, district, region...',
                   prefixIcon: const Icon(Icons.search, size: 20),
                   filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade800
+                      : Colors.white,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(color: Colors.grey.shade300),
@@ -302,7 +308,8 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
                     children: [
                       const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(6),
@@ -310,7 +317,8 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.filter_list, size: 16, color: Colors.grey.shade600),
+                            Icon(Icons.filter_list,
+                                size: 16, color: Colors.grey.shade600),
                             const SizedBox(width: 8),
                             Text(
                               'Mission:',
@@ -327,20 +335,25 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
                                   value: _selectedMissionId,
                                   hint: Text(
                                     'All Missions',
-                                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600),
                                   ),
                                   isExpanded: true,
                                   isDense: true,
-                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade900),
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade900),
                                   items: [
                                     const DropdownMenuItem(
                                       value: null,
                                       child: Text('All Missions'),
                                     ),
-                                    ..._missions.map((mission) => DropdownMenuItem(
-                                          value: mission.id,
-                                          child: Text(mission.name),
-                                        )),
+                                    ..._missions
+                                        .map((mission) => DropdownMenuItem(
+                                              value: mission.id,
+                                              child: Text(mission.name),
+                                            )),
                                   ],
                                   onChanged: (value) {
                                     setState(() {
@@ -530,7 +543,8 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Column(
-            children: reports.map((report) => _buildReportCard(report)).toList(),
+            children:
+                reports.map((report) => _buildReportCard(report)).toList(),
           ),
         ),
       ],
@@ -608,12 +622,15 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(report.status).withValues(alpha: 0.1),
+                      color:
+                          _getStatusColor(report.status).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: _getStatusColor(report.status).withValues(alpha: 0.5),
+                        color: _getStatusColor(report.status)
+                            .withValues(alpha: 0.5),
                       ),
                     ),
                     child: Row(
@@ -674,7 +691,8 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.timeline, size: 12, color: Colors.grey[600]),
+                          Icon(Icons.timeline,
+                              size: 12, color: Colors.grey[600]),
                           const SizedBox(width: 6),
                           Text(
                             'Edit History (${report.history.length} entries)',
@@ -701,8 +719,8 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
                                   color: entry.action == 'created'
                                       ? Colors.green
                                       : entry.action == 'approved'
-                                      ? Colors.blue
-                                      : Colors.orange,
+                                          ? Colors.blue
+                                          : Colors.orange,
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -719,13 +737,15 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
                                       ),
                                     ),
                                     Text(
-                                      DateFormat('dd MMM yyyy, HH:mm').format(entry.editedAt),
+                                      DateFormat('dd MMM yyyy, HH:mm')
+                                          .format(entry.editedAt),
                                       style: TextStyle(
                                         fontSize: 8,
                                         color: Colors.grey[600],
                                       ),
                                     ),
-                                    if (entry.changes != null && entry.changes!.isNotEmpty) ...[
+                                    if (entry.changes != null &&
+                                        entry.changes!.isNotEmpty) ...[
                                       Text(
                                         'Changed: ${entry.changes!.keys.join(", ")}',
                                         style: TextStyle(
@@ -764,7 +784,8 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
                   TextButton.icon(
                     onPressed: () => _showHistoryDialog(report),
                     icon: const Icon(Icons.history, size: 16),
-                    label: const Text('History', style: TextStyle(fontSize: 12)),
+                    label:
+                        const Text('History', style: TextStyle(fontSize: 12)),
                   ),
                   const SizedBox(width: 8),
                   TextButton.icon(
@@ -776,7 +797,8 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
                   TextButton.icon(
                     onPressed: () => _deleteReport(report),
                     icon: const Icon(Icons.delete, size: 16, color: Colors.red),
-                    label: const Text('Delete', style: TextStyle(fontSize: 12, color: Colors.red)),
+                    label: const Text('Delete',
+                        style: TextStyle(fontSize: 12, color: Colors.red)),
                   ),
                 ],
               ),

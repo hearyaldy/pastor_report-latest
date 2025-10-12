@@ -149,7 +149,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               )
             : null,
         filled: true,
-        fillColor: Colors.grey.shade100,
+        fillColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade800
+            : Colors.grey.shade100,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -191,7 +193,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             labelText: 'Filter by Mission',
             prefixIcon: const Icon(Icons.business, size: 20),
             filled: true,
-            fillColor: Colors.grey.shade100,
+            fillColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade800
+                : Colors.grey.shade100,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -984,7 +988,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade800
+                    : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -1120,10 +1126,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: isSelected ? roleColor.withOpacity(0.1) : Colors.grey.shade50,
+          color: isSelected
+              ? roleColor.withOpacity(0.1)
+              : (Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade800
+                  : Colors.grey.shade50),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? roleColor : Colors.grey.shade200,
+            color: isSelected
+                ? roleColor
+                : (Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade700
+                    : Colors.grey.shade200),
             width: isSelected ? 2 : 1,
           ),
         ),

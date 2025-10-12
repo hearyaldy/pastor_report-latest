@@ -68,18 +68,23 @@ class AppointmentStorageService {
       }
 
       final appointmentData = appointment.toJson();
-      appointmentData['userId'] = _userId;
-      appointmentData['updatedAt'] = FieldValue.serverTimestamp();
 
       if (appointment.id.isEmpty) {
-        // New appointment
+        // New appointment - include userId and createdAt
+        appointmentData['userId'] = _userId;
         appointmentData['createdAt'] = FieldValue.serverTimestamp();
+        appointmentData['updatedAt'] = FieldValue.serverTimestamp();
         await _firestore
             .collection(_appointmentsCollection)
             .add(appointmentData);
         debugPrint('✅ Appointment added');
       } else {
-        // Update existing appointment
+        // Update existing appointment - don't update userId, id, or createdAt
+        appointmentData['updatedAt'] = FieldValue.serverTimestamp();
+        // Remove immutable fields from update data
+        appointmentData.remove('userId');
+        appointmentData.remove('id');
+        appointmentData.remove('createdAt');
         await _firestore
             .collection(_appointmentsCollection)
             .doc(appointment.id)

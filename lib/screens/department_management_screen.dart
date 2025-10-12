@@ -286,7 +286,9 @@ class _DepartmentManagementScreenState
                   borderRadius: BorderRadius.circular(8),
                 ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade800
+                    : Colors.white,
                 prefixIcon: const Icon(Icons.business),
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -327,7 +329,9 @@ class _DepartmentManagementScreenState
               )
             : null,
         filled: true,
-        fillColor: Colors.grey.shade100,
+        fillColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade800
+            : Colors.grey.shade100,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -345,7 +349,9 @@ class _DepartmentManagementScreenState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade800
+            : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -1052,7 +1058,8 @@ class _DepartmentManagementScreenState
             height: MediaQuery.of(context).size.height * 0.85,
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Column(
               children: [

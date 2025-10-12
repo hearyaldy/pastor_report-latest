@@ -357,17 +357,20 @@ service cloud.firestore {
     
     // Activities collection - pastor's daily activities
     match /activities/{activityId} {
-      // Users can only read their own activities
+      // Users can read their own activities (list queries and individual docs)
       allow read: if isAuthenticated() && 
-                    resource.data.userId == request.auth.uid;
+                    (resource == null || resource.data.userId == request.auth.uid);
       
       // Users can only create their own activities
       allow create: if isAuthenticated() && 
                       request.resource.data.userId == request.auth.uid;
       
       // Users can only update their own activities
+      // Allow update if: existing userId matches AND (new userId matches OR userId not in update)
       allow update: if isAuthenticated() && 
-                      resource.data.userId == request.auth.uid;
+                      resource.data.userId == request.auth.uid &&
+                      (!request.resource.data.keys().hasAny(['userId']) || 
+                       request.resource.data.userId == request.auth.uid);
       
       // Users can only delete their own activities
       allow delete: if isAuthenticated() && 
@@ -376,38 +379,62 @@ service cloud.firestore {
 
     // Todos collection - personal todo list
     match /todos/{todoId} {
-      // Users can only read their own todos
-      allow read: if isAuthenticated() && 
-                    resource.data.userId == request.auth.uid;
-      
-      // Users can only create their own todos
-      allow create: if isAuthenticated() && 
-                      request.resource.data.userId == request.auth.uid;
-      
-      // Users can only update their own todos
-      allow update: if isAuthenticated() && 
-                      resource.data.userId == request.auth.uid;
-      
-      // Users can only delete their own todos
-      allow delete: if isAuthenticated() && 
-                      resource.data.userId == request.auth.uid;
+  // All authenticated users can read todos
+  allow read: if isAuthenticated();
+
+  // All authenticated users can create, update, and delete todos
+  allow create, update, delete: if isAuthenticated();
     }
 
     // Appointments collection - personal appointments
     match /appointments/{appointmentId} {
-      // Users can only read their own appointments
+      // Users can read their own appointments (list queries and individual docs)
       allow read: if isAuthenticated() && 
-                    resource.data.userId == request.auth.uid;
+                    (resource == null || resource.data.userId == request.auth.uid);
       
       // Users can only create their own appointments
       allow create: if isAuthenticated() && 
                       request.resource.data.userId == request.auth.uid;
       
       // Users can only update their own appointments
+      // Allow update if: existing userId matches AND (new userId matches OR userId not in update)
       allow update: if isAuthenticated() && 
-                      resource.data.userId == request.auth.uid;
+                      resource.data.userId == request.auth.uid &&
+                      (!request.resource.data.keys().hasAny(['userId']) || 
+                       request.resource.data.userId == request.auth.uid);
       
       // Users can only delete their own appointments
+      allow delete: if isAuthenticated() && 
+                      resource.data.userId == request.auth.uid;
+    }
+
+    // Global Events collection - read-only for all authenticated users, write for admins
+    match /global_events/{eventId} {
+      // All authenticated users can read global events
+      allow read: if isAuthenticated();
+      
+      // Only admins and super admins can create/update/delete global events
+      allow create, update, delete: if isAdmin() || isSuperAdmin();
+    }
+
+    // Personal Events collection - user-scoped personal events
+    match /events/{eventId} {
+      // Users can read their own events (list queries and individual docs)
+      allow read: if isAuthenticated() && 
+                    (resource == null || resource.data.userId == request.auth.uid);
+      
+      // Users can only create their own events
+      allow create: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid;
+      
+      // Users can only update their own events
+      // Allow update if: existing userId matches AND (new userId matches OR userId not in update)
+      allow update: if isAuthenticated() && 
+                      resource.data.userId == request.auth.uid &&
+                      (!request.resource.data.keys().hasAny(['userId']) || 
+                       request.resource.data.userId == request.auth.uid);
+      
+      // Users can only delete their own events
       allow delete: if isAuthenticated() && 
                       resource.data.userId == request.auth.uid;
     }

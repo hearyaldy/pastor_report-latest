@@ -45,7 +45,8 @@ class _ResourceManagementScreenState extends State<ResourceManagementScreen> {
       if (user.userRole == UserRole.superAdmin) {
         _resources = await _resourceService.getAllResources();
       } else if (user.mission != null) {
-        _resources = await _resourceService.getResourcesByMission(user.mission!);
+        _resources =
+            await _resourceService.getResourcesByMission(user.mission!);
       }
 
       _applyFilters();
@@ -67,11 +68,15 @@ class _ResourceManagementScreenState extends State<ResourceManagementScreen> {
       // Search filter
       final matchesSearch = _searchQuery.isEmpty ||
           resource.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          resource.description.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          resource.tags.any((tag) => tag.toLowerCase().contains(_searchQuery.toLowerCase()));
+          resource.description
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase()) ||
+          resource.tags.any(
+              (tag) => tag.toLowerCase().contains(_searchQuery.toLowerCase()));
 
       // Category filter
-      final matchesCategory = _selectedCategory == null || resource.category == _selectedCategory;
+      final matchesCategory =
+          _selectedCategory == null || resource.category == _selectedCategory;
 
       return matchesSearch && matchesCategory;
     }).toList();
@@ -212,12 +217,15 @@ class _ResourceManagementScreenState extends State<ResourceManagementScreen> {
                 hintText: 'Search resources...',
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade800
+                    : Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
               onChanged: (value) {
                 setState(() => _searchQuery = value);
@@ -246,11 +254,11 @@ class _ResourceManagementScreenState extends State<ResourceManagementScreen> {
                             value: null,
                             child: Text('All Categories'),
                           ),
-                          ...ResourceCategory.values.map((category) =>
-                              DropdownMenuItem(
-                                value: category,
-                                child: Text(category.displayName),
-                              )),
+                          ...ResourceCategory.values
+                              .map((category) => DropdownMenuItem(
+                                    value: category,
+                                    child: Text(category.displayName),
+                                  )),
                         ],
                         onChanged: (value) {
                           setState(() => _selectedCategory = value);
@@ -272,9 +280,11 @@ class _ResourceManagementScreenState extends State<ResourceManagementScreen> {
                     child: DropdownButton<String>(
                       value: _sortBy,
                       items: const [
-                        DropdownMenuItem(value: 'uploadedAt', child: Text('Date')),
+                        DropdownMenuItem(
+                            value: 'uploadedAt', child: Text('Date')),
                         DropdownMenuItem(value: 'name', child: Text('Name')),
-                        DropdownMenuItem(value: 'category', child: Text('Category')),
+                        DropdownMenuItem(
+                            value: 'category', child: Text('Category')),
                       ],
                       onChanged: (value) {
                         if (value != null) {
@@ -307,9 +317,15 @@ class _ResourceManagementScreenState extends State<ResourceManagementScreen> {
     final filteredCount = _filteredResources.length;
 
     // Count by category
-    final docCount = _filteredResources.where((r) => r.category == ResourceCategory.document).length;
-    final imageCount = _filteredResources.where((r) => r.category == ResourceCategory.image).length;
-    final videoCount = _filteredResources.where((r) => r.category == ResourceCategory.video).length;
+    final docCount = _filteredResources
+        .where((r) => r.category == ResourceCategory.document)
+        .length;
+    final imageCount = _filteredResources
+        .where((r) => r.category == ResourceCategory.image)
+        .length;
+    final videoCount = _filteredResources
+        .where((r) => r.category == ResourceCategory.video)
+        .length;
 
     return SliverToBoxAdapter(
       child: Container(
@@ -357,7 +373,8 @@ class _ResourceManagementScreenState extends State<ResourceManagementScreen> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String label, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -539,7 +556,8 @@ class _ResourceManagementScreenState extends State<ResourceManagementScreen> {
                   const SizedBox(width: 8),
                   _buildInfoChip(Icons.person, resource.uploaderName),
                   const SizedBox(width: 8),
-                  _buildInfoChip(Icons.access_time, DateFormat('dd MMM yyyy').format(resource.uploadedAt)),
+                  _buildInfoChip(Icons.access_time,
+                      DateFormat('dd MMM yyyy').format(resource.uploadedAt)),
                 ],
               ),
             ],
@@ -636,7 +654,8 @@ class _ResourceManagementScreenState extends State<ResourceManagementScreen> {
     // TODO: Implement file picker and upload dialog
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('File upload feature will be implemented with Firebase Storage'),
+        content: Text(
+            'File upload feature will be implemented with Firebase Storage'),
       ),
     );
   }

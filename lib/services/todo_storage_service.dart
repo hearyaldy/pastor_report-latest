@@ -67,16 +67,21 @@ class TodoStorageService {
       }
 
       final todoData = todo.toJson();
-      todoData['userId'] = _userId;
-      todoData['updatedAt'] = FieldValue.serverTimestamp();
 
       if (todo.id.isEmpty) {
-        // New todo
+        // New todo - include userId and createdAt
+        todoData['userId'] = _userId;
         todoData['createdAt'] = FieldValue.serverTimestamp();
+        todoData['updatedAt'] = FieldValue.serverTimestamp();
         await _firestore.collection(_todosCollection).add(todoData);
         debugPrint('✅ Todo added');
       } else {
-        // Update existing todo
+        // Update existing todo - don't update userId, id, or createdAt
+        todoData['updatedAt'] = FieldValue.serverTimestamp();
+        // Remove immutable fields from update data
+        todoData.remove('userId');
+        todoData.remove('id');
+        todoData.remove('createdAt');
         await _firestore
             .collection(_todosCollection)
             .doc(todo.id)

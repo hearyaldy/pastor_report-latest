@@ -12,6 +12,9 @@ import 'package:pastor_report/services/activity_export_service.dart';
 import 'package:pastor_report/services/platform_file_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/services/mission_service.dart';
+import 'package:pastor_report/services/district_service.dart';
+import 'package:pastor_report/services/region_service.dart';
 
 class ActivitiesListScreen extends StatefulWidget {
   const ActivitiesListScreen({super.key});
@@ -25,6 +28,9 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
       ActivityStorageService.instance;
   final SettingsService _settingsService = SettingsService.instance;
   final ActivityExportService _exportService = ActivityExportService.instance;
+  final MissionService _missionService = MissionService.instance;
+  final DistrictService _districtService = DistrictService.instance;
+  final RegionService _regionService = RegionService.instance;
   List<Activity> _activities = [];
   bool _isLoading = true;
   bool _isExporting = false;
@@ -742,7 +748,10 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).cardColor,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Theme.of(context).cardColor,
                             ),
                           ),
                           if (user?.role != null && user!.role!.isNotEmpty) ...[
@@ -768,7 +777,7 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                       Expanded(
                         child: _buildInfoChip(
                           Icons.church,
-                          user.mission!,
+                          _missionService.getMissionNameById(user.mission!),
                         ),
                       ),
                     ],
@@ -776,9 +785,15 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                         user!.district!.isNotEmpty) ...[
                       const SizedBox(width: 8),
                       Expanded(
-                        child: _buildInfoChip(
-                          Icons.location_city,
-                          user.district!,
+                        child: FutureBuilder<String>(
+                          future: _districtService
+                              .getDistrictNameById(user.district!),
+                          builder: (context, snapshot) {
+                            return _buildInfoChip(
+                              Icons.location_city,
+                              snapshot.data ?? user.district!,
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -786,9 +801,14 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                 ),
                 if (user?.region != null && user!.region!.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  _buildInfoChip(
-                    Icons.public,
-                    user.region!,
+                  FutureBuilder<String>(
+                    future: _regionService.getRegionNameById(user.region!),
+                    builder: (context, snapshot) {
+                      return _buildInfoChip(
+                        Icons.public,
+                        snapshot.data ?? user.region!,
+                      );
+                    },
                   ),
                 ],
               ],
@@ -802,7 +822,9 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
               color: Theme.of(context).cardColor,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.black.withValues(alpha: 0.3)
+                      : Colors.black.withValues(alpha: 0.05),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -928,14 +950,20 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                             Icon(
                               Icons.event_busy,
                               size: 64,
-                              color: Colors.grey.shade400,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey.shade600
+                                  : Colors.grey.shade400,
                             ),
                             const SizedBox(height: 16),
                             Text(
                               'No activities for this month',
                               style: TextStyle(
                                 fontSize: 16,
-                                color: Colors.grey.shade600,
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.grey.shade300
+                                    : Colors.grey.shade600,
                               ),
                             ),
                             const SizedBox(height: 24),
@@ -1062,7 +1090,9 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                     Icon(
                       Icons.location_on,
                       size: 16,
-                      color: Colors.grey.shade600,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade300
+                          : Colors.grey.shade600,
                     ),
                     const SizedBox(width: 4),
                     Expanded(
@@ -1070,7 +1100,9 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                         activity.location!,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade600,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade300
+                              : Colors.grey.shade600,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1084,28 +1116,36 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                   Icon(
                     Icons.directions_car,
                     size: 16,
-                    color: Colors.grey.shade600,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade300
+                        : Colors.grey.shade600,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     '${activity.mileage.toStringAsFixed(1)} km',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey.shade600,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade300
+                          : Colors.grey.shade600,
                     ),
                   ),
                   const SizedBox(width: 16),
                   Icon(
                     Icons.attach_money,
                     size: 16,
-                    color: Colors.green.shade700,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.green.shade300
+                        : Colors.green.shade700,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     'RM${activity.calculateCost(_kmCost).toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.green.shade700,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.green.shade300
+                          : Colors.green.shade700,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1134,7 +1174,10 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                           activity.note,
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey.shade700,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey.shade300
+                                    : Colors.grey.shade700,
                           ),
                         ),
                       ),

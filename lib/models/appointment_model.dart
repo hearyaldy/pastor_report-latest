@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Appointment {
   final String id;
   final String title;
@@ -22,8 +24,7 @@ class Appointment {
   });
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
+    final json = <String, dynamic>{
       'title': title,
       'description': description,
       'dateTime': dateTime.toIso8601String(),
@@ -33,19 +34,32 @@ class Appointment {
       'isCompleted': isCompleted,
       'createdAt': createdAt.toIso8601String(),
     };
+    // Only include id if it's not empty
+    if (id.isNotEmpty) {
+      json['id'] = id;
+    }
+    return json;
   }
 
   factory Appointment.fromJson(Map<String, dynamic> json) {
+    // Helper function to convert Timestamp or String to DateTime
+    DateTime parseDateTime(dynamic value) {
+      if (value == null) return DateTime.now();
+      if (value is Timestamp) return value.toDate();
+      if (value is String) return DateTime.parse(value);
+      return DateTime.now();
+    }
+
     return Appointment(
-      id: json['id'] as String,
+      id: json['id'] as String? ?? '',
       title: json['title'] as String,
       description: json['description'] as String?,
-      dateTime: DateTime.parse(json['dateTime'] as String),
+      dateTime: parseDateTime(json['dateTime']),
       location: json['location'] as String?,
       contactPerson: json['contactPerson'] as String?,
       contactPhone: json['contactPhone'] as String?,
       isCompleted: json['isCompleted'] as bool? ?? false,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: parseDateTime(json['createdAt']),
     );
   }
 
@@ -80,5 +94,6 @@ class Appointment {
         dateTime.month == now.month &&
         dateTime.day == now.day;
   }
+
   bool get isUpcoming => dateTime.isAfter(DateTime.now());
 }

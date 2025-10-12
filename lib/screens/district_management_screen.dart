@@ -299,7 +299,9 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                     prefixIcon:
                         Icon(Icons.business, color: AppColors.primaryLight),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade800
+                        : Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide(color: AppColors.primaryLight),
@@ -355,7 +357,9 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                   )
                 : null,
             filled: true,
-            fillColor: Colors.white,
+            fillColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade800
+                : Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -402,7 +406,9 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                   labelText: 'Filter by Region',
                   prefixIcon: const Icon(Icons.map),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade800
+                      : Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -646,7 +652,9 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                       'Tap + to create a new district',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                       ),
                     ),
                   ],
@@ -738,7 +746,9 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                               child: Text(
                                 'Region: ${regionSnapshot.data!.name}',
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest,
                                   fontSize: 12,
                                 ),
                               ),
@@ -786,7 +796,8 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(

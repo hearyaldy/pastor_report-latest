@@ -124,8 +124,11 @@ class ActivityStorageService {
       }
 
       final activityData = updatedActivity.toJson();
-      activityData['userId'] = _userId;
       activityData['updatedAt'] = FieldValue.serverTimestamp();
+      // Remove immutable fields from update data
+      activityData.remove('userId');
+      activityData.remove('id');
+      activityData.remove('createdAt');
 
       await _firestore
           .collection(_activitiesCollection)

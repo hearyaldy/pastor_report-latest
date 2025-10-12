@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Todo {
   final String id;
   final String content;
@@ -18,8 +20,7 @@ class Todo {
   });
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
+    final json = <String, dynamic>{
       'content': content,
       'audioPath': audioPath,
       'isCompleted': isCompleted,
@@ -27,17 +28,30 @@ class Todo {
       'completedAt': completedAt?.toIso8601String(),
       'priority': priority,
     };
+    // Only include id if it's not empty
+    if (id.isNotEmpty) {
+      json['id'] = id;
+    }
+    return json;
   }
 
   factory Todo.fromJson(Map<String, dynamic> json) {
+    // Helper function to convert Timestamp or String to DateTime
+    DateTime parseDateTime(dynamic value) {
+      if (value == null) return DateTime.now();
+      if (value is Timestamp) return value.toDate();
+      if (value is String) return DateTime.parse(value);
+      return DateTime.now();
+    }
+
     return Todo(
-      id: json['id'] as String,
+      id: json['id'] as String? ?? '',
       content: json['content'] as String,
       audioPath: json['audioPath'] as String?,
       isCompleted: json['isCompleted'] as bool? ?? false,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: parseDateTime(json['createdAt']),
       completedAt: json['completedAt'] != null
-          ? DateTime.parse(json['completedAt'] as String)
+          ? parseDateTime(json['completedAt'])
           : null,
       priority: json['priority'] as int? ?? 0,
     );

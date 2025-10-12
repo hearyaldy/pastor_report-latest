@@ -353,7 +353,9 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
               )
             : null,
         filled: true,
-        fillColor: Colors.grey.shade100,
+        fillColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade800
+            : Colors.grey.shade100,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -403,7 +405,9 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade800
+                    : Colors.white,
                 prefixIcon: const Icon(Icons.business),
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -461,7 +465,9 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade800
+                    : Colors.white,
                 prefixIcon: const Icon(Icons.sort_by_alpha),
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
