@@ -275,7 +275,7 @@ class _FinancialReportFormState extends State<FinancialReportForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: AppColors.primaryLight,
         foregroundColor: Colors.white,
@@ -307,10 +307,10 @@ class _FinancialReportFormState extends State<FinancialReportForm> {
                 children: [
                   Text(
                     widget.church.churchName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -373,11 +373,11 @@ class _FinancialReportFormState extends State<FinancialReportForm> {
                             // Status dropdown
                             Container(
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: Theme.of(context).cardColor,
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
+            color: Theme.of(context).shadowColor.withOpacity(0.05),
                                     blurRadius: 10,
                                     offset: const Offset(0, 4),
                                   ),
@@ -494,11 +494,11 @@ class _FinancialReportFormState extends State<FinancialReportForm> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Theme.of(context).shadowColor.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

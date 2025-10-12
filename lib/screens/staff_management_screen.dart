@@ -772,7 +772,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         border: Border.all(color: roleColor.withValues(alpha: 0.3), width: 1.5),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [

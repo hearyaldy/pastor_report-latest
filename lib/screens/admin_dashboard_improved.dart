@@ -223,7 +223,7 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
     final user = authProvider.user;
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: RefreshIndicator(
         onRefresh: _loadDashboardData,
         child: CustomScrollView(
@@ -275,10 +275,10 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
                           color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.admin_panel_settings,
                           size: 32,
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -286,12 +286,12 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Admin Dashboard',
                               style: TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: Theme.of(context).cardColor,
                               ),
                             ),
                             Text(
@@ -361,14 +361,14 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
           children: [
             Row(
               children: [
-                Icon(Icons.insights, color: Colors.grey[700], size: 20),
+                Icon(Icons.insights, color: Theme.of(context).textTheme.bodyMedium?.color, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'System Overview',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -433,7 +433,7 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -473,7 +473,7 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
               title,
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: Theme.of(context).textTheme.bodySmall?.color,
                 fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
@@ -635,14 +635,14 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
           children: [
             Row(
               children: [
-                Icon(Icons.settings, color: Colors.grey[700], size: 20),
+                Icon(Icons.settings, color: Theme.of(context).textTheme.bodyMedium?.color, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Management Tools',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -673,7 +673,7 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: color.withValues(alpha: 0.2),
@@ -702,9 +702,10 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
               const SizedBox(height: 8),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
@@ -715,7 +716,7 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
                 subtitle,
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.grey[600],
+                  color: Theme.of(context).textTheme.bodySmall?.color,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
@@ -737,14 +738,14 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
           children: [
             Row(
               children: [
-                Icon(Icons.history, color: Colors.grey[700], size: 20),
+                Icon(Icons.history, color: Theme.of(context).textTheme.bodyMedium?.color, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Recent Activity',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -769,7 +770,7 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
                   return Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -781,11 +782,11 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.inbox, color: Colors.grey[500]),
+                        Icon(Icons.inbox, color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7)),
                         const SizedBox(width: 8),
                         Text(
                           'No recent activity',
-                          style: TextStyle(color: Colors.grey[600]),
+                          style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
                         ),
                       ],
                     ),
@@ -794,7 +795,7 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
 
                 return Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
@@ -890,7 +891,7 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
   Widget _buildActivitySkeleton() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -951,9 +952,10 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -961,7 +963,7 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
                   subtitle,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -973,7 +975,7 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
             time,
             style: TextStyle(
               fontSize: 11,
-              color: Colors.grey[500],
+              color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -997,8 +999,8 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.all(24),
@@ -1009,16 +1011,17 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: Theme.of(context).dividerColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Quick Actions',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 24),
@@ -1080,9 +1083,10 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
           const SizedBox(height: 8),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
             textAlign: TextAlign.center,
             maxLines: 2,
@@ -1145,6 +1149,10 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
         ),
         builder: (context) => Container(
           constraints: const BoxConstraints(maxHeight: 600),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1154,7 +1162,7 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: Theme.of(context).dividerColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1167,21 +1175,22 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
                       children: [
                         Icon(Icons.public, color: Colors.green[700]),
                         const SizedBox(width: 12),
-                        const Text(
+                        Text(
                           'Select Mission',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Choose a mission to manage its regions',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
                     ),
                   ],

@@ -220,54 +220,67 @@ class AppTheme {
     ),
   );
 
+  // Dark Theme Colors
+  static const Color darkBackground = Color(0xFF121212);
+  static const Color darkSurface = Color(0xFF1E1E1E);
+  static const Color darkSurfaceVariant = Color(0xFF2C2C2C);
+  static const Color darkPrimary = Color(0xFF5B99C2);
+  static const Color darkPrimaryContainer = Color(0xFF1A4870);
+  static const Color darkOnSurface = Color(0xFFE1E1E1);
+  static const Color darkOnSurfaceVariant = Color(0xFFB0B0B0);
+
   // Dark Theme
   static ThemeData darkTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: ColorScheme.dark(
-      primary: primaryLight,
+      primary: darkPrimary,
       onPrimary: Colors.white,
-      primaryContainer: primary,
+      primaryContainer: darkPrimaryContainer,
       onPrimaryContainer: Colors.white,
       secondary: accent,
       onSecondary: Colors.white,
-      secondaryContainer: accentLight,
+      secondaryContainer: const Color(0xFF3A5F7D),
       onSecondaryContainer: Colors.white,
       error: error,
       onError: Colors.white,
-      surface: const Color(0xFF1E1E1E),
-      onSurface: Colors.white,
-      surfaceContainerHighest: const Color(0xFF121212),
+      surface: darkSurface,
+      onSurface: darkOnSurface,
+      surfaceContainerHighest: darkBackground,
+      outline: const Color(0xFF424242),
+      outlineVariant: const Color(0xFF2C2C2C),
     ),
-    scaffoldBackgroundColor: const Color(0xFF121212),
+    scaffoldBackgroundColor: darkBackground,
 
     // AppBar Theme
-    appBarTheme: AppBarTheme(
-      backgroundColor: primary,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: darkPrimaryContainer,
       foregroundColor: Colors.white,
       elevation: 0,
       centerTitle: false,
-      titleTextStyle: const TextStyle(
+      titleTextStyle: TextStyle(
         color: Colors.white,
         fontSize: 20,
         fontWeight: FontWeight.w600,
       ),
-      iconTheme: const IconThemeData(color: Colors.white),
+      iconTheme: IconThemeData(color: Colors.white),
     ),
 
     // Card Theme
     cardTheme: CardThemeData(
-      color: const Color(0xFF1E1E1E),
+      color: darkSurface,
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
       ),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     ),
 
     // Bottom Sheet Theme
     bottomSheetTheme: const BottomSheetThemeData(
-      backgroundColor: Color(0xFF1E1E1E),
+      backgroundColor: darkSurface,
+      modalBackgroundColor: darkSurface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -276,7 +289,7 @@ class AppTheme {
     // Elevated Button Theme
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: primaryLight,
+        backgroundColor: darkPrimary,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         shape: RoundedRectangleBorder(
@@ -293,7 +306,7 @@ class AppTheme {
     // Text Button Theme
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: accent,
+        foregroundColor: darkPrimary,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         textStyle: const TextStyle(
           fontSize: 16,
@@ -302,10 +315,22 @@ class AppTheme {
       ),
     ),
 
+    // Outlined Button Theme
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: darkPrimary,
+        side: const BorderSide(color: darkPrimary),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    ),
+
     // Input Decoration Theme
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFF2C2C2C),
+      fillColor: darkSurfaceVariant,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -317,7 +342,7 @@ class AppTheme {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: primaryLight, width: 2),
+        borderSide: const BorderSide(color: darkPrimary, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -327,15 +352,15 @@ class AppTheme {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: error, width: 2),
       ),
-      labelStyle: const TextStyle(color: Colors.white70),
-      hintStyle: const TextStyle(color: Colors.white38),
+      labelStyle: TextStyle(color: darkOnSurfaceVariant),
+      hintStyle: const TextStyle(color: Color(0xFF757575)),
     ),
 
     // Bottom Navigation Bar Theme
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      backgroundColor: Color(0xFF1E1E1E),
-      selectedItemColor: accent,
-      unselectedItemColor: Colors.white54,
+      backgroundColor: darkSurface,
+      selectedItemColor: darkPrimary,
+      unselectedItemColor: darkOnSurfaceVariant,
       selectedLabelStyle: TextStyle(fontWeight: FontWeight.w600),
       type: BottomNavigationBarType.fixed,
       elevation: 8,
@@ -343,7 +368,7 @@ class AppTheme {
 
     // Floating Action Button Theme
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: accent,
+      backgroundColor: darkPrimary,
       foregroundColor: Colors.white,
       elevation: 4,
     ),

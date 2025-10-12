@@ -44,7 +44,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: RefreshIndicator(
         onRefresh: () async {
           final missionProvider =
@@ -110,11 +110,11 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                             size: 28, color: Colors.white),
                       ),
                       const SizedBox(width: 16),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            const Text(
                               'Mission Management',
                               style: TextStyle(
                                 fontSize: 24,
@@ -122,7 +122,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                                 color: Colors.white,
                               ),
                             ),
-                            Text(
+                            const Text(
                               'Manage mission configurations',
                               style: TextStyle(
                                 fontSize: 14,
@@ -163,7 +163,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
             // Search Bar
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
@@ -238,7 +238,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -278,7 +278,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
               title,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[600],
+                color: Theme.of(context).textTheme.bodySmall?.color,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -311,7 +311,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                   Icon(
                     Icons.public_off,
                     size: 64,
-                    color: Colors.grey[400],
+                    color: Theme.of(context).dividerColor,
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -321,7 +321,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey[600],
+                      color: Theme.of(context).textTheme.bodySmall?.color,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -331,7 +331,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                         : 'Tap the + button to add your first mission',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[500],
+                      color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -357,7 +357,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -408,7 +408,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                             'Code: ${mission.code}',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[600],
+                              color: Theme.of(context).textTheme.bodySmall?.color,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -416,7 +416,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                       ),
                     ),
                     PopupMenuButton<String>(
-                      icon: Icon(Icons.more_vert, color: Colors.grey[600]),
+                      icon: Icon(Icons.more_vert, color: Theme.of(context).textTheme.bodySmall?.color),
                       onSelected: (value) {
                         if (value == 'edit') {
                           _showEditMissionDialog(mission);
@@ -456,14 +456,14 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.grey[50],
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       mission.description!,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[700],
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
                         height: 1.4,
                       ),
                     ),

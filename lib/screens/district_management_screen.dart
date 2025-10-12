@@ -144,7 +144,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: RefreshIndicator(
         onRefresh: () async {
           setState(() {});
@@ -211,14 +211,14 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                           color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.location_city,
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                           size: 24,
                         ),
                       ),
                       const SizedBox(width: 16),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -227,7 +227,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: Theme.of(context).cardColor,
                               ),
                             ),
                             Text(
@@ -491,7 +491,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -564,7 +564,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
               'Please select a mission to manage its districts',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey.shade500,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
               ),
             ),
           ],
@@ -646,7 +646,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                       'Tap + to create a new district',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade500,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
                       ),
                     ),
                   ],
@@ -677,7 +677,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -738,7 +738,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                               child: Text(
                                 'Region: ${regionSnapshot.data!.name}',
                                 style: TextStyle(
-                                  color: Colors.grey.shade500,
+                                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                                   fontSize: 12,
                                 ),
                               ),
@@ -786,7 +786,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(

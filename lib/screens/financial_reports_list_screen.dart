@@ -183,7 +183,7 @@ class _FinancialReportsListScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Financial Reports'),
         backgroundColor: AppColorUtils.AppColors.primaryLight,
@@ -236,7 +236,7 @@ class _FinancialReportsListScreenState
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
@@ -288,7 +288,7 @@ class _FinancialReportsListScreenState
             Icon(
               Icons.receipt_long_outlined,
               size: 64,
-              color: Colors.grey[400],
+              color: Theme.of(context).dividerColor,
             ),
             const SizedBox(height: 12),
             Text(
@@ -296,7 +296,7 @@ class _FinancialReportsListScreenState
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[600],
+                color: Theme.of(context).textTheme.bodySmall?.color,
               ),
             ),
             const SizedBox(height: 6),
@@ -306,7 +306,7 @@ class _FinancialReportsListScreenState
                   : 'Select a church to view reports',
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey[500],
+                color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
               ),
               textAlign: TextAlign.center,
             ),
@@ -436,7 +436,7 @@ class _FinancialReportsListScreenState
                       DateFormat('MMM dd, yyyy').format(report.submittedAt),
                       style: TextStyle(
                         fontSize: 9,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.right,
@@ -460,7 +460,7 @@ class _FinancialReportsListScreenState
           label,
           style: TextStyle(
             fontSize: 10,
-            color: Colors.grey[600],
+            color: Theme.of(context).textTheme.bodySmall?.color,
           ),
           overflow: TextOverflow.ellipsis,
         ),

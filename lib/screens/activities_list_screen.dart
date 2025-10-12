@@ -262,7 +262,7 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.blue.shade200),
               ),
@@ -287,7 +287,7 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(Icons.folder, color: Colors.blue.shade700),
@@ -712,7 +712,7 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                   children: [
                     CircleAvatar(
                       radius: 32,
-                      backgroundColor: Colors.white,
+                      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                       child: Text(
                         user?.displayName.isNotEmpty == true
                             ? user!.displayName[0].toUpperCase()
@@ -731,10 +731,10 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                         children: [
                           Text(
                             user?.displayName ?? 'User',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: Theme.of(context).cardColor,
                             ),
                           ),
                           if (user?.role != null && user!.role!.isNotEmpty) ...[
@@ -790,7 +790,7 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
@@ -847,16 +847,16 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                   Expanded(
                     child: Column(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.directions_car,
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                           size: 28,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           '${_totalKm.toStringAsFixed(1)} km',
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: Theme.of(context).cardColor,
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
@@ -879,16 +879,16 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                   Expanded(
                     child: Column(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.attach_money,
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                           size: 28,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'RM${_totalCost.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: Theme.of(context).cardColor,
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
@@ -977,15 +977,15 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
           Icon(
             icon,
             size: 14,
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
           ),
           const SizedBox(width: 6),
           Flexible(
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 fontWeight: FontWeight.w500,
               ),
               overflow: TextOverflow.ellipsis,
@@ -1106,7 +1106,7 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(

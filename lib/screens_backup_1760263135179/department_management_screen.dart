@@ -1,0 +1,1384 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:pastor_report/services/department_service.dart';
+import 'package:pastor_report/services/mission_service.dart';
+import 'package:pastor_report/models/department_model.dart';
+import 'package:pastor_report/models/mission_model.dart';
+import 'package:pastor_report/models/user_model.dart';
+import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/providers/auth_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+class DepartmentManagementScreen extends StatefulWidget {
+  const DepartmentManagementScreen({super.key});
+
+  @override
+  State<DepartmentManagementScreen> createState() =>
+      _DepartmentManagementScreenState();
+}
+
+class _DepartmentManagementScreenState
+    extends State<DepartmentManagementScreen> {
+  String _searchQuery = '';
+  bool _showInactive = false;
+  String? _selectedMissionId;
+  List<Mission> _missions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMissions();
+  }
+
+  Future<void> _loadMissions() async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final user = authProvider.user;
+
+      if (user?.userRole == UserRole.superAdmin) {
+        _missions = await MissionService.instance.getAllMissions();
+        if (_missions.isNotEmpty && _selectedMissionId == null) {
+          _selectedMissionId = _missions.first.id;
+        }
+      } else if (user?.mission != null) {
+        _selectedMissionId = user!.mission;
+        final userMission =
+            await MissionService.instance.getMissionByID(user.mission!);
+        if (userMission != null) {
+          _missions = [userMission];
+        }
+      }
+
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('Error loading missions: $e');
+    }
+  }
+
+  // Available colors for department selection - Bright CMYK colors
+  static final List<Color> _availableColors = [
+    const Color(0xFF00FFFF), // Bright Cyan
+    const Color(0xFFFF00FF), // Bright Magenta
+    const Color(0xFFFFFF00), // Bright Yellow
+    const Color(0xFF00FF00), // Bright Green (Key alternative)
+    const Color(0xFF00CCFF), // Sky Blue
+    const Color(0xFFFF0099), // Hot Pink
+    const Color(0xFFFFCC00), // Golden Yellow
+    const Color(0xFF00FF99), // Spring Green
+    const Color(0xFF0099FF), // Azure Blue
+    const Color(0xFFFF3399), // Rose
+    const Color(0xFFFFFF66), // Light Yellow
+    const Color(0xFF66FF66), // Light Green
+    const Color(0xFF66FFFF), // Light Cyan
+    const Color(0xFFFF66FF), // Light Magenta
+    const Color(0xFFFF9933), // Orange
+    const Color(0xFF9933FF), // Purple
+    const Color(0xFF33FF99), // Mint Green
+    const Color(0xFFFF6699), // Pink
+    const Color(0xFF99FF33), // Lime
+    const Color(0xFF3399FF), // Blue
+    const Color(0xFFFFCC99), // Peach
+    const Color(0xFF99CCFF), // Light Blue
+    const Color(0xFFFF99CC), // Pastel Pink
+    const Color(0xFFCCFF99), // Pastel Green
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
+
+    return Scaffold(
+      body: RefreshIndicator(
+        onRefresh: () async {
+          setState(() {});
+        },
+        child: CustomScrollView(
+          slivers: [
+            _buildModernAppBar(user),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    // Mission selector for SuperAdmin
+                    if (user?.userRole == UserRole.superAdmin) ...[
+                      _buildMissionSelector(),
+                      const SizedBox(height: 16),
+                    ],
+                    _buildSearchBar(),
+                    const SizedBox(height: 12),
+                    _buildToggleBar(),
+                  ],
+                ),
+              ),
+            ),
+            _buildDepartmentGrid(_selectedMissionId),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () =>
+            _showDepartmentDialog(context, null, _selectedMissionId),
+        icon: const Icon(Icons.add),
+        label: const Text('Add Department'),
+        backgroundColor: AppColors.primaryLight,
+        foregroundColor: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildModernAppBar(UserModel? user) {
+    final missionName = _selectedMissionId != null
+        ? MissionService().getMissionNameById(_selectedMissionId!)
+        : 'All Missions';
+
+    return SliverAppBar(
+      expandedHeight: 180,
+      floating: false,
+      pinned: true,
+      backgroundColor: AppColors.primaryLight,
+      flexibleSpace: FlexibleSpaceBar(
+        titlePadding: const EdgeInsets.only(left: 16, bottom: 16, right: 16),
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Department Management',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.business,
+                  color: Colors.white70,
+                  size: 14,
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    missionName,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      fontWeight: FontWeight.normal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.primaryLight,
+                AppColors.primaryDark,
+              ],
+            ),
+          ),
+          child: Stack(
+            children: [
+              // Large background icon
+              Positioned(
+                right: -30,
+                top: -30,
+                child: Icon(
+                  Icons.dashboard_customize,
+                  size: 150,
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+              // Info card in top right
+              Positioned(
+                top: 60,
+                right: 16,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.dashboard,
+                        color: Colors.white.withValues(alpha: 0.9),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 6),
+                      StreamBuilder<List<Department>>(
+                        stream: DepartmentService()
+                            .getDepartmentsStream(mission: _selectedMissionId),
+                        builder: (context, snapshot) {
+                          final count = snapshot.data?.length ?? 0;
+                          return Text(
+                            '$count Dept${count != 1 ? 's' : ''}',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMissionSelector() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.admin_panel_settings,
+                    color: Colors.blue.shade700, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Super Admin: Select Mission',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue.shade700,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: _selectedMissionId,
+              decoration: InputDecoration(
+                labelText: 'Mission',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                prefixIcon: const Icon(Icons.business),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              items: _missions.map((mission) {
+                return DropdownMenuItem(
+                  value: mission.id,
+                  child: Text(mission.name),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _selectedMissionId = value;
+                  });
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return TextField(
+      decoration: InputDecoration(
+        hintText: 'Search departments...',
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: _searchQuery.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  setState(() {
+                    _searchQuery = '';
+                  });
+                },
+              )
+            : null,
+        filled: true,
+        fillColor: Colors.grey.shade100,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      onChanged: (value) {
+        setState(() {
+          _searchQuery = value;
+        });
+      },
+    );
+  }
+
+  Widget _buildToggleBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.visibility, size: 20, color: Colors.grey),
+          const SizedBox(width: 8),
+          const Text('Show Inactive', style: TextStyle(fontSize: 14)),
+          const Spacer(),
+          Switch(
+            value: _showInactive,
+            onChanged: (value) {
+              setState(() {
+                _showInactive = value;
+              });
+            },
+            activeColor: AppColors.primaryLight,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDepartmentGrid(String? missionId) {
+    final deptService = DepartmentService();
+
+    return StreamBuilder<List<Department>>(
+      stream: deptService.getDepartmentsStream(mission: missionId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return SliverFillRemaining(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text('Error: ${snapshot.error}'),
+                ],
+              ),
+            ),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SliverFillRemaining(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.dashboard_outlined, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No departments found',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Tap + to add a department',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        var departments = snapshot.data!;
+
+        // Apply filters
+        if (!_showInactive) {
+          departments = departments.where((d) => d.isActive).toList();
+        }
+
+        if (_searchQuery.isNotEmpty) {
+          departments = departments.where((d) {
+            return d.name.toLowerCase().contains(_searchQuery.toLowerCase());
+          }).toList();
+        }
+
+        if (departments.isEmpty) {
+          return const SliverFillRemaining(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.search_off, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No departments match your search',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return SliverPadding(
+          padding: const EdgeInsets.all(16),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.85,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final dept = departments[index];
+                return _buildDepartmentCard(dept, missionId);
+              },
+              childCount: departments.length,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDepartmentCard(Department dept, String? userMission) {
+    // Brighten the card color
+    final cardColor = _brightenColor(dept.color ?? Colors.grey.shade100);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white,
+          width: 3,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _showDepartmentDetails(dept, userMission),
+          child: Stack(
+            children: [
+              // Inactive badge at top-right corner
+              if (!dept.isActive)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.pause_circle, size: 12, color: Colors.white),
+                        SizedBox(width: 4),
+                        Text(
+                          'Inactive',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              // Content
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Icon
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        dept.icon,
+                        size: 24,
+                        color: _getIconColor(dept.color),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Name
+                    Text(
+                      dept.name,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    // URL preview
+                    Text(
+                      dept.formUrl,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey.shade700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    // Actions
+                    Row(
+                      children: [
+                        Expanded(
+                          child: IconButton(
+                            icon: const Icon(Icons.edit, size: 16),
+                            padding: const EdgeInsets.all(6),
+                            constraints: const BoxConstraints(
+                                minHeight: 32, minWidth: 32),
+                            onPressed: () => _showDepartmentDialog(
+                                context, dept, userMission),
+                            style: IconButton.styleFrom(
+                              backgroundColor:
+                                  Colors.white.withValues(alpha: 0.9),
+                              foregroundColor: AppColors.primaryLight,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: IconButton(
+                            icon: const Icon(Icons.link, size: 16),
+                            padding: const EdgeInsets.all(6),
+                            constraints: const BoxConstraints(
+                                minHeight: 32, minWidth: 32),
+                            onPressed: () => _openUrl(dept.formUrl),
+                            style: IconButton.styleFrom(
+                              backgroundColor:
+                                  Colors.white.withValues(alpha: 0.9),
+                              foregroundColor: Colors.blue,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getIconColor(Color? bgColor) {
+    if (bgColor == null) return AppColors.primaryLight;
+    // Calculate brightness
+    final luminance = bgColor.computeLuminance();
+    return luminance > 0.7 ? AppColors.primaryDark : AppColors.primaryLight;
+  }
+
+  /// Keep bright colors vibrant - no brightening needed for CMYK colors
+  Color _brightenColor(Color color) {
+    return color; // Return original bright color without modification
+  }
+
+  void _showDepartmentDetails(Department dept, String? userMission) {
+    final deptService = DepartmentService();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Header
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: dept.color ?? Colors.grey.shade100,
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      dept.icon,
+                      size: 40,
+                      color: _getIconColor(dept.color),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    dept.name,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: dept.isActive ? Colors.green : Colors.red,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      dept.isActive ? 'Active' : 'Inactive',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Details
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(24),
+                children: [
+                  _buildDetailRow(Icons.link, 'Form URL', dept.formUrl),
+                  if (dept.mission != null) ...[
+                    const SizedBox(height: 16),
+                    _buildDetailRow(Icons.business, 'Mission', dept.mission!),
+                  ],
+                  if (dept.lastUpdated != null) ...[
+                    const SizedBox(height: 16),
+                    _buildDetailRow(
+                      Icons.update,
+                      'Last Updated',
+                      _formatDate(dept.lastUpdated!),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  // Actions
+                  ElevatedButton.icon(
+                    onPressed: () => _openUrl(dept.formUrl),
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('Open Form'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryLight,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.all(16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showDepartmentDialog(context, dept, userMission);
+                    },
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Edit Department'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.all(16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          title: Row(
+                            children: [
+                              Icon(
+                                dept.isActive
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: dept.isActive
+                                    ? Colors.orange
+                                    : Colors.green,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(dept.isActive ? 'Deactivate' : 'Activate'),
+                            ],
+                          ),
+                          content: Text(
+                            '${dept.isActive ? 'Deactivate' : 'Activate'} ${dept.name}?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancel'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: dept.isActive
+                                    ? Colors.orange
+                                    : Colors.green,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Confirm'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true) {
+                        try {
+                          final updatedDept = Department(
+                            id: dept.id,
+                            name: dept.name,
+                            icon: dept.icon,
+                            formUrl: dept.formUrl,
+                            color: dept.color,
+                            mission: dept.mission,
+                            isActive: !dept.isActive,
+                          );
+                          await deptService.updateDepartment(updatedDept);
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  const Icon(Icons.check_circle,
+                                      color: Colors.white),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                      'Department ${dept.isActive ? 'deactivated' : 'activated'}'),
+                                ],
+                              ),
+                              backgroundColor: Colors.green,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          );
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  const Icon(Icons.error, color: Colors.white),
+                                  const SizedBox(width: 12),
+                                  Expanded(child: Text('Error: $e')),
+                                ],
+                              ),
+                              backgroundColor: Colors.red,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    icon: Icon(dept.isActive
+                        ? Icons.visibility_off
+                        : Icons.visibility),
+                    label: Text(dept.isActive ? 'Deactivate' : 'Activate'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor:
+                          dept.isActive ? Colors.orange : Colors.green,
+                      padding: const EdgeInsets.all(16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          title: const Row(
+                            children: [
+                              Icon(Icons.delete, color: Colors.red),
+                              SizedBox(width: 12),
+                              Text('Delete Department'),
+                            ],
+                          ),
+                          content: Text('Permanently delete ${dept.name}?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancel'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Delete'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true) {
+                        try {
+                          await deptService.deleteDepartment(dept.id,
+                              missionName: userMission);
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Row(
+                                children: [
+                                  Icon(Icons.check_circle, color: Colors.white),
+                                  SizedBox(width: 12),
+                                  Text('Department deleted'),
+                                ],
+                              ),
+                              backgroundColor: Colors.green,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          );
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  const Icon(Icons.error, color: Colors.white),
+                                  const SizedBox(width: 12),
+                                  Expanded(child: Text('Error: $e')),
+                                ],
+                              ),
+                              backgroundColor: Colors.red,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.delete),
+                    label: const Text('Delete'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      padding: const EdgeInsets.all(16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: Colors.grey.shade600),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.error, color: Colors.white),
+              SizedBox(width: 12),
+              Text('Could not open URL'),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
+  }
+
+  void _showDepartmentDialog(
+      BuildContext context, Department? department, String? userMission) {
+    final nameController = TextEditingController(text: department?.name ?? '');
+    final urlController =
+        TextEditingController(text: department?.formUrl ?? '');
+    IconData selectedIcon = department?.icon ?? Icons.dashboard;
+    Color selectedColor = department?.color ?? AppColors.cardBackground;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.primaryLight, AppColors.primaryDark],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        department == null ? Icons.add_circle : Icons.edit,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        department == null
+                            ? 'Add Department'
+                            : 'Edit Department',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextField(
+                          controller: nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Department Name',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.badge),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: urlController,
+                          decoration: const InputDecoration(
+                            labelText: 'Form URL',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.link),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Select Color:',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: selectedColor,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              selectedIcon,
+                              color: _getIconColor(selectedColor),
+                              size: 32,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 120,
+                          child: GridView.builder(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 6,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
+                            itemCount: _availableColors.length,
+                            itemBuilder: (context, index) {
+                              final color = _availableColors[index];
+                              final isSelected =
+                                  selectedColor.toARGB32() == color.toARGB32();
+
+                              return InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    selectedColor = color;
+                                  });
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: color,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? AppColors.primaryDark
+                                          : Colors.grey.shade300,
+                                      width: isSelected ? 3 : 1,
+                                    ),
+                                  ),
+                                  child: isSelected
+                                      ? const Icon(Icons.check,
+                                          color: Colors.black54, size: 16)
+                                      : null,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Select Icon:',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 150,
+                          child: GridView.builder(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 4,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
+                            itemCount: Department.availableIcons.length,
+                            itemBuilder: (context, index) {
+                              final iconData = Department.availableIcons[index];
+                              final isSelected =
+                                  selectedIcon == iconData['icon'];
+
+                              return InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    selectedIcon = iconData['icon'];
+                                  });
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? AppColors.primaryLight
+                                        : Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    iconData['icon'],
+                                    size: 28,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.grey.shade700,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Bottom action buttons
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border(
+                      top: BorderSide(color: Colors.grey.shade300),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            side: BorderSide(color: AppColors.primaryLight),
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (nameController.text.isEmpty ||
+                                urlController.text.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Row(
+                                    children: [
+                                      Icon(Icons.error, color: Colors.white),
+                                      SizedBox(width: 12),
+                                      Text('Please fill all fields'),
+                                    ],
+                                  ),
+                                  backgroundColor: Colors.red,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10)),
+                                ),
+                              );
+                              return;
+                            }
+
+                            try {
+                              final deptService = DepartmentService();
+
+                              final newDept = Department(
+                                id: department?.id ?? '',
+                                name: nameController.text,
+                                icon: selectedIcon,
+                                formUrl: urlController.text,
+                                mission: userMission,
+                                color: selectedColor,
+                                isActive: department?.isActive ?? true,
+                              );
+
+                              if (department == null) {
+                                await deptService.addDepartment(newDept);
+                              } else {
+                                await deptService.updateDepartment(newDept);
+                              }
+
+                              if (!context.mounted) return;
+
+                              // Close the bottom sheet
+                              Navigator.pop(context);
+
+                              // Refresh the parent screen
+                              if (context.mounted) {
+                                // Use findAncestorStateOfType to refresh the parent
+                                context
+                                    .findAncestorStateOfType<
+                                        _DepartmentManagementScreenState>()
+                                    ?.setState(() {});
+                              }
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      const Icon(Icons.check_circle,
+                                          color: Colors.white),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                          'Department ${department == null ? 'added' : 'updated'} successfully!'),
+                                    ],
+                                  ),
+                                  backgroundColor: Colors.green,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10)),
+                                ),
+                              );
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              debugPrint('Error updating department: $e');
+
+                              // Don't close the sheet on error so user can try again
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      const Icon(Icons.error,
+                                          color: Colors.white),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'Error: $e',
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  backgroundColor: Colors.red,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10)),
+                                  duration: const Duration(seconds: 5),
+                                ),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryLight,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: Text(department == null
+                              ? 'Add Department'
+                              : 'Update Department'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}

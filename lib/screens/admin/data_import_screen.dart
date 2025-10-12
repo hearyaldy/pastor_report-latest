@@ -52,7 +52,7 @@ class _DataImportScreenState extends State<DataImportScreen> {
                         icon: const Icon(Icons.cloud_upload),
                         label: const Text('Start Import Process'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.secondary,
+                          backgroundColor: AppColors.primaryLight,
                           foregroundColor: Colors.white,
                           minimumSize: const Size(double.infinity, 50),
                         ),

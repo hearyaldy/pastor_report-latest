@@ -186,7 +186,7 @@ class _MinisterialSecretaryDashboardState
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: RefreshIndicator(
         onRefresh: _loadData,
         child: CustomScrollView(
@@ -213,7 +213,7 @@ class _MinisterialSecretaryDashboardState
             Icon(
               Icons.lock_outline,
               size: 80,
-              color: Colors.grey[400],
+              color: Theme.of(context).dividerColor,
             ),
             const SizedBox(height: 20),
             Text(
@@ -221,7 +221,7 @@ class _MinisterialSecretaryDashboardState
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 12),
@@ -230,7 +230,7 @@ class _MinisterialSecretaryDashboardState
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey[600],
+                color: Theme.of(context).textTheme.bodySmall?.color,
               ),
             ),
           ],
@@ -253,12 +253,12 @@ class _MinisterialSecretaryDashboardState
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Borang B Reports',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
               ),
             ),
             const SizedBox(height: 4),
@@ -350,7 +350,7 @@ class _MinisterialSecretaryDashboardState
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),
@@ -385,7 +385,7 @@ class _MinisterialSecretaryDashboardState
                   'Reporting Period',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                 ),
               ],
@@ -531,14 +531,14 @@ class _MinisterialSecretaryDashboardState
                         netMembershipChange >= 0
                             ? Icons.trending_up
                             : Icons.trending_down,
-                        color: Colors.white,
+                        color: Theme.of(context).cardColor,
                         size: 32,
                       ),
                       const SizedBox(width: 12),
-                      const Text(
+                      Text(
                         'Net Membership Change',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
@@ -547,8 +547,8 @@ class _MinisterialSecretaryDashboardState
                   ),
                   Text(
                     '${netMembershipChange >= 0 ? '+' : ''}$netMembershipChange',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Theme.of(context).cardColor,
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                     ),
@@ -583,12 +583,12 @@ class _MinisterialSecretaryDashboardState
       ),
       child: Column(
         children: [
-          Icon(icon, color: Colors.white, size: 28),
+          Icon(icon, color: Theme.of(context).cardColor, size: 28),
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: Theme.of(context).cardColor,
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
@@ -596,8 +596,8 @@ class _MinisterialSecretaryDashboardState
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: Theme.of(context).cardColor,
               fontSize: 14,
             ),
           ),
@@ -611,7 +611,7 @@ class _MinisterialSecretaryDashboardState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.3)),
         boxShadow: [
@@ -632,7 +632,7 @@ class _MinisterialSecretaryDashboardState
               Text(
                 label,
                 style: TextStyle(
-                  color: Colors.grey[600],
+                  color: Theme.of(context).textTheme.bodySmall?.color,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -684,7 +684,7 @@ class _MinisterialSecretaryDashboardState
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
@@ -704,13 +704,13 @@ class _MinisterialSecretaryDashboardState
                       Container(
                         width: 1,
                         height: 40,
-                        color: Colors.grey[300],
+                        color: Theme.of(context).dividerColor,
                       ),
                       _buildSubmissionCount('Pending', pending, Colors.orange),
                       Container(
                         width: 1,
                         height: 40,
-                        color: Colors.grey[300],
+                        color: Theme.of(context).dividerColor,
                       ),
                       _buildSubmissionCount(
                           'Total Staff', totalStaff, Colors.blue),
@@ -722,7 +722,7 @@ class _MinisterialSecretaryDashboardState
                     child: LinearProgressIndicator(
                       value: totalStaff > 0 ? submitted / totalStaff : 0,
                       minHeight: 12,
-                      backgroundColor: Colors.grey[200],
+                      backgroundColor: Theme.of(context).dividerColor.withValues(alpha: 0.3),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         submissionRate >= 80
                             ? Colors.green
@@ -737,7 +737,7 @@ class _MinisterialSecretaryDashboardState
                     '$submissionRate% Submission Rate',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[600],
+                      color: Theme.of(context).textTheme.bodySmall?.color,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -752,7 +752,7 @@ class _MinisterialSecretaryDashboardState
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
@@ -816,7 +816,7 @@ class _MinisterialSecretaryDashboardState
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey[600],
+            color: Theme.of(context).textTheme.bodySmall?.color,
           ),
         ),
       ],
@@ -833,14 +833,14 @@ class _MinisterialSecretaryDashboardState
               Icon(
                 Icons.inbox_outlined,
                 size: 80,
-                color: Colors.grey[300],
+                color: Theme.of(context).dividerColor,
               ),
               const SizedBox(height: 16),
               Text(
                 'No reports submitted for ${DateFormat('MMMM yyyy').format(_selectedMonth)}',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.grey[600],
+                  color: Theme.of(context).textTheme.bodySmall?.color,
                 ),
               ),
             ],
@@ -888,7 +888,7 @@ class _MinisterialSecretaryDashboardState
   Widget _buildReportCard(BorangBData report) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -938,8 +938,8 @@ class _MinisterialSecretaryDashboardState
                       backgroundColor: AppColors.primaryLight,
                       child: Text(
                         report.userName[0].toUpperCase(),
-                        style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: Theme.of(context).cardColor, fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -958,17 +958,17 @@ class _MinisterialSecretaryDashboardState
                             'Submitted on ${DateFormat('MMM d, yyyy').format(report.createdAt)}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: Theme.of(context).textTheme.bodySmall?.color,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.chevron_right, color: Colors.grey[400]),
+                    Icon(Icons.chevron_right, color: Theme.of(context).dividerColor),
                   ],
                 ),
                 const SizedBox(height: 16),
-                Divider(color: Colors.grey[200]),
+                Divider(color: Theme.of(context).dividerColor),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -1017,7 +1017,7 @@ class _MinisterialSecretaryDashboardState
           label,
           style: TextStyle(
             fontSize: 10,
-            color: Colors.grey[600],
+            color: Theme.of(context).textTheme.bodySmall?.color,
           ),
           textAlign: TextAlign.center,
         ),

@@ -824,7 +824,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: RefreshIndicator(
         onRefresh: _loadMissionData,
         child: CustomScrollView(
@@ -979,11 +979,11 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                     children: [
                       CircleAvatar(
                         radius: 32,
-                        backgroundColor: Colors.white,
-                        child: Icon(
+                        backgroundColor: Colors.white.withValues(alpha: 0.2),
+                        child: const Icon(
                           Icons.business,
                           size: 36,
-                          color: AppColors.primaryLight,
+                          color: Colors.white,
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -1069,9 +1069,9 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           border: Border(
-            bottom: BorderSide(color: Colors.grey[200]!, width: 1),
+            bottom: BorderSide(color: Theme.of(context).dividerColor, width: 1),
           ),
         ),
         child: Column(
@@ -1081,7 +1081,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
               'View Level',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: Theme.of(context).textTheme.bodySmall?.color,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1255,7 +1255,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
         decoration: BoxDecoration(
           color: AppColors.primaryLight.withValues(alpha: 0.05),
           border: Border(
-            bottom: BorderSide(color: Colors.grey[200]!, width: 1),
+            bottom: BorderSide(color: Theme.of(context).dividerColor, width: 1),
           ),
         ),
         child: Column(
@@ -1266,7 +1266,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                 'Select District',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[700],
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1372,7 +1372,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                 'Select Church',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[700],
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1460,10 +1460,10 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Theme.of(context).shadowColor.withValues(alpha: 0.05),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -1485,7 +1485,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                 Text(
                   DateFormat('MMMM yyyy').format(_selectedMonth),
                   style: TextStyle(
-                    color: AppColors.primaryDark,
+                    color: Theme.of(context).colorScheme.primary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1495,7 +1495,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                   'Reporting Period',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                 ),
               ],
@@ -1652,12 +1652,12 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: Theme.of(context).shadowColor.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -1677,7 +1677,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
           Text(
             label,
             style: TextStyle(
-              color: Colors.grey[700],
+              color: Theme.of(context).textTheme.bodyMedium?.color,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
@@ -1720,12 +1720,12 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).shadowColor.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1742,7 +1742,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1903,9 +1903,9 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!),
+              color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Theme.of(context).dividerColor),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
@@ -1944,7 +1944,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                         ? _churchesWithReports / _totalChurches
                         : 0,
                     minHeight: 12,
-                    backgroundColor: Colors.grey[200],
+                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       reportingPercentage >= 80
                           ? Colors.green
@@ -1959,7 +1959,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                   '$reportingPercentage% Complete',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                 ),
               ],
@@ -2038,7 +2038,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
             'Treasurer Reports vs Borang B Reports',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: Theme.of(context).textTheme.bodySmall?.color,
             ),
           ),
           const SizedBox(height: 12),
@@ -2046,9 +2046,9 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
+              color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.shade200),
+              border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -2112,7 +2112,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
           label,
           style: TextStyle(
             fontSize: 11,
-            color: Colors.grey[700],
+            color: Theme.of(context).textTheme.bodyMedium?.color,
           ),
           textAlign: TextAlign.center,
         ),
@@ -2129,10 +2129,14 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isMatch ? Colors.green.shade50 : Colors.orange.shade50,
+        color: isMatch
+            ? Colors.green.withValues(alpha: 0.1)
+            : Colors.orange.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isMatch ? Colors.green.shade200 : Colors.orange.shade200,
+          color: isMatch
+              ? Colors.green.withValues(alpha: 0.3)
+              : Colors.orange.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -2178,7 +2182,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                       'Treasurer',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -2205,7 +2209,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                       'Borang B',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -2226,8 +2230,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
+                color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -2264,7 +2268,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
           // Header
           Row(
             children: [
-              Icon(Icons.assessment, color: AppColors.primaryDark, size: 28),
+              Icon(Icons.assessment, color: Theme.of(context).colorScheme.primary, size: 28),
               const SizedBox(width: 12),
               const Text(
                 'Ministry Activities Summary',
@@ -2280,7 +2284,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
             'Based on $_totalBorangBReports Borang B reports submitted',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: Theme.of(context).textTheme.bodySmall?.color,
             ),
           ),
           const SizedBox(height: 16),
@@ -2456,7 +2460,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[700],
+              color: Theme.of(context).textTheme.bodyMedium?.color,
               fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
@@ -2471,9 +2475,9 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.blue.shade50,
+          color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
           border: Border(
-            bottom: BorderSide(color: Colors.blue.shade200, width: 2),
+            bottom: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3), width: 2),
           ),
         ),
         child: Column(
@@ -2482,13 +2486,13 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
             Row(
               children: [
                 Icon(Icons.admin_panel_settings,
-                    color: Colors.blue.shade700, size: 20),
+                    color: Theme.of(context).colorScheme.primary, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Super Admin: Select Mission',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.blue.shade700,
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -2539,7 +2543,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                   return Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
+                      color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
@@ -2559,10 +2563,10 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                   isExpanded: true,
                   decoration: InputDecoration(
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).cardColor,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.blue.shade300),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 12),
@@ -2603,7 +2607,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                 icon: const Icon(Icons.clear, size: 16),
                 label: const Text('Reset to My Mission'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey.shade600,
+                  backgroundColor: Theme.of(context).colorScheme.surface,
                   foregroundColor: Colors.white,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -2701,9 +2705,9 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+        borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
@@ -2719,7 +2723,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: Theme.of(context).dividerColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -2790,7 +2794,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(color: Theme.of(context).dividerColor),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -2825,7 +2829,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                     subtitle,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[600],
+                      color: Theme.of(context).textTheme.bodySmall?.color,
                     ),
                   ),
                 ],
@@ -2834,7 +2838,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
             Icon(
               Icons.arrow_forward_ios,
               size: 16,
-              color: Colors.grey[400],
+              color: Theme.of(context).dividerColor,
             ),
           ],
         ),
@@ -2896,9 +2900,9 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+        borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
@@ -2914,7 +2918,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: Theme.of(context).dividerColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -2966,7 +2970,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!),
+                        border: Border.all(color: Theme.of(context).dividerColor),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Column(
@@ -2984,7 +2988,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                             'District: ${district.name}',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[600],
+                              color: Theme.of(context).textTheme.bodySmall?.color,
                             ),
                           ),
                           if (church.memberCount != null) ...[
@@ -2993,7 +2997,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                               'Members: ${church.memberCount}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey[500],
+                                color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
                               ),
                             ),
                           ],
@@ -3082,9 +3086,9 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
         minChildSize: 0.5,
         maxChildSize: 0.95,
         builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+        borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(20),
               topRight: Radius.circular(20),
             ),
@@ -3097,7 +3101,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: Theme.of(context).dividerColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -3116,7 +3120,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.primaryDark,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                             softWrap: true,
                           ),
@@ -3124,7 +3128,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                             DateFormat('MMMM yyyy').format(_selectedMonth),
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[600],
+                              color: Theme.of(context).textTheme.bodySmall?.color,
                             ),
                           ),
                         ],
@@ -3139,9 +3143,9 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                             icon: const Icon(Icons.file_download),
                             onPressed: _exportDiscrepanciesToExcel,
                             tooltip: 'Export to Excel',
-                            color: AppColors.primaryDark,
+                            color: Theme.of(context).colorScheme.primary,
                             padding: EdgeInsets.zero,
-                            constraints: BoxConstraints(maxWidth: 40),
+                            constraints: const BoxConstraints(maxWidth: 40),
                           ),
                           IconButton(
                             icon: const Icon(Icons.close),
@@ -3173,7 +3177,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                               'No discrepancies found',
                               style: TextStyle(
                                 fontSize: 18,
-                                color: Colors.grey[600],
+                                color: Theme.of(context).textTheme.bodySmall?.color,
                               ),
                             ),
                           ],
@@ -3240,8 +3244,9 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                               leading: Icon(statusIcon, color: statusColor),
                               title: Text(
                                 church.churchName,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                               subtitle: Text(
@@ -3262,11 +3267,12 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                                           mainAxisAlignment:
                                               MainAxisAlignment.spaceBetween,
                                           children: [
-                                            const Text(
+                                            Text(
                                               'Treasurer Report',
                                               style: TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 14,
+                                                color: Theme.of(context).colorScheme.onSurface,
                                               ),
                                             ),
                                             const Icon(Icons.check_circle,
@@ -3322,11 +3328,12 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                                           mainAxisAlignment:
                                               MainAxisAlignment.spaceBetween,
                                           children: [
-                                            const Text(
+                                            Text(
                                               'Borang B Report',
                                               style: TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 14,
+                                                color: Theme.of(context).colorScheme.onSurface,
                                               ),
                                             ),
                                             const Icon(Icons.check_circle,
@@ -3433,7 +3440,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                                         Container(
                                           padding: const EdgeInsets.all(12),
                                           decoration: BoxDecoration(
-                                            color: Colors.orange.shade50,
+                                            color: Colors.orange.withValues(alpha: 0.1),
                                             borderRadius:
                                                 BorderRadius.circular(8),
                                           ),
@@ -3449,9 +3456,9 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                                               ),
                                               Text(
                                                 'RM ${NumberFormat('#,##0.00').format(difference)} (${discrepancyPercent.toStringAsFixed(1)}%)',
-                                                style: TextStyle(
+                                                style: const TextStyle(
                                                   fontWeight: FontWeight.bold,
-                                                  color: Colors.orange.shade900,
+                                                  color: Colors.orange,
                                                 ),
                                               ),
                                             ],

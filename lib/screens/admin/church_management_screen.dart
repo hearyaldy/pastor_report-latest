@@ -187,7 +187,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: RefreshIndicator(
         onRefresh: _loadData,
         child: CustomScrollView(
@@ -249,7 +249,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                             size: 28, color: Colors.white),
                       ),
                       const SizedBox(width: 16),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -258,7 +258,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: Theme.of(context).cardColor,
                               ),
                             ),
                             Text(
@@ -306,7 +306,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.blue.shade200),
                   ),
@@ -371,7 +371,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
             // Search Bar
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
@@ -472,7 +472,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
   ) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -546,7 +546,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -573,7 +573,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
             title,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[600],
+              color: Theme.of(context).textTheme.bodySmall?.color,
             ),
             textAlign: TextAlign.center,
           ),
@@ -595,18 +595,18 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.church_outlined, size: 64, color: Colors.grey[300]),
+              Icon(Icons.church_outlined, size: 64, color: Theme.of(context).dividerColor),
               const SizedBox(height: 16),
               Text(
                 'No churches found',
-                style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 18, color: Theme.of(context).textTheme.bodySmall?.color),
               ),
               const SizedBox(height: 8),
               Text(
                 _searchQuery.isNotEmpty
                     ? 'Try a different search'
                     : 'Add your first church',
-                style: TextStyle(color: Colors.grey[500]),
+                style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7)),
               ),
             ],
           ),
@@ -632,7 +632,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -679,20 +679,20 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                       Row(
                         children: [
                           Icon(Icons.location_city,
-                              size: 14, color: Colors.grey[600]),
+                              size: 14, color: Theme.of(context).textTheme.bodySmall?.color),
                           const SizedBox(width: 4),
                           Text(
                             _getDistrictName(church.districtId),
                             style: TextStyle(
-                                fontSize: 13, color: Colors.grey[600]),
+                                fontSize: 13, color: Theme.of(context).textTheme.bodySmall?.color),
                           ),
                           const SizedBox(width: 12),
-                          Icon(Icons.people, size: 14, color: Colors.grey[600]),
+                          Icon(Icons.people, size: 14, color: Theme.of(context).textTheme.bodySmall?.color),
                           const SizedBox(width: 4),
                           Text(
                             '${church.memberCount ?? 0}',
                             style: TextStyle(
-                                fontSize: 13, color: Colors.grey[600]),
+                                fontSize: 13, color: Theme.of(context).textTheme.bodySmall?.color),
                           ),
                         ],
                       ),
@@ -702,13 +702,13 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                         Row(
                           children: [
                             Icon(Icons.location_on,
-                                size: 14, color: Colors.grey[600]),
+                                size: 14, color: Theme.of(context).textTheme.bodySmall?.color),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 church.address!,
                                 style: TextStyle(
-                                    fontSize: 12, color: Colors.grey[500]),
+                                    fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7)),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -720,7 +720,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                   ),
                 ),
                 PopupMenuButton<String>(
-                  icon: Icon(Icons.more_vert, color: Colors.grey[600]),
+                  icon: Icon(Icons.more_vert, color: Theme.of(context).textTheme.bodySmall?.color),
                   onSelected: (value) {
                     if (value == 'edit') {
                       _showAddEditDialog(church);
@@ -766,8 +766,8 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
       isScrollControlled: true,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -777,7 +777,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: Theme.of(context).dividerColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -813,7 +813,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                           'Elder: ${church.elderName}',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            color: Theme.of(context).textTheme.bodySmall?.color,
                           ),
                         ),
                       ],
@@ -926,7 +926,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                   label,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -993,8 +993,8 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Container(
           height: MediaQuery.of(context).size.height * 0.9,
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
@@ -1005,7 +1005,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: Theme.of(context).dividerColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1355,8 +1355,8 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  border: Border(top: BorderSide(color: Colors.grey[200]!)),
+                  color: Theme.of(context).cardColor,
+                  border: Border(top: BorderSide(color: Theme.of(context).dividerColor!)),
                 ),
                 child: Row(
                   children: [

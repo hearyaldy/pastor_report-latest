@@ -290,7 +290,7 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           RefreshIndicator(
@@ -362,12 +362,12 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Church Treasurer',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: Theme.of(context).cardColor,
                               ),
                             ),
                             if (_isLoading)
@@ -420,7 +420,7 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
         margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -436,7 +436,7 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
               onPressed: () => _changeMonth(-1),
               icon: const Icon(Icons.chevron_left),
               style: IconButton.styleFrom(
-                backgroundColor: Colors.grey[100],
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               ),
             ),
             Expanded(
@@ -469,7 +469,7 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
               onPressed: () => _changeMonth(1),
               icon: const Icon(Icons.chevron_right),
               style: IconButton.styleFrom(
-                backgroundColor: Colors.grey[100],
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               ),
             ),
           ],
@@ -524,18 +524,18 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
                           color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.payments_rounded,
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                           size: 20,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Text(
                         report == null ? 'No Report Data' : 'Total Collection',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -544,10 +544,10 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
                   const SizedBox(height: 16),
                   Text(
                     'RM ${total.toStringAsFixed(2)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 42,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       letterSpacing: -1,
                     ),
                   ),
@@ -581,15 +581,15 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
                             Icon(
                               _getStatusIcon(report.status),
                               size: 16,
-                              color: Colors.white,
+                              color: Theme.of(context).cardColor,
                             ),
                             const SizedBox(width: 6),
                             Text(
                               report.status.toUpperCase(),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: Theme.of(context).cardColor,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -659,7 +659,7 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -687,7 +687,7 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
+              color: Theme.of(context).colorScheme.onSurface,
             ),
             textAlign: TextAlign.center,
           ),
@@ -697,7 +697,7 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
             title,
             style: TextStyle(
               fontSize: 11,
-              color: Colors.grey[600],
+              color: Theme.of(context).textTheme.bodySmall?.color,
             ),
           ),
           const SizedBox(height: 8),
@@ -740,11 +740,11 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.assessment_outlined,
-                  size: 64, color: Colors.grey[300]),
+                  size: 64, color: Theme.of(context).dividerColor),
               const SizedBox(height: 16),
               Text(
                 'No reports found',
-                style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 18, color: Theme.of(context).textTheme.bodySmall?.color),
               ),
               const SizedBox(height: 8),
               const Text(
@@ -776,7 +776,7 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(

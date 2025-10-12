@@ -277,20 +277,20 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.lock, size: 72, color: Colors.grey[400]),
+              Icon(Icons.lock, size: 72, color: Theme.of(context).dividerColor),
               const SizedBox(height: 16),
               Text(
                 'Access Denied',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey[700],
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 'You do not have permission to view financial reports',
-                style: TextStyle(color: Colors.grey[600]),
+                style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
               ),
             ],
           ),
@@ -315,7 +315,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
     final grandTotal = totalTithe + totalOfferings + totalSpecial;
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       floatingActionButton: _canAddReport(user)
           ? FloatingActionButton.extended(
               onPressed: () => _showAddReportDialog(user),
@@ -365,7 +365,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                                     size: 28, color: Colors.white),
                               ),
                               const SizedBox(width: 16),
-                              const Expanded(
+                              Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -374,7 +374,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                                       style: TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+                                        color: Theme.of(context).cardColor,
                                       ),
                                     ),
                                     Text(
@@ -408,7 +408,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                       controller: _tabController!,
                       indicatorSize: TabBarIndicatorSize.tab,
                       indicator: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       labelColor: AppColors.primaryLight,
@@ -436,14 +436,14 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
               actions: [
                 // Export button with loading state
                 _isExporting
-                    ? const Padding(
-                        padding: EdgeInsets.all(16.0),
+                    ? Padding(
+                        padding: const EdgeInsets.all(16.0),
                         child: SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: Theme.of(context).cardColor,
                           ),
                         ),
                       )
@@ -492,7 +492,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
         margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -508,7 +508,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
               onPressed: () => _changeMonth(-1),
               icon: const Icon(Icons.chevron_left),
               style: IconButton.styleFrom(
-                backgroundColor: Colors.grey[100],
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               ),
             ),
             Expanded(
@@ -526,7 +526,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                       '${_reports.length} reports',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
                     ),
                   ],
@@ -537,7 +537,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
               onPressed: () => _changeMonth(1),
               icon: const Icon(Icons.chevron_right),
               style: IconButton.styleFrom(
-                backgroundColor: Colors.grey[100],
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               ),
             ),
           ],
@@ -676,7 +676,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
   ) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -742,10 +742,10 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                   const SizedBox(height: 8),
                   Text(
                     'RM ${total.toStringAsFixed(2)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 36,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                     ),
                   ),
                 ],
@@ -797,7 +797,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -824,7 +824,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
             title,
             style: TextStyle(
               fontSize: 11,
-              color: Colors.grey[600],
+              color: Theme.of(context).textTheme.bodySmall?.color,
             ),
           ),
           const SizedBox(height: 4),
@@ -855,16 +855,16 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.assessment_outlined,
-                  size: 64, color: Colors.grey[300]),
+                  size: 64, color: Theme.of(context).dividerColor),
               const SizedBox(height: 16),
               Text(
                 'No reports found',
-                style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 18, color: Theme.of(context).textTheme.bodySmall?.color),
               ),
               const SizedBox(height: 8),
               Text(
                 'No financial reports for ${DateFormat('MMMM yyyy').format(_selectedMonth)}',
-                style: TextStyle(color: Colors.grey[500]),
+                style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7)),
               ),
             ],
           ),
@@ -893,7 +893,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -956,12 +956,12 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                       Row(
                         children: [
                           Icon(Icons.location_city,
-                              size: 14, color: Colors.grey[600]),
+                              size: 14, color: Theme.of(context).textTheme.bodySmall?.color),
                           const SizedBox(width: 4),
                           Text(
                             districtName,
                             style: TextStyle(
-                                fontSize: 13, color: Colors.grey[600]),
+                                fontSize: 13, color: Theme.of(context).textTheme.bodySmall?.color),
                           ),
                         ],
                       ),
@@ -1030,7 +1030,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                                   Icon(
                                     Icons.person_outline,
                                     size: 12,
-                                    color: Colors.grey[500],
+                                    color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
                                   ),
                                   const SizedBox(width: 4),
                                   Flexible(
@@ -1038,7 +1038,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                                       'Submitted by',
                                       style: TextStyle(
                                         fontSize: 9,
-                                        color: Colors.grey[600],
+                                        color: Theme.of(context).textTheme.bodySmall?.color,
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -1049,7 +1049,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                                 userName,
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: Colors.grey[700],
+                                  color: Theme.of(context).textTheme.bodyMedium?.color,
                                   fontWeight: FontWeight.w600,
                                 ),
                                 maxLines: 1,
@@ -1075,7 +1075,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                                 Icon(
                                   Icons.history,
                                   size: 12,
-                                  color: Colors.grey[500],
+                                  color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
                                 ),
                                 const SizedBox(width: 4),
                                 Flexible(
@@ -1085,7 +1085,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                                         : 'Edited by',
                                     style: TextStyle(
                                       fontSize: 9,
-                                      color: Colors.grey[600],
+                                      color: Theme.of(context).textTheme.bodySmall?.color,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -1096,7 +1096,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                               report.history.last.editorName,
                               style: TextStyle(
                                 fontSize: 10,
-                                color: Colors.grey[700],
+                                color: Theme.of(context).textTheme.bodyMedium?.color,
                                 fontWeight: FontWeight.w600,
                               ),
                               maxLines: 1,
@@ -1107,7 +1107,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                               DateFormat('dd MMM, HH:mm').format(report.history.last.editedAt),
                               style: TextStyle(
                                 fontSize: 9,
-                                color: Colors.grey[500],
+                                color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
                               ),
                             ),
                           ],
@@ -1124,23 +1124,23 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[200]!),
+                  border: Border.all(color: Theme.of(context).dividerColor!),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.timeline, size: 14, color: Colors.grey[600]),
+                        Icon(Icons.timeline, size: 14, color: Theme.of(context).textTheme.bodySmall?.color),
                         const SizedBox(width: 6),
                         Text(
                           'Edit History (${report.history.length} entries)',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey[700],
+                            color: Theme.of(context).textTheme.bodyMedium?.color,
                           ),
                         ),
                       ],
@@ -1174,14 +1174,14 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.grey[800],
+                                      color: Theme.of(context).colorScheme.onSurface,
                                     ),
                                   ),
                                   Text(
                                     DateFormat('dd MMM yyyy, HH:mm').format(entry.editedAt),
                                     style: TextStyle(
                                       fontSize: 9,
-                                      color: Colors.grey[600],
+                                      color: Theme.of(context).textTheme.bodySmall?.color,
                                     ),
                                   ),
                                   if (entry.changes != null && entry.changes!.isNotEmpty) ...[
@@ -1190,7 +1190,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                                       'Changed: ${entry.changes!.keys.join(", ")}',
                                       style: TextStyle(
                                         fontSize: 9,
-                                        color: Colors.grey[600],
+                                        color: Theme.of(context).textTheme.bodySmall?.color,
                                         fontStyle: FontStyle.italic,
                                       ),
                                     ),
@@ -1208,7 +1208,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                         '+ ${report.history.length - 3} more edits',
                         style: TextStyle(
                           fontSize: 9,
-                          color: Colors.grey[600],
+                          color: Theme.of(context).textTheme.bodySmall?.color,
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -1234,7 +1234,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
           label,
           style: TextStyle(
             fontSize: 8,
-            color: Colors.grey[600],
+            color: Theme.of(context).textTheme.bodySmall?.color,
           ),
           overflow: TextOverflow.ellipsis,
           maxLines: 1,
@@ -1386,8 +1386,8 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
       ),
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.85, // Increase height
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -1397,7 +1397,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: Theme.of(context).dividerColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1433,7 +1433,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                           DateFormat('MMMM yyyy').format(report.month),
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            color: Theme.of(context).textTheme.bodySmall?.color,
                           ),
                         ),
                       ],
@@ -1653,7 +1653,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                   label,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -2009,8 +2009,8 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Container(
           height: MediaQuery.of(context).size.height * 0.75,
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
@@ -2021,7 +2021,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: Theme.of(context).dividerColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -2226,7 +2226,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                       subtitle,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
                     ),
                   ],
@@ -2269,7 +2269,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
 
     final exportType = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -2310,7 +2310,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                         'Choose export format',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[600],
+                          color: Theme.of(context).textTheme.bodySmall?.color,
                         ),
                       ),
                     ],
@@ -2394,7 +2394,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
   void _showExportCompleteOptions(String filePath, String fileName) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -2436,7 +2436,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                         'File saved as $fileName',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[600],
+                          color: Theme.of(context).textTheme.bodySmall?.color,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -2467,7 +2467,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                     filePath,
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey[700],
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -2553,8 +2553,8 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Container(
         height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -2565,7 +2565,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: Theme.of(context).dividerColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -2602,7 +2602,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                           DateFormat('dd MMM yyyy').format(selectedReportDate),
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            color: Theme.of(context).textTheme.bodySmall?.color,
                           ),
                         ),
                       ],
@@ -2666,7 +2666,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                               'Report Date',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey[600],
+                                color: Theme.of(context).textTheme.bodySmall?.color,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -2698,7 +2698,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
               child: Text(
                 'Select a church to create a financial report',
                 style: TextStyle(
-                  color: Colors.grey[600],
+                  color: Theme.of(context).textTheme.bodySmall?.color,
                   fontSize: 14,
                 ),
               ),
@@ -2717,7 +2717,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Colors.grey[300]!),
+                      side: BorderSide(color: Theme.of(context).dividerColor!),
                     ),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(12),
@@ -2759,14 +2759,14 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                                       Icon(
                                         Icons.location_city,
                                         size: 14,
-                                        color: Colors.grey[600],
+                                        color: Theme.of(context).textTheme.bodySmall?.color,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
                                         _getDistrictName(church.districtId),
                                         style: TextStyle(
                                           fontSize: 13,
-                                          color: Colors.grey[600],
+                                          color: Theme.of(context).textTheme.bodySmall?.color,
                                         ),
                                       ),
                                     ],
@@ -2777,7 +2777,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                             Icon(
                               Icons.arrow_forward_ios,
                               size: 16,
-                              color: Colors.grey[400],
+                              color: Theme.of(context).dividerColor,
                             ),
                           ],
                         ),

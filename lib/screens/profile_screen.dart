@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
+import 'package:pastor_report/providers/theme_provider.dart';
 import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/models/mission_model.dart';
 import 'package:pastor_report/models/region_model.dart';
@@ -451,16 +452,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       // Avatar
                       CircleAvatar(
                         radius: 60,
-                        backgroundColor: Colors.white,
+                        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                         child: CircleAvatar(
                           radius: 56,
                           backgroundColor: AppTheme.accent,
                           child: Text(
                             user.displayName.substring(0, 1).toUpperCase(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 48,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: Theme.of(context).cardColor,
                             ),
                           ),
                         ),
@@ -469,10 +470,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       // Name
                       Text(
                         user.displayName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -504,8 +505,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 const SizedBox(width: 6),
                                 Text(
                                   user.roleString.toUpperCase(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: Theme.of(context).cardColor,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 12,
                                   ),
@@ -522,7 +523,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 color: Colors.amber,
                                 borderRadius: BorderRadius.circular(20),
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(Icons.star,
@@ -531,7 +532,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   Text(
                                     'PREMIUM',
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: Theme.of(context).cardColor,
                                       fontWeight: FontWeight.w600,
                                       fontSize: 12,
                                     ),
@@ -976,6 +977,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ],
 
+                // Theme Settings Section
+                const SizedBox(height: 16),
+                _buildSectionHeader(context, 'Appearance'),
+                Consumer<ThemeProvider>(
+                  builder: (context, themeProvider, child) {
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: Column(
+                        children: [
+                          ListTile(
+                            leading: Icon(
+                              themeProvider.isDarkMode
+                                  ? Icons.dark_mode
+                                  : Icons.light_mode,
+                              color: themeProvider.primaryColor,
+                            ),
+                            title: const Text('Dark Mode'),
+                            subtitle: Text(
+                              themeProvider.isDarkMode
+                                  ? 'Dark theme enabled'
+                                  : 'Light theme enabled',
+                            ),
+                            trailing: Switch(
+                              value: themeProvider.isDarkMode,
+                              onChanged: (bool value) {
+                                themeProvider.toggleDarkMode(value);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(value
+                                        ? 'Dark mode enabled'
+                                        : 'Light mode enabled'),
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const Divider(height: 1),
+                          ListTile(
+                            leading: Icon(Icons.palette,
+                                color: themeProvider.primaryColor),
+                            title: const Text('Primary Color'),
+                            subtitle: const Text('Customize app color theme'),
+                            trailing: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: themeProvider.primaryColor,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white24
+                                      : Colors.grey.shade300,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            onTap: () => _showColorPicker(context, themeProvider),
+                          ),
+                          const Divider(height: 1),
+                          ListTile(
+                            leading: const Icon(Icons.settings, color: AppTheme.primary),
+                            title: const Text('More Settings'),
+                            subtitle: const Text('Font size, font family, and more'),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () {
+                              Navigator.pushNamed(context, AppConstants.routeSettings);
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
                 // Security Section
                 const SizedBox(height: 16),
                 _buildSectionHeader(context, 'Security'),
@@ -1072,6 +1148,115 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
         onTap: onTap,
       ),
+    );
+  }
+
+  void _showColorPicker(BuildContext context, ThemeProvider themeProvider) {
+    final List<Color> predefinedColors = [
+      const Color(0xFF1A4870), // Navy Blue (Default)
+      const Color(0xFF2E7D32), // Green
+      const Color(0xFFD32F2F), // Red
+      const Color(0xFF7B1FA2), // Purple
+      const Color(0xFFE64A19), // Deep Orange
+      const Color(0xFF0288D1), // Light Blue
+      const Color(0xFFC2185B), // Pink
+      const Color(0xFF5D4037), // Brown
+      const Color(0xFF455A64), // Blue Grey
+      const Color(0xFF00796B), // Teal
+      const Color(0xFFF57C00), // Orange
+      const Color(0xFF1976D2), // Blue
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle bar
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white24
+                        : Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Choose Primary Color',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: predefinedColors.map((color) {
+                  final isSelected =
+                      color.toARGB32() == themeProvider.primaryColor.toARGB32();
+                  return GestureDetector(
+                    onTap: () {
+                      themeProvider.setPrimaryColor(color);
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Primary color updated!'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected
+                              ? (Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black)
+                              : (Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white24
+                                  : Colors.grey.shade300),
+                          width: isSelected ? 4 : 2,
+                        ),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: color.withOpacity(0.5),
+                                  blurRadius: 8,
+                                  spreadRadius: 2,
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: isSelected
+                          ? Icon(
+                              Icons.check,
+                              color: Theme.of(context).cardColor,
+                              size: 32,
+                            )
+                          : null,
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
     );
   }
 

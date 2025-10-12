@@ -84,7 +84,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
           // Modern App Bar with gradient
@@ -217,10 +217,10 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                               const SizedBox(height: 2),
                               Text(
                                 user.displayName,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: Theme.of(context).cardColor,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
@@ -233,7 +233,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                         const SizedBox(width: 12),
                         CircleAvatar(
                           radius: 24,
-                          backgroundColor: Colors.white,
+                          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                           child: Text(
                             user.displayName.isNotEmpty
                                 ? user.displayName[0].toUpperCase()
@@ -248,12 +248,12 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                       ],
                     ),
                   ] else ...[
-                    const Text(
+                    Text(
                       'PastorPro',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Theme.of(context).cardColor,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -278,7 +278,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
@@ -295,7 +295,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
             setState(() => _searchQuery = value.toLowerCase()),
         decoration: InputDecoration(
           hintText: 'Search departments...',
-          hintStyle: TextStyle(color: Colors.grey[400]),
+          hintStyle: TextStyle(color: Theme.of(context).dividerColor),
           prefixIcon: Icon(Icons.search, color: AppColors.primaryLight),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
@@ -335,10 +335,10 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           const SizedBox(width: 6),
           Text(
             user.roleString.toUpperCase(),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               letterSpacing: 0.5,
             ),
           ),
@@ -399,7 +399,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -427,7 +427,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[600],
+              color: Theme.of(context).textTheme.bodySmall?.color,
             ),
           ),
         ],
@@ -607,7 +607,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? color : Colors.white,
+          color: isSelected ? color : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: color, width: 2),
         ),
@@ -685,7 +685,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
       // Activity Type + Details combined
       Container(
         decoration: BoxDecoration(
-          color: Colors.grey.shade50,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           border: Border.all(color: Colors.grey.shade300),
           borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(8), topRight: Radius.circular(8)),
@@ -961,7 +961,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 TextButton(
@@ -1032,8 +1032,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(Icons.check_circle_outline,
-                        color: Colors.white, size: 28),
+                    Icon(Icons.check_circle_outline,
+                        color: Theme.of(context).cardColor, size: 28),
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
@@ -1043,8 +1043,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                       ),
                       child: Text(
                         '${incompleteTodos.length}',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: Theme.of(context).cardColor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1052,12 +1052,12 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'Pending Todos',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1083,14 +1083,14 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                                         ? Icons.priority_high
                                         : Icons.circle,
                                     size: 12,
-                                    color: Colors.white,
+                                    color: Theme.of(context).cardColor,
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       todo.content,
-                                      style: const TextStyle(
-                                        color: Colors.white,
+                                      style: TextStyle(
+                                        color: Theme.of(context).cardColor,
                                         fontSize: 12,
                                       ),
                                       maxLines: 1,
@@ -1171,8 +1171,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(Icons.calendar_today,
-                        color: Colors.white, size: 28),
+                    Icon(Icons.calendar_today,
+                        color: Theme.of(context).cardColor, size: 28),
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
@@ -1182,8 +1182,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                       ),
                       child: Text(
                         '${displayItems.length}',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: Theme.of(context).cardColor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1191,12 +1191,12 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'Events & Appointments',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1238,8 +1238,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                                       children: [
                                         Text(
                                           title,
-                                          style: const TextStyle(
-                                            color: Colors.white,
+                                          style: TextStyle(
+                                            color: Theme.of(context).cardColor,
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -1314,8 +1314,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                     color: Colors.white.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.assignment,
-                      color: Colors.white, size: 32),
+                  child: Icon(Icons.assignment,
+                      color: Theme.of(context).cardColor, size: 32),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -1323,12 +1323,12 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
+                      Text(
                         'Borang B - Monthly Report',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1346,7 +1346,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 ),
                 Icon(
                   hasReport ? Icons.check_circle : Icons.add_circle_outline,
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   size: 28,
                 ),
               ],
@@ -1388,8 +1388,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 color: Colors.white.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.library_books,
-                  color: Colors.white, size: 32),
+              child: Icon(Icons.library_books,
+                  color: Theme.of(context).cardColor, size: 32),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -1397,12 +1397,12 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     'All Borang B Reports',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1416,9 +1416,9 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.arrow_forward_ios,
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               size: 20,
             ),
           ],
@@ -1474,8 +1474,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                         color: Colors.white.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.church,
-                          color: Colors.white, size: 32),
+                      child: Icon(Icons.church,
+                          color: Theme.of(context).cardColor, size: 32),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -1483,12 +1483,12 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text(
+                          Text(
                             'My Ministry',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: Theme.of(context).cardColor,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -1502,9 +1502,9 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                         ],
                       ),
                     ),
-                    const Icon(
+                    Icon(
                       Icons.arrow_forward_ios,
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       size: 20,
                     ),
                   ],
@@ -1557,9 +1557,9 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                     color: Colors.white.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.dashboard,
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     size: 28,
                   ),
                 ),
@@ -1569,12 +1569,12 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Departments',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1611,8 +1611,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                     child: TextButton.icon(
                       onPressed: () =>
                           Navigator.pushNamed(context, '/departments'),
-                      icon: const Icon(Icons.arrow_forward,
-                          color: Colors.white, size: 18),
+                      icon: Icon(Icons.arrow_forward,
+                          color: Theme.of(context).cardColor, size: 18),
                       label: const Text(
                         'View All',
                         style: TextStyle(color: Colors.white),
@@ -1708,7 +1708,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   Widget _buildDepartmentCard(
       Department department, List<Department> allDepartments) {
     // Brighten the card color
-    final cardColor = _brightenColor(department.color ?? Colors.grey.shade100);
+    final cardColor = _brightenColor(department.color ?? Theme.of(context).colorScheme.surfaceContainerHighest);
 
     return GestureDetector(
       onTap: () => _handleDepartmentTap(department, allDepartments),
@@ -1717,7 +1717,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           color: cardColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             width: 3,
           ),
           boxShadow: [
@@ -1754,7 +1754,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                           ),
                         ],
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.pause_circle,
@@ -1763,7 +1763,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                           Text(
                             'Inactive',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Theme.of(context).cardColor,
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
                             ),
@@ -1804,10 +1804,10 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                       // Name
                       Text(
                         department.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -1849,7 +1849,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 TextButton(
@@ -1884,11 +1884,11 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
             child: Center(
               child: Column(
                 children: [
-                  Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[300]),
+                  Icon(Icons.inbox_outlined, size: 64, color: Theme.of(context).dividerColor),
                   const SizedBox(height: 16),
                   Text(
                     'No activities yet',
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
                   ),
                 ],
               ),
@@ -1904,9 +1904,11 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[200]!),
+                  border: Border.all(
+                    color: Theme.of(context).dividerColor,
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -1938,13 +1940,13 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                             DateFormat('MMM dd, yyyy').format(activity.date),
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: Theme.of(context).textTheme.bodySmall?.color,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.chevron_right, color: Colors.grey[400]),
+                    Icon(Icons.chevron_right, color: Theme.of(context).dividerColor),
                   ],
                 ),
               );
@@ -2182,7 +2184,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   const SizedBox(height: 12),
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                       border: Border.all(color: Colors.grey.shade300),
                       borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(4),
@@ -2725,7 +2727,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                     width: 120,
                     height: 120,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
@@ -2744,10 +2746,10 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   const SizedBox(height: 32),
 
                   // App Name
-                  const Text(
+                  Text(
                     AppConstants.appName,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       fontSize: 36,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.2,
@@ -2805,7 +2807,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                         Navigator.pushNamed(context, AppConstants.routeLogin);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
+                        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                         foregroundColor: AppColors.primaryDark,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -2836,7 +2838,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white, width: 2),
+                        side: BorderSide(color: Theme.of(context).cardColor, width: 2),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -2885,13 +2887,13 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   Widget _buildFeatureItem(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, color: Colors.white, size: 24),
+        Icon(icon, color: Theme.of(context).cardColor, size: 24),
         const SizedBox(width: 16),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: Theme.of(context).cardColor,
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
