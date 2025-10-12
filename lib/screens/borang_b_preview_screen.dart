@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -200,25 +199,19 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
         throw Exception('User not found');
       }
 
-      final File file;
       if (format == 'pdf') {
-        file = await _exportService.generateBorangBPdf(
+        await _exportService.generateAndShareBorangBPdf(
           borangBData: data,
           user: user,
           month: month,
         );
       } else {
-        file = await _exportService.generateBorangB(
+        await _exportService.generateAndShareBorangB(
           borangBData: data,
           user: user,
           month: month,
         );
       }
-
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        subject: 'Borang B - ${DateFormat('MMMM yyyy').format(month)}',
-      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -436,8 +429,8 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
     );
   }
 
-  Widget _buildHeader(BorangBData data, DateTime month, String? districtId,
-      String? missionId) {
+  Widget _buildHeader(
+      BorangBData data, DateTime month, String? districtId, String? missionId) {
     return Card(
       elevation: 2,
       child: Padding(

@@ -1,11 +1,11 @@
 {
-    "name": "pastor_report",
-    "short_name": "pastor_report",
+    "name": "Pastor Report - Ministry Management",
+    "short_name": "Pastor Report",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "A comprehensive app for pastors to submit monthly reports, manage activities, track ministry progress, and coordinate across different departments and missions.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

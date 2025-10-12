@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:pastor_report/models/borang_b_model.dart';
 import 'package:pastor_report/services/borang_b_firestore_service.dart';
 import 'package:pastor_report/services/borang_b_service.dart';
@@ -285,15 +284,10 @@ class _BorangBScreenState extends State<BorangBScreen> {
         throw Exception('User not found');
       }
 
-      final file = await _exportService.generateBorangB(
+      await _exportService.generateAndShareBorangB(
         borangBData: _currentData!,
         user: user,
         month: _selectedMonth,
-      );
-
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        subject: 'Borang B - ${DateFormat('MMMM yyyy').format(_selectedMonth)}',
       );
 
       if (mounted) {

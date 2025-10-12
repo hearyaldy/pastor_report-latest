@@ -1,16 +1,15 @@
 // lib/screens/activities_list_screen.dart
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:pastor_report/models/activity_model.dart';
 import 'package:pastor_report/services/activity_storage_service.dart';
 import 'package:pastor_report/services/settings_service.dart';
 import 'package:pastor_report/services/activity_export_service.dart';
+import 'package:pastor_report/services/platform_file_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/constants.dart';
 
@@ -22,7 +21,8 @@ class ActivitiesListScreen extends StatefulWidget {
 }
 
 class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
-  final ActivityStorageService _storageService = ActivityStorageService.instance;
+  final ActivityStorageService _storageService =
+      ActivityStorageService.instance;
   final SettingsService _settingsService = SettingsService.instance;
   final ActivityExportService _exportService = ActivityExportService.instance;
   List<Activity> _activities = [];
@@ -64,7 +64,8 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
   }
 
   double get _totalKm {
-    return _activities.fold<double>(0.0, (sum, activity) => sum + activity.mileage);
+    return _activities.fold<double>(
+        0.0, (sum, activity) => sum + activity.mileage);
   }
 
   double get _totalCost {
@@ -135,7 +136,8 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                 prefixText: 'RM ',
                 border: OutlineInputBorder(),
               ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
               ],
@@ -163,7 +165,9 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
       await _loadKmCost();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('KM cost updated to RM${result.toStringAsFixed(2)}')),
+          SnackBar(
+              content:
+                  Text('KM cost updated to RM${result.toStringAsFixed(2)}')),
         );
       }
     }
@@ -192,19 +196,12 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
     setState(() => _isExporting = true);
 
     try {
-      // Generate PDF
-      final file = await _exportService.generatePDF(
+      // Generate and share PDF
+      await _exportService.generateAndSharePDF(
         activities: _activities,
         user: user,
         kmCost: _kmCost,
         month: _selectedMonth,
-      );
-
-      // Share the file
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        subject: 'Monthly Activities Report - ${DateFormat('MMMM yyyy').format(_selectedMonth)}',
-        text: 'Please find attached my monthly activities report for ${DateFormat('MMMM yyyy').format(_selectedMonth)}.',
       );
 
       if (mounted) {
@@ -262,13 +259,17 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                color: Theme.of(context)
+                    .colorScheme
+                    .primaryContainer
+                    .withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.blue.shade200),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, size: 16, color: Colors.blue.shade700),
+                  Icon(Icons.info_outline,
+                      size: 16, color: Colors.blue.shade700),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -287,7 +288,10 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(Icons.folder, color: Colors.blue.shade700),
@@ -339,20 +343,21 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
       }
 
       // For now, share the JSON file - actual Google Drive integration would require google_sign_in and googleapis packages
-      final directory = await getTemporaryDirectory();
-      final file = File('${directory.path}/activities_backup.json');
-      await file.writeAsString(jsonData);
+      final fileName = 'activities_backup.json';
+      final bytes = Uint8List.fromList(jsonData.codeUnits);
 
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        subject: 'Activities Backup',
-        text: 'Backup your activities data to Google Drive manually by uploading this file.',
+      final platformService = PlatformFileService.getInstance();
+      await platformService.saveAndShareFile(
+        fileName: fileName,
+        bytes: bytes,
+        mimeType: 'application/json',
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Backup file created. Please upload to Google Drive manually.'),
+            content: Text(
+                'Backup file created. Please upload to Google Drive manually.'),
             duration: Duration(seconds: 4),
           ),
         );
@@ -383,20 +388,21 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
       }
 
       // For now, share the JSON file - actual OneDrive integration would require onedrive package
-      final directory = await getTemporaryDirectory();
-      final file = File('${directory.path}/activities_backup.json');
-      await file.writeAsString(jsonData);
+      final fileName = 'activities_backup.json';
+      final bytes = Uint8List.fromList(jsonData.codeUnits);
 
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        subject: 'Activities Backup',
-        text: 'Backup your activities data to OneDrive manually by uploading this file.',
+      final platformService = PlatformFileService.getInstance();
+      await platformService.saveAndShareFile(
+        fileName: fileName,
+        bytes: bytes,
+        mimeType: 'application/json',
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Backup file created. Please upload to OneDrive manually.'),
+            content: Text(
+                'Backup file created. Please upload to OneDrive manually.'),
             duration: Duration(seconds: 4),
           ),
         );
@@ -465,14 +471,16 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                       ListTile(
                         contentPadding: EdgeInsets.zero,
                         title: const Text('Date'),
-                        subtitle: Text(DateFormat('MMM dd, yyyy').format(selectedDate)),
+                        subtitle: Text(
+                            DateFormat('MMM dd, yyyy').format(selectedDate)),
                         trailing: const Icon(Icons.calendar_today),
                         onTap: () async {
                           final picked = await showDatePicker(
                             context: context,
                             initialDate: selectedDate,
                             firstDate: DateTime(2020),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                            lastDate:
+                                DateTime.now().add(const Duration(days: 365)),
                           );
                           if (picked != null) {
                             setModalState(() {
@@ -521,9 +529,11 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                           border: OutlineInputBorder(),
                           suffixText: 'km',
                         ),
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                         inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+\.?\d{0,2}')),
                         ],
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
@@ -556,7 +566,8 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                               id: const Uuid().v4(),
                               date: selectedDate,
                               activities: activitiesController.text.trim(),
-                              mileage: double.parse(mileageController.text.trim()),
+                              mileage:
+                                  double.parse(mileageController.text.trim()),
                               note: noteController.text.trim(),
                               location: locationController.text.trim().isEmpty
                                   ? null
@@ -569,7 +580,9 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                             if (context.mounted) {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Activity added successfully')),
+                                const SnackBar(
+                                    content:
+                                        Text('Activity added successfully')),
                               );
                               _loadActivities();
                             }
@@ -580,7 +593,8 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                           foregroundColor: Colors.white,
                           minimumSize: const Size.fromHeight(50),
                         ),
-                        child: const Text('Save', style: TextStyle(fontSize: 16)),
+                        child:
+                            const Text('Save', style: TextStyle(fontSize: 16)),
                       ),
                       const SizedBox(height: 16),
                     ],
@@ -620,19 +634,12 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
     setState(() => _isExporting = true);
 
     try {
-      // Generate Excel
-      final file = await _exportService.generateExcel(
+      // Generate and share Excel
+      await _exportService.generateAndShareExcel(
         activities: _activities,
         user: user,
         kmCost: _kmCost,
         month: _selectedMonth,
-      );
-
-      // Share the file
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        subject: 'Monthly Activities Report - ${DateFormat('MMMM yyyy').format(_selectedMonth)}',
-        text: 'Please find attached my monthly activities report for ${DateFormat('MMMM yyyy').format(_selectedMonth)}.',
       );
 
       if (mounted) {
@@ -712,7 +719,8 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                   children: [
                     CircleAvatar(
                       radius: 32,
-                      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                      backgroundColor:
+                          Theme.of(context).scaffoldBackgroundColor,
                       child: Text(
                         user?.displayName.isNotEmpty == true
                             ? user!.displayName[0].toUpperCase()
@@ -764,7 +772,8 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                         ),
                       ),
                     ],
-                    if (user?.district != null && user!.district!.isNotEmpty) ...[
+                    if (user?.district != null &&
+                        user!.district!.isNotEmpty) ...[
                       const SizedBox(width: 8),
                       Expanded(
                         child: _buildInfoChip(
@@ -1046,7 +1055,8 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              if (activity.location != null && activity.location!.isNotEmpty) ...[
+              if (activity.location != null &&
+                  activity.location!.isNotEmpty) ...[
                 Row(
                   children: [
                     Icon(
@@ -1106,7 +1116,8 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(

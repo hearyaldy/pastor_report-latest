@@ -1,14 +1,13 @@
 // lib/services/borang_b_service.dart
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:excel/excel.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:pastor_report/models/borang_b_model.dart';
 import 'package:pastor_report/models/user_model.dart';
+import 'package:pastor_report/services/platform_file_service.dart';
 
 class BorangBService {
   static BorangBService? _instance;
@@ -19,14 +18,15 @@ class BorangBService {
 
   BorangBService._();
 
-  /// Generate Borang B report using the template
-  Future<File> generateBorangB({
+  /// Generate Borang B report using the template and share it
+  Future<void> generateAndShareBorangB({
     required BorangBData borangBData,
     required UserModel user,
     required DateTime month,
   }) async {
     try {
-      debugPrint('📋 Generating Borang B report for ${DateFormat('MMMM yyyy').format(month)}');
+      debugPrint(
+          '📋 Generating Borang B report for ${DateFormat('MMMM yyyy').format(month)}');
 
       // Load the template from assets
       final ByteData data = await rootBundle.load(
@@ -80,20 +80,24 @@ class BorangBService {
 
       // Save the filled template
       debugPrint('💾 Saving Borang B file...');
-      final directory = await getTemporaryDirectory();
       final fileName =
           'Borang_B_${user.displayName}_${DateFormat('yyyy_MM').format(month)}.xlsx';
-      final file = File('${directory.path}/$fileName');
 
       final encodedBytes = excel.encode();
       if (encodedBytes == null) {
         throw Exception('Failed to encode Excel file');
       }
 
-      await file.writeAsBytes(encodedBytes);
-      debugPrint('✅ Borang B saved to: ${file.path}');
+      // Use platform service to save and share
+      final platformService = PlatformFileService.getInstance();
+      await platformService.saveAndShareFile(
+        fileName: fileName,
+        bytes: Uint8List.fromList(encodedBytes),
+        mimeType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
 
-      return file;
+      debugPrint('✅ Borang B generated and shared: $fileName');
     } catch (e, stackTrace) {
       debugPrint('❌ Error generating Borang B: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -181,7 +185,7 @@ class BorangBService {
   }
 
   /// Generate a blank Borang B template for users to download
-  Future<File> downloadTemplate() async {
+  Future<void> downloadAndShareTemplate() async {
     try {
       debugPrint('📥 Downloading Borang B template...');
 
@@ -190,28 +194,33 @@ class BorangBService {
       );
       final bytes = data.buffer.asUint8List();
 
-      final directory = await getTemporaryDirectory();
       final fileName = 'Borang_B_Template.xlsx';
-      final file = File('${directory.path}/$fileName');
 
-      await file.writeAsBytes(bytes);
-      debugPrint('✅ Template downloaded to: ${file.path}');
+      // Use platform service to save and share
+      final platformService = PlatformFileService.getInstance();
+      await platformService.saveAndShareFile(
+        fileName: fileName,
+        bytes: bytes,
+        mimeType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
 
-      return file;
+      debugPrint('✅ Template downloaded and shared: $fileName');
     } catch (e) {
       debugPrint('❌ Error downloading template: $e');
       rethrow;
     }
   }
 
-  /// Generate Borang B report as PDF
-  Future<File> generateBorangBPdf({
+  /// Generate Borang B report as PDF and share it
+  Future<void> generateAndShareBorangBPdf({
     required BorangBData borangBData,
     required UserModel user,
     required DateTime month,
   }) async {
     try {
-      debugPrint('📋 Generating Borang B PDF for ${DateFormat('MMMM yyyy').format(month)}');
+      debugPrint(
+          '📋 Generating Borang B PDF for ${DateFormat('MMMM yyyy').format(month)}');
 
       final pdf = pw.Document();
 
@@ -249,7 +258,8 @@ class BorangBService {
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.Text('District: ${user.district ?? 'N/A'}'),
-                            pw.Text('Month: ${DateFormat('MMMM yyyy').format(month)}'),
+                            pw.Text(
+                                'Month: ${DateFormat('MMMM yyyy').format(month)}'),
                           ],
                         ),
                       ],
@@ -262,10 +272,16 @@ class BorangBService {
 
               // Church Membership Statistics
               _buildPdfSection('Church Membership Statistics', [
-                ['Members at Beginning', borangBData.membersBeginning.toString()],
+                [
+                  'Members at Beginning',
+                  borangBData.membersBeginning.toString()
+                ],
                 ['Members Received', borangBData.membersReceived.toString()],
                 ['Transferred In', borangBData.membersTransferredIn.toString()],
-                ['Transferred Out', borangBData.membersTransferredOut.toString()],
+                [
+                  'Transferred Out',
+                  borangBData.membersTransferredOut.toString()
+                ],
                 ['Dropped/Removed', borangBData.membersDropped.toString()],
                 ['Deceased', borangBData.membersDeceased.toString()],
                 ['Members at End', borangBData.membersEnd.toString()],
@@ -275,7 +291,10 @@ class BorangBService {
               // Baptisms & Professions
               _buildPdfSection('Baptisms & Professions', [
                 ['Baptisms', borangBData.baptisms.toString()],
-                ['Professions of Faith', borangBData.professionOfFaith.toString()],
+                [
+                  'Professions of Faith',
+                  borangBData.professionOfFaith.toString()
+                ],
               ]),
               pw.SizedBox(height: 15),
 
@@ -284,15 +303,24 @@ class BorangBService {
                 ['Sabbath Services', borangBData.sabbathServices.toString()],
                 ['Prayer Meetings', borangBData.prayerMeetings.toString()],
                 ['Bible Studies', borangBData.bibleStudies.toString()],
-                ['Evangelistic Meetings', borangBData.evangelisticMeetings.toString()],
+                [
+                  'Evangelistic Meetings',
+                  borangBData.evangelisticMeetings.toString()
+                ],
               ]),
               pw.SizedBox(height: 15),
 
               // Visitations
               _buildPdfSection('Visitations', [
                 ['Home Visitations', borangBData.homeVisitations.toString()],
-                ['Hospital Visitations', borangBData.hospitalVisitations.toString()],
-                ['Prison Visitations', borangBData.prisonVisitations.toString()],
+                [
+                  'Hospital Visitations',
+                  borangBData.hospitalVisitations.toString()
+                ],
+                [
+                  'Prison Visitations',
+                  borangBData.prisonVisitations.toString()
+                ],
               ]),
               pw.SizedBox(height: 15),
 
@@ -307,8 +335,14 @@ class BorangBService {
               // Literature Distribution
               _buildPdfSection('Literature Distribution', [
                 ['Books Distributed', borangBData.booksDistributed.toString()],
-                ['Magazines Distributed', borangBData.magazinesDistributed.toString()],
-                ['Tracts Distributed', borangBData.tractsDistributed.toString()],
+                [
+                  'Magazines Distributed',
+                  borangBData.magazinesDistributed.toString()
+                ],
+                [
+                  'Tracts Distributed',
+                  borangBData.tractsDistributed.toString()
+                ],
               ]),
               pw.SizedBox(height: 15),
 
@@ -316,7 +350,10 @@ class BorangBService {
               _buildPdfSection('Tithes & Offerings', [
                 ['Tithe', 'RM ${borangBData.tithe.toStringAsFixed(2)}'],
                 ['Offerings', 'RM ${borangBData.offerings.toStringAsFixed(2)}'],
-                ['Total', 'RM ${(borangBData.tithe + borangBData.offerings).toStringAsFixed(2)}'],
+                [
+                  'Total',
+                  'RM ${(borangBData.tithe + borangBData.offerings).toStringAsFixed(2)}'
+                ],
               ]),
               pw.SizedBox(height: 15),
 
@@ -376,15 +413,20 @@ class BorangBService {
       );
 
       // Save PDF
-      final directory = await getTemporaryDirectory();
       final fileName =
           'Borang_B_${user.displayName}_${DateFormat('yyyy_MM').format(month)}.pdf';
-      final file = File('${directory.path}/$fileName');
 
-      await file.writeAsBytes(await pdf.save());
-      debugPrint('✅ Borang B PDF saved to: ${file.path}');
+      final pdfBytes = await pdf.save();
 
-      return file;
+      // Use platform service to save and share
+      final platformService = PlatformFileService.getInstance();
+      await platformService.saveAndShareFile(
+        fileName: fileName,
+        bytes: Uint8List.fromList(pdfBytes),
+        mimeType: 'application/pdf',
+      );
+
+      debugPrint('✅ Borang B PDF generated and shared: $fileName');
     } catch (e, stackTrace) {
       debugPrint('❌ Error generating Borang B PDF: $e');
       debugPrint('Stack trace: $stackTrace');
