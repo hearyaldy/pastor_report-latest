@@ -16,7 +16,7 @@ import 'package:pastor_report/services/appointment_storage_service.dart';
 import 'package:pastor_report/services/event_service.dart';
 import 'package:pastor_report/services/activity_storage_service.dart';
 import 'package:pastor_report/services/borang_b_firestore_service.dart';
-import 'package:pastor_report/services/church_storage_service.dart';
+import 'package:pastor_report/services/church_service.dart';
 import 'package:pastor_report/services/staff_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/utils/constants.dart';
@@ -230,7 +230,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                         const SizedBox(width: 12),
                         CircleAvatar(
                           radius: 24,
-                          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                          backgroundColor:
+                              Theme.of(context).scaffoldBackgroundColor,
                           child: Text(
                             user.displayName.isNotEmpty
                                 ? user.displayName[0].toUpperCase()
@@ -468,8 +469,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color:
-                                  context.colors.withAlpha(context.colors.primary, 0.1),
+                              color: context.colors
+                                  .withAlpha(context.colors.primary, 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Icon(
@@ -895,7 +896,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         children: [
           Text('Priority:',
               style: TextStyle(
-                  fontWeight: FontWeight.w600, color: context.colors.textSecondary)),
+                  fontWeight: FontWeight.w600,
+                  color: context.colors.textSecondary)),
           const SizedBox(width: 12),
           Expanded(child: _buildInlinePriorityChip('Low', 0, Colors.green)),
           const SizedBox(width: 8),
@@ -1428,6 +1430,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
     final authProvider = context.read<AuthProvider>();
     final userId = authProvider.user?.uid ?? '';
     final userMission = authProvider.user?.mission;
+    final userDistrict = authProvider.user?.district;
 
     return StreamBuilder<List<dynamic>>(
       stream: userMission != null && userMission.isNotEmpty
@@ -1437,7 +1440,9 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         final staffCount = staffSnapshot.data?.length ?? 0;
 
         return FutureBuilder<List<Church>>(
-          future: ChurchStorageService.instance.getUserChurches(userId),
+          future: userDistrict != null && userDistrict.isNotEmpty
+              ? ChurchService.instance.getChurchesByDistrict(userDistrict)
+              : Future.value([]),
           builder: (context, churchSnapshot) {
             final churchCount = churchSnapshot.data?.length ?? 0;
 
@@ -1705,7 +1710,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   Widget _buildDepartmentCard(
       Department department, List<Department> allDepartments) {
     // Brighten the card color
-    final cardColor = _brightenColor(department.color ?? Theme.of(context).colorScheme.surfaceContainerHighest);
+    final cardColor = _brightenColor(department.color ??
+        Theme.of(context).colorScheme.surfaceContainerHighest);
 
     return GestureDetector(
       onTap: () => _handleDepartmentTap(department, allDepartments),
@@ -1881,11 +1887,13 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
             child: Center(
               child: Column(
                 children: [
-                  Icon(Icons.inbox_outlined, size: 64, color: Theme.of(context).dividerColor),
+                  Icon(Icons.inbox_outlined,
+                      size: 64, color: Theme.of(context).dividerColor),
                   const SizedBox(height: 16),
                   Text(
                     'No activities yet',
-                    style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
+                    style: TextStyle(
+                        color: Theme.of(context).textTheme.bodySmall?.color),
                   ),
                 ],
               ),
@@ -1937,13 +1945,15 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                             DateFormat('MMM dd, yyyy').format(activity.date),
                             style: TextStyle(
                               fontSize: 12,
-                              color: Theme.of(context).textTheme.bodySmall?.color,
+                              color:
+                                  Theme.of(context).textTheme.bodySmall?.color,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.chevron_right, color: Theme.of(context).dividerColor),
+                    Icon(Icons.chevron_right,
+                        color: Theme.of(context).dividerColor),
                   ],
                 ),
               );
@@ -2181,7 +2191,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   const SizedBox(height: 12),
                   Container(
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       border: Border.all(color: context.colors.outline),
                       borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(4),
@@ -2794,7 +2805,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                         Navigator.pushNamed(context, AppConstants.routeLogin);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                        backgroundColor:
+                            Theme.of(context).scaffoldBackgroundColor,
                         foregroundColor: context.colors.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -2825,7 +2837,8 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        side: BorderSide(color: Theme.of(context).cardColor, width: 2),
+                        side: BorderSide(
+                            color: Theme.of(context).cardColor, width: 2),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),

@@ -9,7 +9,6 @@ import 'package:pastor_report/services/borang_b_firestore_service.dart';
 import 'package:pastor_report/services/borang_b_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/constants.dart';
-import 'package:pastor_report/utils/theme_helper.dart';
 
 class BorangBScreen extends StatefulWidget {
   const BorangBScreen({super.key});
@@ -191,7 +190,9 @@ class _BorangBScreenState extends State<BorangBScreen> {
       missionId: user.mission,
       districtId: user.district,
       churchId: user.churchId,
-      status: asSubmission ? ReportStatus.submitted : (_currentData?.status ?? ReportStatus.draft),
+      status: asSubmission
+          ? ReportStatus.submitted
+          : (_currentData?.status ?? ReportStatus.draft),
       submittedAt: asSubmission ? DateTime.now() : _currentData?.submittedAt,
       membersBeginning:
           int.tryParse(_controllers['membersBeginning']!.text) ?? 0,
@@ -241,7 +242,8 @@ class _BorangBScreenState extends State<BorangBScreen> {
         SnackBar(
           content: Row(
             children: [
-              Icon(Icons.check_circle, color: Theme.of(context).colorScheme.onPrimary),
+              Icon(Icons.check_circle,
+                  color: Theme.of(context).colorScheme.onPrimary),
               const SizedBox(width: 12),
               Text(asSubmission
                   ? 'Report submitted successfully'
@@ -262,7 +264,9 @@ class _BorangBScreenState extends State<BorangBScreen> {
             children: [
               Icon(Icons.error, color: Theme.of(context).colorScheme.onError),
               const SizedBox(width: 12),
-              Text(asSubmission ? 'Error submitting report' : 'Error saving report'),
+              Text(asSubmission
+                  ? 'Error submitting report'
+                  : 'Error saving report'),
             ],
           ),
           backgroundColor: Theme.of(context).colorScheme.error,
@@ -378,14 +382,22 @@ class _BorangBScreenState extends State<BorangBScreen> {
                         ? Icons.check_circle
                         : Icons.edit,
                     size: 12,
-                    color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.8),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onPrimary
+                        .withValues(alpha: 0.8),
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    _currentData!.status == ReportStatus.submitted ? 'Submitted' : 'Draft',
+                    _currentData!.status == ReportStatus.submitted
+                        ? 'Submitted'
+                        : 'Draft',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.8),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onPrimary
+                          .withValues(alpha: 0.8),
                     ),
                   ),
                 ],
@@ -499,7 +511,8 @@ class _BorangBScreenState extends State<BorangBScreen> {
         color: Theme.of(context).colorScheme.primary,
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -509,7 +522,8 @@ class _BorangBScreenState extends State<BorangBScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: Icon(Icons.chevron_left, color: Theme.of(context).colorScheme.onPrimary),
+            icon: Icon(Icons.chevron_left,
+                color: Theme.of(context).colorScheme.onPrimary),
             onPressed: () => _changeMonth(-1),
           ),
           Text(
@@ -521,7 +535,8 @@ class _BorangBScreenState extends State<BorangBScreen> {
             ),
           ),
           IconButton(
-            icon: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onPrimary),
+            icon: Icon(Icons.chevron_right,
+                color: Theme.of(context).colorScheme.onPrimary),
             onPressed: () => _changeMonth(1),
           ),
         ],

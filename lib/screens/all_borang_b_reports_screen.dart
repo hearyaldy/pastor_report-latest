@@ -7,7 +7,6 @@ import 'package:pastor_report/services/borang_b_firestore_service.dart';
 import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/utils/constants.dart';
-import 'package:pastor_report/utils/theme_helper.dart';
 import 'package:pastor_report/utils/theme_colors.dart';
 
 class AllBorangBReportsScreen extends StatefulWidget {
@@ -58,9 +57,8 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
       final reports = await _firestoreService.getAllReports();
 
       // Filter to only show SUBMITTED reports (drafts should not be visible)
-      final submittedReports = reports
-          .where((r) => r.status == ReportStatus.submitted)
-          .toList();
+      final submittedReports =
+          reports.where((r) => r.status == ReportStatus.submitted).toList();
 
       // Filter reports by user's mission if they are ministerial secretary
       List<BorangBData> filteredByMission = submittedReports;
@@ -81,10 +79,12 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
       for (final districtId in districtIds) {
         if (!_districtNames.containsKey(districtId)) {
           try {
-            final district = await DistrictService.instance.getDistrictById(districtId);
+            final district =
+                await DistrictService.instance.getDistrictById(districtId);
             if (district != null) {
               _districtNames[districtId] = district.name;
-              debugPrint('✅ Loaded district: ${district.name} (ID: $districtId)');
+              debugPrint(
+                  '✅ Loaded district: ${district.name} (ID: $districtId)');
             } else {
               // Try to get the district name using the resolve function which tries multiple approaches
               // This is a temporary fix - we'll try to resolve it when displaying
@@ -182,7 +182,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
     final districtName = report.districtId != null
         ? (_districtNames[report.districtId] ?? report.districtId)
         : null;
-    
+
     // Use MissionService to resolve mission name properly
     final missionName = report.missionId != null
         ? MissionService.instance.getMissionNameById(report.missionId)
@@ -268,7 +268,10 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
                     'Submitted reports only • Drafts are private',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.9),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onPrimary
+                          .withValues(alpha: 0.9),
                     ),
                   ),
                 ],
@@ -283,11 +286,15 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
 
   Widget _buildInfographics() {
     // Calculate statistics
-    final totalBaptisms = _filteredReports.fold<int>(0, (sum, r) => sum + r.baptisms);
+    final totalBaptisms =
+        _filteredReports.fold<int>(0, (sum, r) => sum + r.baptisms);
     final totalMembers = _filteredReports.isNotEmpty
-        ? _filteredReports.map((r) => r.membersEnd).reduce((a, b) => a > b ? a : b)
+        ? _filteredReports
+            .map((r) => r.membersEnd)
+            .reduce((a, b) => a > b ? a : b)
         : 0;
-    final totalFinancial = _filteredReports.fold<double>(0, (sum, r) => sum + r.totalFinancial);
+    final totalFinancial =
+        _filteredReports.fold<double>(0, (sum, r) => sum + r.totalFinancial);
 
     return Column(
       children: [
@@ -338,7 +345,8 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String label, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -411,7 +419,8 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
     }
 
     if (_selectedDistrict != 'All') {
-      final districtName = _districtNames[_selectedDistrict] ?? _selectedDistrict;
+      final districtName =
+          _districtNames[_selectedDistrict] ?? _selectedDistrict;
       activeFilters.add(_buildFilterChip('District: $districtName', () {
         setState(() {
           _selectedDistrict = 'All';
@@ -429,7 +438,8 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
       children: [
         Row(
           children: [
-            Icon(Icons.filter_list, size: 16, color: context.colors.textSecondary),
+            Icon(Icons.filter_list,
+                size: 16, color: context.colors.textSecondary),
             const SizedBox(width: 6),
             Text(
               'Active Filters',
@@ -471,10 +481,12 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
   Widget _buildFilterChip(String label, VoidCallback onDelete) {
     return Chip(
       label: Text(label, style: const TextStyle(fontSize: 12)),
-      deleteIcon: Icon(Icons.close, size: 16, color: context.colors.textSecondary),
+      deleteIcon:
+          Icon(Icons.close, size: 16, color: context.colors.textSecondary),
       onDeleted: onDelete,
       backgroundColor: context.colors.withAlpha(context.colors.primary, 0.1),
-      side: BorderSide(color: context.colors.withAlpha(context.colors.primary, 0.3)),
+      side: BorderSide(
+          color: context.colors.withAlpha(context.colors.primary, 0.3)),
     );
   }
 
@@ -543,7 +555,8 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
               // Title
               Row(
                 children: [
-                  Icon(Icons.filter_list, color: context.colors.primary, size: 28),
+                  Icon(Icons.filter_list,
+                      color: context.colors.primary, size: 28),
                   const SizedBox(width: 12),
                   Text(
                     'Filter Reports',
@@ -1039,7 +1052,8 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
               const SizedBox(height: 8),
               Text(
                 'Try adjusting your filters',
-                style: TextStyle(fontSize: 14, color: context.colors.textSecondary),
+                style: TextStyle(
+                    fontSize: 14, color: context.colors.textSecondary),
               ),
             ],
           ),
@@ -1226,7 +1240,8 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: context.colors.withAlpha(context.colors.primary, 0.05),
+                      color: context.colors
+                          .withAlpha(context.colors.primary, 0.05),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(
@@ -1359,7 +1374,8 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
     );
   }
 
-  Widget _buildStatItem(IconData icon, String label, String value, Color color) {
+  Widget _buildStatItem(
+      IconData icon, String label, String value, Color color) {
     return Column(
       children: [
         Icon(icon, size: 20, color: color),
@@ -1383,5 +1399,4 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
       ],
     );
   }
-
 }

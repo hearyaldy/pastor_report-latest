@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:async';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/models/church_model.dart';
 import 'package:pastor_report/models/mission_model.dart';
@@ -1055,6 +1056,10 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                       ? Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: context.colors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           child: Column(
                             children: [
                               // Statistics Row
@@ -1566,7 +1571,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                   borderSide: BorderSide.none,
                                 ),
                                 filled: true,
-                                fillColor: Colors.grey.shade100,
+                                fillColor: context.colors.searchFieldBackground,
                               ),
                               onChanged: (value) {
                                 if (value != _staffSearchQuery) {
@@ -1580,7 +1585,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                             icon: Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: context.colors.surface,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(Icons.sort),
@@ -1714,6 +1719,10 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                           ? Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: context.colors.surface,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                               child: Row(
                                 children: [
                                   Expanded(
@@ -1870,7 +1879,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
 
     // All users should only see staff from their assigned mission
     if (user.mission != null && user.mission!.isNotEmpty) {
-      return StaffService.instance.streamStaffByMission(user.mission!);
+      // Create a unique stream each time by using map to establish a new identity
+      return StaffService.instance.streamStaffByMission(user.mission!).map((data) => data);
     }
 
     // If no mission is assigned, return empty list
@@ -1925,7 +1935,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
             children: [
               CircleAvatar(
                 radius: 40,
-                backgroundColor: AppColors.primaryLight,
+                backgroundColor: context.colors.primary,
                 child: Text(
                   staff.name.substring(0, 1).toUpperCase(),
                   style: const TextStyle(
@@ -1979,8 +1989,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                       icon: const Icon(Icons.email),
                       label: const Text('Email'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryLight,
-                        foregroundColor: Colors.white,
+                        backgroundColor: context.colors.primary,
+                        foregroundColor: context.colors.onPrimary,
                       ),
                     ),
                   ),
@@ -2070,7 +2080,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.folder_open, color: AppColors.primaryLight),
+                        Icon(Icons.folder_open, color: context.colors.primary),
                         const SizedBox(width: 8),
                         const Text(
                           'Available Resources',
@@ -2286,10 +2296,10 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppColors.accent.withValues(alpha: 0.1),
+            color: context.colors.secondary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: AppColors.accent, size: 24),
+          child: Icon(icon, color: context.colors.secondary, size: 24),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -2386,8 +2396,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                         icon: const Icon(Icons.email),
                         label: const Text('Email Elder'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryLight,
-                          foregroundColor: Colors.white,
+                          backgroundColor: context.colors.primary,
+                          foregroundColor: context.colors.onPrimary,
                         ),
                       ),
                     ),
@@ -2404,7 +2414,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: AppColors.primaryLight),
+          Icon(icon, size: 20, color: context.colors.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -2704,8 +2714,8 @@ class _StaffFormState extends State<_StaffForm> {
                           icon: const Icon(Icons.save),
                           label: const Text('Save'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryLight,
-                            foregroundColor: Colors.white,
+                            backgroundColor: context.colors.primary,
+                            foregroundColor: context.colors.onPrimary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),

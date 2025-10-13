@@ -8,7 +8,6 @@ import 'package:pastor_report/services/borang_b_firestore_service.dart';
 import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
-import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/utils/theme_colors.dart';
 
 class BorangBPreviewScreen extends StatefulWidget {
@@ -276,7 +275,8 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-            _buildHeader(data, month, districtId, missionId, districtName, missionName),
+            _buildHeader(
+                data, month, districtId, missionId, districtName, missionName),
             const SizedBox(height: 24),
 
             // Church Membership Statistics
@@ -423,7 +423,8 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
                     width: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.onPrimary),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(context).colorScheme.onPrimary),
                     ),
                   )
                 : const Icon(Icons.download),
@@ -434,13 +435,8 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
     );
   }
 
-  Widget _buildHeader(
-      BorangBData data,
-      DateTime month,
-      String? districtId,
-      String? missionId,
-      String? districtName,
-      String? missionName) {
+  Widget _buildHeader(BorangBData data, DateTime month, String? districtId,
+      String? missionId, String? districtName, String? missionName) {
     return Card(
       elevation: 2,
       child: Padding(
@@ -463,9 +459,9 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
             _buildInfoRow(
               'Mission',
               missionName ??
-              (missionId != null
-                  ? MissionService().getMissionNameById(missionId)
-                  : 'N/A'),
+                  (missionId != null
+                      ? MissionService().getMissionNameById(missionId)
+                      : 'N/A'),
             ),
             // District name - use passed name if available, otherwise lookup by ID
             districtName != null

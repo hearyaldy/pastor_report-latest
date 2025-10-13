@@ -46,18 +46,18 @@ class ThemeColorPalette {
   
   /// Darker variant of primary color
   Color get primaryDark => isDarkMode 
-      ? const Color(0xFF2D5F8D) 
-      : const Color(0xFF0F2C47);
+      ? Theme.of(context).colorScheme.primaryContainer  // Use theme color for dark mode
+      : const Color(0xFF0F2C47);  // Keep darker shade for light mode
 
   /// Background color for search fields
   Color get searchFieldBackground => isDarkMode
-      ? const Color(0xFF2D2D2D)
-      : const Color(0xFFFFFFFF);
+      ? const Color(0xFF3A3A3A)  // Darker gray for dark mode
+      : const Color(0xFFFFFFFF); // White for light mode
 
   /// Shadow color for elevated elements
   Color get shadowColor => isDarkMode
-      ? const Color(0xFF000000)
-      : const Color(0xFF000000);
+      ? const Color(0x40000000)  // Semi-transparent black for dark mode
+      : const Color(0x40000000);  // Semi-transparent black for light mode
 
   /// Secondary accent color
   Color get secondary => Theme.of(context).colorScheme.secondary;

@@ -5,7 +5,6 @@ import 'package:pastor_report/models/borang_b_model.dart';
 import 'package:pastor_report/services/borang_b_firestore_service.dart';
 import 'package:pastor_report/services/borang_b_backup_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
-import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/widgets/borang_b_bottom_sheet.dart';
 import 'package:pastor_report/utils/theme_colors.dart';
 
@@ -89,7 +88,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error),
             child: const Text('Delete'),
           ),
         ],
@@ -302,7 +302,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
             // Title
             Row(
               children: [
-                Icon(Icons.storage, color: Theme.of(context).colorScheme.primary, size: 28),
+                Icon(Icons.storage,
+                    color: Theme.of(context).colorScheme.primary, size: 28),
                 const SizedBox(width: 12),
                 const Text(
                   'Backup & Restore',
@@ -461,7 +462,9 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
         content: Text(success
             ? 'Successfully backed up to cloud'
             : 'Failed to backup to cloud'),
-        backgroundColor: success ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error,
+        backgroundColor: success
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.error,
       ),
     );
   }
@@ -481,7 +484,9 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
         content: Text(success
             ? 'Successfully restored from cloud'
             : 'No new reports to restore'),
-        backgroundColor: success ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error,
+        backgroundColor: success
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.error,
       ),
     );
 
@@ -504,7 +509,9 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
         content: Text(success
             ? 'Successfully synced with cloud'
             : 'Failed to sync with cloud'),
-        backgroundColor: success ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error,
+        backgroundColor: success
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.error,
       ),
     );
 
@@ -528,7 +535,9 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
         content: Text(success
             ? 'Successfully exported reports'
             : 'Failed to export reports'),
-        backgroundColor: success ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error,
+        backgroundColor: success
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.error,
       ),
     );
   }
@@ -636,7 +645,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.analytics, color: Theme.of(context).colorScheme.onPrimary, size: 28),
+                Icon(Icons.analytics,
+                    color: Theme.of(context).colorScheme.onPrimary, size: 28),
                 const SizedBox(width: 12),
                 Text(
                   'Overall Statistics',
@@ -651,7 +661,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onPrimary.withAlpha(50),
+                    color:
+                        Theme.of(context).colorScheme.onPrimary.withAlpha(50),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -664,7 +675,12 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                 ),
               ],
             ),
-            Divider(color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.3), height: 32),
+            Divider(
+                color: Theme.of(context)
+                    .colorScheme
+                    .onPrimary
+                    .withValues(alpha: 0.3),
+                height: 32),
             Row(
               children: [
                 Expanded(
@@ -716,7 +732,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                     child: Row(
                       children: [
                         Icon(Icons.attach_money,
-                            color: Theme.of(context).colorScheme.onPrimary, size: 24),
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            size: 24),
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(
@@ -769,7 +786,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7),
+            color:
+                Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7),
           ),
           textAlign: TextAlign.center,
         ),
@@ -842,7 +860,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: context.colors.withAlpha(context.colors.primary, 0.12),
+                            color: context.colors
+                                .withAlpha(context.colors.primary, 0.12),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
@@ -860,7 +879,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                                 children: [
                                   Flexible(
                                     child: Text(
-                                      DateFormat('MMMM yyyy').format(report.month),
+                                      DateFormat('MMMM yyyy')
+                                          .format(report.month),
                                       style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
@@ -877,7 +897,10 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                                 'Created ${DateFormat('dd/MM/yyyy').format(report.createdAt)}',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Theme.of(context).textTheme.bodySmall?.color,
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.color,
                                 ),
                               ),
                               if (report.submittedAt != null) ...[
@@ -936,9 +959,14 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete, color: Theme.of(context).colorScheme.error, size: 20),
+                            Icon(Icons.delete,
+                                color: Theme.of(context).colorScheme.error,
+                                size: 20),
                             const SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                            Text('Delete',
+                                style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.error)),
                           ],
                         ),
                       ),
@@ -985,7 +1013,9 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primary.withAlpha(20),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Theme.of(context).colorScheme.primary.withAlpha(50)),
+                  border: Border.all(
+                      color:
+                          Theme.of(context).colorScheme.primary.withAlpha(50)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -995,12 +1025,15 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.attach_money,
-                              color: Theme.of(context).colorScheme.primary, size: 20),
+                              color: Theme.of(context).colorScheme.primary,
+                              size: 20),
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(
                               'Total:',
-                              style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).colorScheme.primary),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -1046,7 +1079,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                       label: const Text('Edit'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
                       ),
                     ),
                   ),
@@ -1086,9 +1120,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
 
   Widget _buildStatusChip(ReportStatus status) {
     final isSubmitted = status == ReportStatus.submitted;
-    final color = isSubmitted
-        ? Theme.of(context).colorScheme.primary
-        : Colors.orange;
+    final color =
+        isSubmitted ? Theme.of(context).colorScheme.primary : Colors.orange;
     final icon = isSubmitted ? Icons.check_circle : Icons.edit;
     final label = isSubmitted ? 'Submitted' : 'Draft';
 
