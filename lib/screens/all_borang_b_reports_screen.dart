@@ -5,7 +5,10 @@ import 'package:pastor_report/models/borang_b_model.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/services/borang_b_firestore_service.dart';
 import 'package:pastor_report/services/district_service.dart';
+import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/utils/theme_helper.dart';
+import 'package:pastor_report/utils/theme_colors.dart';
 
 class AllBorangBReportsScreen extends StatefulWidget {
   const AllBorangBReportsScreen({super.key});
@@ -22,7 +25,8 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
 
   List<BorangBData> _reports = [];
   List<BorangBData> _filteredReports = [];
-  Map<String, String> _districtNames = {}; // Cache district names
+  final Map<String, String> _districtNames = {}; // Cache district names
+  final Set<String> _expandedCards = {}; // Track which cards are expanded
   bool _isLoading = true;
   bool _isSortExpanded = false; // Add this for collapsible sort section
   bool _isMissionExpanded = false; // Add this for collapsible mission section
@@ -53,17 +57,22 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
 
       final reports = await _firestoreService.getAllReports();
 
+      // Filter to only show SUBMITTED reports (drafts should not be visible)
+      final submittedReports = reports
+          .where((r) => r.status == ReportStatus.submitted)
+          .toList();
+
       // Filter reports by user's mission if they are ministerial secretary
-      List<BorangBData> filteredByMission = reports;
+      List<BorangBData> filteredByMission = submittedReports;
       if (userMission != null && userMission.isNotEmpty) {
         filteredByMission =
-            reports.where((r) => r.missionId == userMission).toList();
+            submittedReports.where((r) => r.missionId == userMission).toList();
         // Set the selected mission to user's mission and disable changing it
         _selectedMission = userMission;
       }
 
-      // Load district names for ALL reports to build complete cache
-      final districtIds = reports
+      // Load district names for submitted reports to build complete cache
+      final districtIds = submittedReports
           .where((r) => r.districtId != null && r.districtId!.isNotEmpty)
           .map((r) => r.districtId!)
           .toSet();
@@ -72,16 +81,14 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
       for (final districtId in districtIds) {
         if (!_districtNames.containsKey(districtId)) {
           try {
-            final district =
-                await DistrictService.instance.getDistrictById(districtId);
+            final district = await DistrictService.instance.getDistrictById(districtId);
             if (district != null) {
               _districtNames[districtId] = district.name;
-              debugPrint(
-                  '✅ Loaded district: ${district.name} (ID: $districtId)');
+              debugPrint('✅ Loaded district: ${district.name} (ID: $districtId)');
             } else {
-              _districtNames[districtId] =
-                  districtId; // Fallback to ID if not found
-              debugPrint('⚠️ District not found, using ID: $districtId');
+              // Try to get the district name using the resolve function which tries multiple approaches
+              // This is a temporary fix - we'll try to resolve it when displaying
+              _districtNames[districtId] = districtId; // Placeholder
             }
           } catch (e) {
             debugPrint('❌ Error loading district $districtId: $e');
@@ -175,11 +182,10 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
     final districtName = report.districtId != null
         ? (_districtNames[report.districtId] ?? report.districtId)
         : null;
+    
+    // Use MissionService to resolve mission name properly
     final missionName = report.missionId != null
-        ? (AppConstants.missions.firstWhere(
-            (m) => m['id'] == report.missionId,
-            orElse: () => {'name': report.missionId ?? 'Unknown'},
-          )['name'])
+        ? MissionService.instance.getMissionNameById(report.missionId)
         : null;
 
     Navigator.pushNamed(
@@ -207,15 +213,9 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    _buildSearchBar(),
+                    _buildInfographics(),
                     const SizedBox(height: 16),
-                    _buildSortFilter(),
-                    const SizedBox(height: 16),
-                    _buildMissionFilter(),
-                    const SizedBox(height: 16),
-                    _buildDistrictFilter(),
-                    const SizedBox(height: 8),
-                    _buildSummaryBar(),
+                    _buildActiveFiltersChips(),
                   ],
                 ),
               ),
@@ -224,6 +224,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
           ],
         ),
       ),
+      floatingActionButton: _buildFilterFAB(),
     );
   }
 
@@ -233,7 +234,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
       floating: false,
       pinned: true,
       elevation: 0,
-      backgroundColor: AppColors.primaryLight,
+      backgroundColor: Theme.of(context).colorScheme.primary,
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: BoxDecoration(
@@ -241,9 +242,9 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppColors.primaryLight,
-                AppColors.primaryLight.withValues(alpha: 0.8),
-                AppColors.primaryDark,
+                Theme.of(context).colorScheme.primary,
+                Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+                Theme.of(context).colorScheme.primaryContainer,
               ],
             ),
           ),
@@ -254,20 +255,20 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  const Text(
+                  Text(
                     'Borang B Reports',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'View all submitted monthly reports',
+                    'Submitted reports only • Drafts are private',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.9),
                     ),
                   ),
                 ],
@@ -276,6 +277,326 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
           ),
         ),
         titlePadding: const EdgeInsets.only(left: 56, bottom: 16),
+      ),
+    );
+  }
+
+  Widget _buildInfographics() {
+    // Calculate statistics
+    final totalBaptisms = _filteredReports.fold<int>(0, (sum, r) => sum + r.baptisms);
+    final totalMembers = _filteredReports.isNotEmpty
+        ? _filteredReports.map((r) => r.membersEnd).reduce((a, b) => a > b ? a : b)
+        : 0;
+    final totalFinancial = _filteredReports.fold<double>(0, (sum, r) => sum + r.totalFinancial);
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                'Total Reports',
+                '${_filteredReports.length}',
+                Icons.description,
+                context.colors.primary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                'Baptisms',
+                '$totalBaptisms',
+                Icons.water_drop,
+                Colors.cyan,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                'Members',
+                '$totalMembers',
+                Icons.people,
+                Colors.blue,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                'Financial',
+                'RM ${totalFinancial.toStringAsFixed(0)}',
+                Icons.attach_money,
+                Colors.teal,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: context.colors.withAlpha(color, 0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 32),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: context.colors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveFiltersChips() {
+    final activeFilters = <Widget>[];
+
+    if (_searchQuery.isNotEmpty) {
+      activeFilters.add(_buildFilterChip('Search: $_searchQuery', () {
+        setState(() {
+          _searchQuery = '';
+          _searchController.clear();
+          _applyFiltersAndSort();
+        });
+      }));
+    }
+
+    if (_sortBy != 'Month (Newest)') {
+      activeFilters.add(_buildFilterChip('Sort: $_sortBy', () {
+        setState(() {
+          _sortBy = 'Month (Newest)';
+          _applyFiltersAndSort();
+        });
+      }));
+    }
+
+    if (_selectedMission != 'All') {
+      final missionName = AppConstants.missions.firstWhere(
+        (m) => m['id'] == _selectedMission,
+        orElse: () => {'name': _selectedMission},
+      )['name'];
+      activeFilters.add(_buildFilterChip('Mission: $missionName', () {
+        setState(() {
+          _selectedMission = 'All';
+          _applyFiltersAndSort();
+        });
+      }));
+    }
+
+    if (_selectedDistrict != 'All') {
+      final districtName = _districtNames[_selectedDistrict] ?? _selectedDistrict;
+      activeFilters.add(_buildFilterChip('District: $districtName', () {
+        setState(() {
+          _selectedDistrict = 'All';
+          _applyFiltersAndSort();
+        });
+      }));
+    }
+
+    if (activeFilters.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.filter_list, size: 16, color: context.colors.textSecondary),
+            const SizedBox(width: 6),
+            Text(
+              'Active Filters',
+              style: TextStyle(
+                fontSize: 12,
+                color: context.colors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _searchQuery = '';
+                  _searchController.clear();
+                  _sortBy = 'Month (Newest)';
+                  _selectedMission = 'All';
+                  _selectedDistrict = 'All';
+                  _applyFiltersAndSort();
+                });
+              },
+              child: Text(
+                'Clear All',
+                style: TextStyle(fontSize: 12, color: context.colors.error),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: activeFilters,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilterChip(String label, VoidCallback onDelete) {
+    return Chip(
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      deleteIcon: Icon(Icons.close, size: 16, color: context.colors.textSecondary),
+      onDeleted: onDelete,
+      backgroundColor: context.colors.withAlpha(context.colors.primary, 0.1),
+      side: BorderSide(color: context.colors.withAlpha(context.colors.primary, 0.3)),
+    );
+  }
+
+  Widget _buildFilterFAB() {
+    final hasActiveFilters = _searchQuery.isNotEmpty ||
+        _sortBy != 'Month (Newest)' ||
+        _selectedMission != 'All' ||
+        _selectedDistrict != 'All';
+
+    return FloatingActionButton.extended(
+      onPressed: _showFiltersBottomSheet,
+      backgroundColor: context.colors.primary,
+      icon: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Icon(Icons.filter_list, color: context.colors.onPrimary),
+          if (hasActiveFilters)
+            Positioned(
+              right: -4,
+              top: -4,
+              child: Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: context.colors.primary, width: 1.5),
+                ),
+              ),
+            ),
+        ],
+      ),
+      label: Text('Filters', style: TextStyle(color: context.colors.onPrimary)),
+    );
+  }
+
+  void _showFiltersBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle bar
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: context.colors.outline,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Title
+              Row(
+                children: [
+                  Icon(Icons.filter_list, color: context.colors.primary, size: 28),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Filter Reports',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: context.colors.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // Filters content
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  children: [
+                    _buildSearchBar(),
+                    const SizedBox(height: 16),
+                    _buildSortFilter(),
+                    const SizedBox(height: 16),
+                    _buildMissionFilter(),
+                    const SizedBox(height: 16),
+                    _buildDistrictFilter(),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+              // Apply button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.check),
+                  label: const Text('Apply Filters'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: context.colors.primary,
+                    foregroundColor: context.colors.onPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -299,7 +620,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
               )
             : null,
         filled: true,
-        fillColor: Colors.grey.shade100,
+        fillColor: Theme.of(context).inputDecorationTheme.fillColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -317,9 +638,12 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
   Widget _buildSortFilter() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.deepPurple.shade50,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.deepPurple.shade200),
+        border: Border.all(
+          color: context.colors.withAlpha(context.colors.primary, 0.3),
+          width: 1.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -335,14 +659,14 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  Icon(Icons.sort, color: Colors.deepPurple.shade700, size: 20),
+                  Icon(Icons.sort, color: context.colors.primary, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Sort Reports By',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.deepPurple.shade700,
+                        color: context.colors.primary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -351,7 +675,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
                     _sortBy,
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.deepPurple.shade600,
+                      color: context.colors.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -360,7 +684,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
                     _isSortExpanded
                         ? Icons.keyboard_arrow_up
                         : Icons.keyboard_arrow_down,
-                    color: Colors.deepPurple.shade700,
+                    color: context.colors.primary,
                     size: 20,
                   ),
                 ],
@@ -368,7 +692,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
             ),
           ),
           if (_isSortExpanded) ...[
-            const Divider(height: 1),
+            Divider(height: 1, color: context.colors.outline),
             Padding(
               padding: const EdgeInsets.all(12),
               child: DropdownButtonFormField<String>(
@@ -380,7 +704,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
                     borderSide: BorderSide.none,
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: context.colors.background,
                   prefixIcon: const Icon(Icons.sort_by_alpha),
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -430,15 +754,18 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
 
       return Container(
         decoration: BoxDecoration(
-          color: Colors.blue.shade50,
+          color: context.colors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.blue.shade200),
+          border: Border.all(
+            color: context.colors.withAlpha(context.colors.primary, 0.3),
+            width: 1.5,
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              Icon(Icons.business, color: Colors.blue.shade700, size: 24),
+              Icon(Icons.business, color: context.colors.primary, size: 24),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -448,7 +775,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
                       'Your Mission',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.blue.shade700,
+                        color: context.colors.primary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -457,14 +784,14 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
                       missionName ?? 'Unknown Mission',
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.blue.shade900,
+                        color: context.colors.textPrimary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.lock, color: Colors.blue.shade300, size: 20),
+              Icon(Icons.lock, color: context.colors.textSecondary, size: 20),
             ],
           ),
         ),
@@ -474,9 +801,12 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
     // For super admin/admin, show dropdown filter with collapse
     return Container(
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.shade200),
+        border: Border.all(
+          color: context.colors.withAlpha(context.colors.primary, 0.3),
+          width: 1.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -492,14 +822,14 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  Icon(Icons.business, color: Colors.blue.shade700, size: 20),
+                  Icon(Icons.business, color: context.colors.primary, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Filter by Mission',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.blue.shade700,
+                        color: context.colors.primary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -513,7 +843,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
                           )['name']!,
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.blue.shade600,
+                      color: context.colors.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -522,7 +852,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
                     _isMissionExpanded
                         ? Icons.keyboard_arrow_up
                         : Icons.keyboard_arrow_down,
-                    color: Colors.blue.shade700,
+                    color: context.colors.primary,
                     size: 20,
                   ),
                 ],
@@ -530,7 +860,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
             ),
           ),
           if (_isMissionExpanded) ...[
-            const Divider(height: 1),
+            Divider(height: 1, color: context.colors.outline),
             Padding(
               padding: const EdgeInsets.all(12),
               child: DropdownButtonFormField<String>(
@@ -542,7 +872,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
                     borderSide: BorderSide.none,
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: context.colors.background,
                   prefixIcon: const Icon(Icons.location_city),
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -586,9 +916,12 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.teal.shade50,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.teal.shade200),
+        border: Border.all(
+          color: context.colors.withAlpha(context.colors.primary, 0.3),
+          width: 1.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -604,14 +937,14 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  Icon(Icons.place, color: Colors.teal.shade700, size: 20),
+                  Icon(Icons.place, color: context.colors.primary, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Filter by District',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.teal.shade700,
+                        color: context.colors.primary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -623,7 +956,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
                             _selectedDistrict,
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.teal.shade600,
+                      color: context.colors.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -632,7 +965,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
                     _isDistrictExpanded
                         ? Icons.keyboard_arrow_up
                         : Icons.keyboard_arrow_down,
-                    color: Colors.teal.shade700,
+                    color: context.colors.primary,
                     size: 20,
                   ),
                 ],
@@ -640,7 +973,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
             ),
           ),
           if (_isDistrictExpanded) ...[
-            const Divider(height: 1),
+            Divider(height: 1, color: context.colors.outline),
             Padding(
               padding: const EdgeInsets.all(12),
               child: DropdownButtonFormField<String>(
@@ -652,7 +985,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
                     borderSide: BorderSide.none,
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: context.colors.background,
                   prefixIcon: const Icon(Icons.location_on),
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -680,51 +1013,6 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
     );
   }
 
-  Widget _buildSummaryBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.green.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green.shade200),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.assignment, color: Colors.green.shade700, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Total Reports:',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.green.shade700,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.green.shade700,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              '${_filteredReports.length}',
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildReportsList() {
     if (_isLoading) {
       return const SliverFillRemaining(
@@ -738,20 +1026,20 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.inbox, size: 80, color: Colors.grey.shade300),
+              Icon(Icons.inbox, size: 80, color: context.colors.emptyStateIcon),
               const SizedBox(height: 16),
               Text(
                 'No reports found',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade600,
+                  color: context.colors.textPrimary,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Try adjusting your filters',
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+                style: TextStyle(fontSize: 14, color: context.colors.textSecondary),
               ),
             ],
           ),
@@ -771,9 +1059,11 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
   }
 
   Widget _buildReportCard(BorangBData report) {
+    final isExpanded = _expandedCards.contains(report.id);
     final monthStr = DateFormat('MMMM yyyy').format(report.month);
-    final statusColor =
-        report.status == ReportStatus.submitted ? Colors.green : Colors.orange;
+    final statusColor = report.status == ReportStatus.submitted
+        ? Theme.of(context).colorScheme.primary
+        : Colors.orange;
     final statusText =
         report.status == ReportStatus.submitted ? 'Submitted' : 'Draft';
     final districtName = report.districtId != null
@@ -793,129 +1083,305 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _viewReport(report),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // Avatar
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.deepPurple.shade400,
-                      Colors.deepPurple.shade600,
-                    ],
+      child: Column(
+        children: [
+          // Compact header (always visible)
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              setState(() {
+                if (isExpanded) {
+                  _expandedCards.remove(report.id);
+                } else {
+                  _expandedCards.add(report.id);
+                }
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  // Compact avatar
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Theme.of(context).colorScheme.primary,
+                          Theme.of(context).colorScheme.primaryContainer,
+                        ],
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.assignment_ind,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      size: 20,
+                    ),
                   ),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.assignment_ind,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Report info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      report.userName,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      monthStr,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
+                  const SizedBox(width: 12),
+                  // Report info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildChip(
-                          statusText,
-                          report.status == ReportStatus.submitted
-                              ? Icons.check_circle
-                              : Icons.edit,
-                          statusColor.withValues(alpha: 0.1),
-                          statusColor,
+                        Text(
+                          report.userName,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: context.colors.textPrimary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
-                        _buildChip(
-                          districtName,
-                          Icons.place,
-                          Colors.teal.shade100,
-                          Colors.teal.shade700,
-                        ),
-                        _buildChip(
-                          missionName,
-                          Icons.business,
-                          Colors.blue.shade100,
-                          Colors.blue.shade700,
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Icon(Icons.calendar_month,
+                                size: 12, color: context.colors.textSecondary),
+                            const SizedBox(width: 4),
+                            Text(
+                              monthStr,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: context.colors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            _buildCompactChip(
+                              statusText,
+                              report.status == ReportStatus.submitted
+                                  ? Icons.check_circle
+                                  : Icons.edit,
+                              statusColor,
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  // Expand/collapse icon
+                  Icon(
+                    isExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: context.colors.primary,
+                    size: 28,
+                  ),
+                ],
               ),
-              // Arrow icon
-              Icon(
-                Icons.chevron_right,
-                color: Colors.grey.shade400,
-              ),
-            ],
+            ),
           ),
-        ),
+          // Expanded details
+          if (isExpanded) ...[
+            Divider(height: 1, color: context.colors.outline),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Location info
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildInfoRow(
+                          Icons.business,
+                          'Mission',
+                          missionName,
+                          context.colors.adaptive(
+                            light: const Color(0xFF1976D2),
+                            dark: const Color(0xFF90CAF9),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildInfoRow(
+                          Icons.place,
+                          'District',
+                          districtName,
+                          context.colors.adaptive(
+                            light: const Color(0xFF388E3C),
+                            dark: const Color(0xFF81C784),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Submit date/time
+                  if (report.submittedAt != null) ...[
+                    _buildInfoRow(
+                      Icons.access_time,
+                      'Submitted',
+                      DateFormat('MMM dd, yyyy • h:mm a')
+                          .format(report.submittedAt!),
+                      context.colors.primary,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  // Quick stats
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: context.colors.withAlpha(context.colors.primary, 0.05),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Quick Stats',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: context.colors.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildStatItem(
+                                Icons.water_drop,
+                                'Baptisms',
+                                report.baptisms.toString(),
+                                Colors.cyan,
+                              ),
+                            ),
+                            Expanded(
+                              child: _buildStatItem(
+                                Icons.people,
+                                'Members',
+                                report.membersEnd.toString(),
+                                Colors.blue,
+                              ),
+                            ),
+                            Expanded(
+                              child: _buildStatItem(
+                                Icons.home,
+                                'Visits',
+                                report.totalVisitations.toString(),
+                                Colors.purple,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // View full report button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _viewReport(report),
+                      icon: const Icon(Icons.visibility, size: 18),
+                      label: const Text('View Full Report'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: context.colors.primary,
+                        foregroundColor: context.colors.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
 
-  Widget _buildChip(
-      String label, IconData icon, Color bgColor, Color textColor) {
+  Widget _buildCompactChip(String label, IconData icon, Color color) {
     return Container(
-      constraints:
-          const BoxConstraints(maxWidth: 200), // Add max width constraint
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(8),
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: textColor),
-          const SizedBox(width: 4),
-          Flexible(
-            // Make text flexible to prevent overflow
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: textColor,
-                fontWeight: FontWeight.w600,
-              ),
-              overflow: TextOverflow.ellipsis, // Add ellipsis for long text
-              maxLines: 1,
+          Icon(icon, size: 10, color: color),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: color,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildInfoRow(IconData icon, String label, String value, Color color) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: context.colors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: context.colors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatItem(IconData icon, String label, String value, Color color) {
+    return Column(
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: context.colors.textSecondary,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
 }

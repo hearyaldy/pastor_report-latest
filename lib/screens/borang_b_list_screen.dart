@@ -7,6 +7,7 @@ import 'package:pastor_report/services/borang_b_backup_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/widgets/borang_b_bottom_sheet.dart';
+import 'package:pastor_report/utils/theme_colors.dart';
 
 class BorangBListScreen extends StatefulWidget {
   const BorangBListScreen({super.key});
@@ -88,7 +89,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
             child: const Text('Delete'),
           ),
         ],
@@ -113,7 +114,6 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
       arguments: {
         'data': report,
         'month': report.month,
-        // Pass IDs - the preview screen will handle name resolution
         'districtId': report.districtId,
         'missionId': report.missionId,
       },
@@ -170,7 +170,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: context.colors.outline,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -189,7 +189,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLight.withAlpha(50),
+                  color: Theme.of(context).colorScheme.primary.withAlpha(50),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -238,8 +238,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                   icon: const Icon(Icons.check),
                   label: const Text('Confirm & Continue'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryLight,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -293,7 +293,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: context.colors.outline,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -302,7 +302,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
             // Title
             Row(
               children: [
-                Icon(Icons.storage, color: AppColors.primaryLight, size: 28),
+                Icon(Icons.storage, color: Theme.of(context).colorScheme.primary, size: 28),
                 const SizedBox(width: 12),
                 const Text(
                   'Backup & Restore',
@@ -319,7 +319,10 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: context.colors.adaptive(
+                  light: const Color(0xFFF5F5F5),
+                  dark: const Color(0xFF2C2C2C),
+                ),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -386,7 +389,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                     icon: const Icon(Icons.sync, size: 18),
                     label: const Text('Sync'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primaryLight,
+                      foregroundColor: Theme.of(context).colorScheme.primary,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
@@ -458,7 +461,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
         content: Text(success
             ? 'Successfully backed up to cloud'
             : 'Failed to backup to cloud'),
-        backgroundColor: success ? Colors.green : Colors.red,
+        backgroundColor: success ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error,
       ),
     );
   }
@@ -478,7 +481,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
         content: Text(success
             ? 'Successfully restored from cloud'
             : 'No new reports to restore'),
-        backgroundColor: success ? Colors.green : Colors.orange,
+        backgroundColor: success ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error,
       ),
     );
 
@@ -501,7 +504,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
         content: Text(success
             ? 'Successfully synced with cloud'
             : 'Failed to sync with cloud'),
-        backgroundColor: success ? Colors.green : Colors.red,
+        backgroundColor: success ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error,
       ),
     );
 
@@ -525,7 +528,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
         content: Text(success
             ? 'Successfully exported reports'
             : 'Failed to export reports'),
-        backgroundColor: success ? Colors.green : Colors.red,
+        backgroundColor: success ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error,
       ),
     );
   }
@@ -558,8 +561,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Monthly Reports'),
-        backgroundColor: AppColors.primaryLight,
-        foregroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         actions: [
           IconButton(
             icon: const Icon(Icons.cloud),
@@ -593,7 +596,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                 ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _createNewReport,
-        backgroundColor: AppColors.primaryLight,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         icon: const Icon(Icons.add),
         label: const Text('New Report'),
       ),
@@ -619,8 +622,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              AppColors.primaryLight,
-              AppColors.primaryDark,
+              Theme.of(context).colorScheme.primary,
+              Theme.of(context).colorScheme.primaryContainer,
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -633,14 +636,14 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.analytics, color: Colors.white, size: 28),
+                Icon(Icons.analytics, color: Theme.of(context).colorScheme.onPrimary, size: 28),
                 const SizedBox(width: 12),
-                const Text(
+                Text(
                   'Overall Statistics',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onPrimary,
                   ),
                 ),
                 const Spacer(),
@@ -648,20 +651,20 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(50),
+                    color: Theme.of(context).colorScheme.onPrimary.withAlpha(50),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     '${_reports.length} Reports',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ],
             ),
-            const Divider(color: Colors.white30, height: 32),
+            Divider(color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.3), height: 32),
             Row(
               children: [
                 Expanded(
@@ -703,7 +706,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withAlpha(20),
+                color: Theme.of(context).colorScheme.onPrimary.withAlpha(20),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -712,14 +715,14 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                   Flexible(
                     child: Row(
                       children: [
-                        const Icon(Icons.attach_money,
-                            color: Colors.white, size: 24),
+                        Icon(Icons.attach_money,
+                            color: Theme.of(context).colorScheme.onPrimary, size: 24),
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(
                             'Total:',
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
@@ -732,8 +735,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                   Flexible(
                     child: Text(
                       'RM ${totalFinancial.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimary,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
@@ -752,21 +755,21 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
   Widget _buildSummaryStat(IconData icon, String label, String value) {
     return Column(
       children: [
-        Icon(icon, color: Colors.white, size: 32),
+        Icon(icon, color: Theme.of(context).colorScheme.onPrimary, size: 32),
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.onPrimary,
           ),
         ),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: Colors.white70,
+            color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7),
           ),
           textAlign: TextAlign.center,
         ),
@@ -782,7 +785,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
           Icon(
             Icons.description_outlined,
             size: 80,
-            color: Colors.grey.shade400,
+            color: Theme.of(context).textTheme.bodySmall?.color,
           ),
           const SizedBox(height: 16),
           Text(
@@ -790,7 +793,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
+              color: Theme.of(context).textTheme.bodySmall?.color,
             ),
           ),
           const SizedBox(height: 8),
@@ -798,7 +801,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
             'Create your first monthly report',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey.shade500,
+              color: Theme.of(context).textTheme.bodySmall?.color,
             ),
           ),
           const SizedBox(height: 24),
@@ -807,8 +810,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
             icon: const Icon(Icons.add),
             label: const Text('Create Report'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryLight,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
           ),
@@ -833,41 +836,66 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight.withAlpha(30),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.calendar_month,
-                          color: AppColors.primaryLight,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            DateFormat('MMMM yyyy').format(report.month),
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: context.colors.withAlpha(context.colors.primary, 0.12),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          Text(
-                            'Created ${DateFormat('dd/MM/yyyy').format(report.createdAt)}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
+                          child: Icon(
+                            Icons.calendar_month,
+                            color: context.colors.primary,
+                            size: 24,
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      DateFormat('MMMM yyyy').format(report.month),
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _buildStatusChip(report.status),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Created ${DateFormat('dd/MM/yyyy').format(report.createdAt)}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).textTheme.bodySmall?.color,
+                                ),
+                              ),
+                              if (report.submittedAt != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Submitted ${DateFormat('dd/MM/yy • HH:mm').format(report.submittedAt!)}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: context.colors.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   PopupMenuButton<String>(
                     onSelected: (value) {
@@ -904,13 +932,13 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                           ],
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete, color: Colors.red, size: 20),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
+                            Icon(Icons.delete, color: Theme.of(context).colorScheme.error, size: 20),
+                            const SizedBox(width: 8),
+                            Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
                           ],
                         ),
                       ),
@@ -928,7 +956,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                       Icons.people,
                       'Members',
                       report.membersEnd.toString(),
-                      Colors.blue,
+                      Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   Expanded(
@@ -936,7 +964,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                       Icons.water_drop,
                       'Baptisms',
                       report.baptisms.toString(),
-                      Colors.cyan,
+                      Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   Expanded(
@@ -944,7 +972,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                       Icons.home,
                       'Visits',
                       report.totalVisitations.toString(),
-                      Colors.green,
+                      Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ],
@@ -955,24 +983,24 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.teal.withAlpha(20),
+                  color: Theme.of(context).colorScheme.primary.withAlpha(20),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.teal.withAlpha(50)),
+                  border: Border.all(color: Theme.of(context).colorScheme.primary.withAlpha(50)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Flexible(
+                    Flexible(
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.attach_money,
-                              color: Colors.teal, size: 20),
-                          SizedBox(width: 8),
+                              color: Theme.of(context).colorScheme.primary, size: 20),
+                          const SizedBox(width: 8),
                           Flexible(
                             child: Text(
                               'Total:',
-                              style: TextStyle(fontWeight: FontWeight.w600),
+                              style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -983,10 +1011,10 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                     Flexible(
                       child: Text(
                         'RM ${report.totalFinancial.toStringAsFixed(2)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: Colors.teal,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.right,
@@ -1006,7 +1034,7 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                       icon: const Icon(Icons.visibility, size: 18),
                       label: const Text('View'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primaryLight,
+                        foregroundColor: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ),
@@ -1017,8 +1045,8 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
                       icon: const Icon(Icons.edit, size: 18),
                       label: const Text('Edit'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryLight,
-                        foregroundColor: Colors.white,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
                       ),
                     ),
                   ),
@@ -1035,24 +1063,57 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
       IconData icon, String label, String value, Color color) {
     return Column(
       children: [
-        Icon(icon, color: color, size: 24),
+        Icon(icon, color: Theme.of(context).colorScheme.primary, size: 24),
         const SizedBox(height: 4),
         Text(
           value,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: color,
+            color: Theme.of(context).colorScheme.primary,
           ),
         ),
         Text(
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey.shade600,
+            color: Theme.of(context).textTheme.bodySmall?.color,
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildStatusChip(ReportStatus status) {
+    final isSubmitted = status == ReportStatus.submitted;
+    final color = isSubmitted
+        ? Theme.of(context).colorScheme.primary
+        : Colors.orange;
+    final icon = isSubmitted ? Icons.check_circle : Icons.edit;
+    final label = isSubmitted ? 'Submitted' : 'Draft';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

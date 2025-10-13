@@ -8,7 +8,7 @@ class UnmatchedStaffChecker {
   /// Show details of specific unmatched staff members
   static Future<void> checkUnmatchedStaff(List<String> unmatchedNames) async {
     debugPrint('\n🔍 CHECKING UNMATCHED STAFF DETAILS:');
-    debugPrint('${'=' * 80}');
+    debugPrint('=' * 80);
 
     try {
       final staffSnapshot = await _firestore.collection('staff').get();
@@ -33,8 +33,9 @@ class UnmatchedStaffChecker {
         final role = (data['role'] ?? '').toString().toLowerCase();
         if (role.contains('district pastor') || role.contains('lay pastor')) {
           debugPrint('   ⚠️ Should have district assignment!');
-        } else if (role.contains('mission') || role.contains('director') ||
-                   role.contains('officer')) {
+        } else if (role.contains('mission') ||
+            role.contains('director') ||
+            role.contains('officer')) {
           debugPrint('   ℹ️  Mission-level role - may not need district');
         }
       }

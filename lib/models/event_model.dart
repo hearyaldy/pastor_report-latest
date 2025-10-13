@@ -5,10 +5,11 @@ class Event {
   final DateTime startDate;
   final DateTime? endDate;
   final String? location;
-  final bool isGlobal; // true: from online/Firestore, false: local storage
+  final bool isGlobal; // true: global events (admin-created), false: personal events
   final String? imageUrl;
   final String? organizer;
   final DateTime createdAt;
+  final String? userId; // User ID for personal events (null for global events)
 
   Event({
     required this.id,
@@ -21,6 +22,7 @@ class Event {
     this.imageUrl,
     this.organizer,
     required this.createdAt,
+    this.userId,
   });
 
   Map<String, dynamic> toJson() {
@@ -35,6 +37,7 @@ class Event {
       'imageUrl': imageUrl,
       'organizer': organizer,
       'createdAt': createdAt.toIso8601String(),
+      'userId': userId,
     };
   }
 
@@ -52,6 +55,7 @@ class Event {
       imageUrl: json['imageUrl'] as String?,
       organizer: json['organizer'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
+      userId: json['userId'] as String?,
     );
   }
 
@@ -66,6 +70,7 @@ class Event {
     String? imageUrl,
     String? organizer,
     DateTime? createdAt,
+    String? userId,
   }) {
     return Event(
       id: id ?? this.id,
@@ -78,6 +83,7 @@ class Event {
       imageUrl: imageUrl ?? this.imageUrl,
       organizer: organizer ?? this.organizer,
       createdAt: createdAt ?? this.createdAt,
+      userId: userId ?? this.userId,
     );
   }
 

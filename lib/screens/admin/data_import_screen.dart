@@ -4,7 +4,7 @@ import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/utils/data_import_util.dart';
 
 class DataImportScreen extends StatefulWidget {
-  const DataImportScreen({Key? key}) : super(key: key);
+  const DataImportScreen({super.key});
 
   @override
   State<DataImportScreen> createState() => _DataImportScreenState();

@@ -15,6 +15,7 @@ import 'package:pastor_report/services/region_service.dart';
 import 'package:pastor_report/services/data_import_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/utils/import_sabah_staff.dart';
+import 'package:pastor_report/utils/theme_colors.dart';
 
 class StaffManagementScreen extends StatefulWidget {
   const StaffManagementScreen({super.key});
@@ -49,28 +50,28 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Staff Directory'),
-          backgroundColor: AppColors.primaryLight,
-          foregroundColor: Colors.white,
+          backgroundColor: context.colors.primary,
+          foregroundColor: context.colors.onPrimary,
         ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.lock, size: 80, color: Colors.grey.shade300),
+              Icon(Icons.lock, size: 80, color: context.colors.emptyStateIcon),
               const SizedBox(height: 16),
               Text(
                 'Access Denied',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade600,
+                  color: context.colors.textPrimary,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 'You need Mission Admin credentials to access this page',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
+                style: TextStyle(fontSize: 16, color: context.colors.textSecondary),
               ),
             ],
           ),
@@ -110,7 +111,8 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
       floatingActionButton: isMissionAdmin
           ? FloatingActionButton.extended(
               onPressed: () => _addStaff(context, user!),
-              backgroundColor: AppColors.primaryLight,
+              backgroundColor: context.colors.primary,
+              foregroundColor: context.colors.onPrimary,
               icon: const Icon(Icons.add),
               label: const Text('Add Staff'),
             )
@@ -123,13 +125,13 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
       expandedHeight: 160,
       floating: false,
       pinned: true,
-      backgroundColor: AppColors.primaryLight,
+      backgroundColor: context.colors.primary,
       flexibleSpace: FlexibleSpaceBar(
-        title: const Text(
+        title: Text(
           'Staff Directory',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: context.colors.onPrimary,
           ),
         ),
         background: Container(
@@ -137,10 +139,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                AppColors.primaryLight,
-                AppColors.primaryDark,
-              ],
+              colors: context.colors.primaryGradient,
             ),
           ),
           child: Stack(
@@ -353,9 +352,10 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
               )
             : null,
         filled: true,
-        fillColor: Theme.of(context).brightness == Brightness.dark
-            ? Colors.grey.shade800
-            : Colors.grey.shade100,
+        fillColor: context.colors.adaptive(
+          light: const Color(0xFFF5F5F5),
+          dark: const Color(0xFF2C2C2C),
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -369,9 +369,17 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     final user = context.read<AuthProvider>().user;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: context.colors.adaptive(
+          light: const Color(0xFFE3F2FD),
+          dark: const Color(0xFF1A237E),
+        ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.shade200),
+        border: Border.all(
+          color: context.colors.adaptive(
+            light: const Color(0xFF90CAF9),
+            dark: const Color(0xFF5C6BC0),
+          ),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -380,8 +388,14 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.admin_panel_settings,
-                    color: Colors.blue.shade700, size: 20),
+                Icon(
+                  Icons.admin_panel_settings,
+                  color: context.colors.adaptive(
+                    light: const Color(0xFF1976D2),
+                    dark: const Color(0xFF90CAF9),
+                  ),
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   user?.userRole == UserRole.superAdmin
@@ -389,7 +403,10 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                       : 'Admin: Filter by Mission',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.blue.shade700,
+                    color: context.colors.adaptive(
+                      light: const Color(0xFF1976D2),
+                      dark: const Color(0xFF90CAF9),
+                    ),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -405,9 +422,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade800
-                    : Colors.white,
+                fillColor: context.colors.surface,
                 prefixIcon: const Icon(Icons.business),
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -432,9 +447,17 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
   Widget _buildSortFilter() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.green.shade50,
+        color: context.colors.adaptive(
+          light: const Color(0xFFE8F5E9),
+          dark: const Color(0xFF1B5E20),
+        ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green.shade200),
+        border: Border.all(
+          color: context.colors.adaptive(
+            light: const Color(0xFFA5D6A7),
+            dark: const Color(0xFF66BB6A),
+          ),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -443,13 +466,23 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.sort, color: Colors.green.shade700, size: 20),
+                Icon(
+                  Icons.sort,
+                  color: context.colors.adaptive(
+                    light: const Color(0xFF388E3C),
+                    dark: const Color(0xFF81C784),
+                  ),
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Sort Staff By',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.green.shade700,
+                    color: context.colors.adaptive(
+                      light: const Color(0xFF388E3C),
+                      dark: const Color(0xFF81C784),
+                    ),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -465,9 +498,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade800
-                    : Colors.white,
+                fillColor: context.colors.surface,
                 prefixIcon: const Icon(Icons.sort_by_alpha),
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -520,11 +551,11 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                  Icon(Icons.people_outline, size: 64, color: context.colors.emptyStateIcon),
                   const SizedBox(height: 16),
                   Text(
                     'No staff found',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    style: TextStyle(fontSize: 16, color: context.colors.emptyStateText),
                   ),
                 ],
               ),
@@ -559,11 +590,11 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.search_off, size: 64, color: Colors.grey),
+                  Icon(Icons.search_off, size: 64, color: context.colors.emptyStateIcon),
                   const SizedBox(height: 16),
                   Text(
                     'No staff match your search',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    style: TextStyle(fontSize: 16, color: context.colors.emptyStateText),
                   ),
                 ],
               ),
@@ -701,7 +732,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
+              color: context.colors.textPrimary,
             ),
           ),
           const SizedBox(width: 8),
@@ -864,7 +895,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                             staff.email,
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey.shade600,
+                              color: context.colors.textSecondary,
                             ),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
@@ -888,8 +919,14 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                                       )['name'] ??
                                       staff.mission,
                                   Icons.business,
-                                  Colors.blue.shade100,
-                                  Colors.blue.shade700,
+                                  context.colors.adaptive(
+                                    light: const Color(0xFFE3F2FD),
+                                    dark: const Color(0xFF1565C0),
+                                  ),
+                                  context.colors.adaptive(
+                                    light: const Color(0xFF1976D2),
+                                    dark: const Color(0xFF90CAF9),
+                                  ),
                                 ),
                             ],
                           ),
@@ -907,7 +944,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                             IconButton(
                               icon: Icon(
                                 Icons.edit,
-                                color: AppColors.primaryLight,
+                                color: context.colors.primary,
                               ),
                               iconSize: 20, // Smaller icons
                               padding: const EdgeInsets.all(4), // Less padding
@@ -917,7 +954,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                             IconButton(
                               icon: Icon(
                                 Icons.delete,
-                                color: Colors.red.shade400,
+                                color: context.colors.error,
                               ),
                               iconSize: 20, // Smaller icons
                               padding: const EdgeInsets.all(4), // Less padding
@@ -988,10 +1025,10 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.people, size: 80, color: Colors.grey.shade300),
+          Icon(Icons.people, size: 80, color: context.colors.emptyStateIcon),
           const SizedBox(height: 16),
           Text('No staff members yet',
-              style: TextStyle(fontSize: 16, color: Colors.grey.shade600)),
+              style: TextStyle(fontSize: 16, color: context.colors.emptyStateText)),
           if (canAdd) ...[
             const SizedBox(height: 8),
             ElevatedButton.icon(
@@ -1080,12 +1117,12 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
             children: [
               CircleAvatar(
                 radius: 40,
-                backgroundColor: AppColors.primaryLight,
+                backgroundColor: context.colors.primary,
                 child: Text(
                   staff.name.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 32,
-                      color: Colors.white,
+                      color: context.colors.onPrimary,
                       fontWeight: FontWeight.bold),
                 ),
               ),
@@ -1149,8 +1186,8 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                       icon: const Icon(Icons.email),
                       label: const Text('Email'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryLight,
-                        foregroundColor: Colors.white,
+                        backgroundColor: context.colors.primary,
+                        foregroundColor: context.colors.onPrimary,
                       ),
                     ),
                   ),
@@ -1168,7 +1205,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: AppColors.primaryLight),
+          Icon(icon, size: 20, color: context.colors.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -1176,7 +1213,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
               children: [
                 Text(label,
                     style:
-                        TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                        TextStyle(fontSize: 12, color: context.colors.textSecondary)),
                 Text(value,
                     style: const TextStyle(
                         fontSize: 16, fontWeight: FontWeight.w500)),
@@ -1802,7 +1839,7 @@ class _StaffFormState extends State<_StaffForm> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: context.colors.outline,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1965,8 +2002,8 @@ class _StaffFormState extends State<_StaffForm> {
                           icon: const Icon(Icons.save),
                           label: const Text('Save'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryLight,
-                            foregroundColor: Colors.white,
+                            backgroundColor: context.colors.primary,
+                            foregroundColor: context.colors.onPrimary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),

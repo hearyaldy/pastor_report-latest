@@ -404,22 +404,26 @@ class _CalendarScreenState extends State<CalendarScreen>
 
   // Add a new appointment
   Future<void> _addAppointment() async {
-    final newAppointment = Appointment(
-      id: const Uuid().v4(),
-      title: _titleController.text.trim(),
-      description: _descriptionController.text.trim().isNotEmpty
-          ? _descriptionController.text.trim()
-          : null,
-      dateTime: _selectedDateTime,
-      location: _locationController.text.trim().isNotEmpty
-          ? _locationController.text.trim()
-          : null,
-      isCompleted: false,
-      createdAt: DateTime.now(),
-    );
-
-    await AppointmentStorageService.instance.saveAppointment(newAppointment);
-    _loadCalendarItems(); // Refresh calendar data
+    try {
+      await AppointmentStorageService.instance.createAppointment(
+        title: _titleController.text.trim(),
+        dateTime: _selectedDateTime,
+        description: _descriptionController.text.trim().isNotEmpty
+            ? _descriptionController.text.trim()
+            : null,
+        location: _locationController.text.trim().isNotEmpty
+            ? _locationController.text.trim()
+            : null,
+        isCompleted: false,
+      );
+      _loadCalendarItems(); // Refresh calendar data
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error creating appointment: $e')),
+        );
+      }
+    }
   }
 
   // Add a new event

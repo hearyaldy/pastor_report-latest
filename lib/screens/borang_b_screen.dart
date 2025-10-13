@@ -9,6 +9,7 @@ import 'package:pastor_report/services/borang_b_firestore_service.dart';
 import 'package:pastor_report/services/borang_b_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/utils/theme_helper.dart';
 
 class BorangBScreen extends StatefulWidget {
   const BorangBScreen({super.key});
@@ -145,7 +146,7 @@ class _BorangBScreenState extends State<BorangBScreen> {
     }
   }
 
-  Future<void> _saveData() async {
+  Future<void> _saveData({bool asSubmission = false}) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
 
@@ -156,6 +157,32 @@ class _BorangBScreenState extends State<BorangBScreen> {
       return;
     }
 
+    // If submitting, show confirmation dialog
+    if (asSubmission && _currentData?.status != ReportStatus.submitted) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Submit Report'),
+          content: const Text(
+              'Are you sure you want to submit this report? Once submitted, it will be visible to administrators and ministerial secretaries.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary),
+              child: const Text('Submit'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true) return;
+    }
+
     final data = BorangBData(
       id: _currentData?.id ?? const Uuid().v4(),
       month: DateTime(_selectedMonth.year, _selectedMonth.month),
@@ -164,6 +191,8 @@ class _BorangBScreenState extends State<BorangBScreen> {
       missionId: user.mission,
       districtId: user.district,
       churchId: user.churchId,
+      status: asSubmission ? ReportStatus.submitted : (_currentData?.status ?? ReportStatus.draft),
+      submittedAt: asSubmission ? DateTime.now() : _currentData?.submittedAt,
       membersBeginning:
           int.tryParse(_controllers['membersBeginning']!.text) ?? 0,
       membersReceived: int.tryParse(_controllers['membersReceived']!.text) ?? 0,
@@ -202,6 +231,7 @@ class _BorangBScreenState extends State<BorangBScreen> {
       challenges: _controllers['challenges']!.text,
       remarks: _controllers['remarks']!.text,
       createdAt: _currentData?.createdAt ?? DateTime.now(),
+      updatedAt: DateTime.now(),
     );
 
     final success = await _firestoreService.saveReport(data);
@@ -211,29 +241,31 @@ class _BorangBScreenState extends State<BorangBScreen> {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.check_circle, color: Colors.white),
+              Icon(Icons.check_circle, color: Theme.of(context).colorScheme.onPrimary),
               const SizedBox(width: 12),
-              Text(_currentData == null
-                  ? 'Report saved successfully'
-                  : 'Report updated successfully'),
+              Text(asSubmission
+                  ? 'Report submitted successfully'
+                  : _currentData == null
+                      ? 'Report saved as draft'
+                      : 'Report updated successfully'),
             ],
           ),
-          backgroundColor: Colors.green,
+          backgroundColor: Theme.of(context).colorScheme.primary,
           behavior: SnackBarBehavior.floating,
         ),
       );
       _loadData(); // Reload to get the saved data
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Row(
             children: [
-              Icon(Icons.error, color: Colors.white),
-              SizedBox(width: 12),
-              Text('Error saving report'),
+              Icon(Icons.error, color: Theme.of(context).colorScheme.onError),
+              const SizedBox(width: 12),
+              Text(asSubmission ? 'Error submitting report' : 'Error saving report'),
             ],
           ),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -333,20 +365,48 @@ class _BorangBScreenState extends State<BorangBScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Borang B - Monthly Report'),
-        backgroundColor: AppColors.primaryLight,
-        foregroundColor: Colors.white,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Borang B - Monthly Report'),
+            if (_currentData != null) ...[
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  Icon(
+                    _currentData!.status == ReportStatus.submitted
+                        ? Icons.check_circle
+                        : Icons.edit,
+                    size: 12,
+                    color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.8),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    _currentData!.status == ReportStatus.submitted ? 'Submitted' : 'Draft',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         actions: [
           IconButton(
             icon: const Icon(Icons.preview),
             onPressed: _currentData == null ? null : _viewReport,
             tooltip: 'View Report',
           ),
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveData,
-            tooltip: 'Save Report',
-          ),
+          if (_currentData?.status != ReportStatus.submitted)
+            IconButton(
+              icon: const Icon(Icons.send),
+              onPressed: () => _saveData(asSubmission: true),
+              tooltip: 'Submit Report',
+            ),
           IconButton(
             icon: const Icon(Icons.file_download),
             onPressed: _isExporting ? null : _exportReport,
@@ -368,56 +428,56 @@ class _BorangBScreenState extends State<BorangBScreen> {
                         _buildSection(
                           'Church Membership Statistics',
                           Icons.people,
-                          Colors.blue,
+                          Theme.of(context).colorScheme.primary,
                           _buildMembershipFields(),
                         ),
                         const SizedBox(height: 16),
                         _buildSection(
                           'Baptisms & Professions',
                           Icons.water_drop,
-                          Colors.cyan,
+                          Theme.of(context).colorScheme.primary,
                           _buildBaptismsFields(),
                         ),
                         const SizedBox(height: 16),
                         _buildSection(
                           'Church Services',
                           Icons.church,
-                          Colors.purple,
+                          Theme.of(context).colorScheme.primary,
                           _buildServicesFields(),
                         ),
                         const SizedBox(height: 16),
                         _buildSection(
                           'Visitations',
                           Icons.home,
-                          Colors.green,
+                          Theme.of(context).colorScheme.primary,
                           _buildVisitationsFields(),
                         ),
                         const SizedBox(height: 16),
                         _buildSection(
                           'Special Events',
                           Icons.event,
-                          Colors.orange,
+                          Theme.of(context).colorScheme.primary,
                           _buildEventsFields(),
                         ),
                         const SizedBox(height: 16),
                         _buildSection(
                           'Literature Distribution',
                           Icons.book,
-                          Colors.brown,
+                          Theme.of(context).colorScheme.primary,
                           _buildLiteratureFields(),
                         ),
                         const SizedBox(height: 16),
                         _buildSection(
                           'Tithes & Offerings (RM)',
                           Icons.attach_money,
-                          Colors.teal,
+                          Theme.of(context).colorScheme.primary,
                           _buildFinancialFields(),
                         ),
                         const SizedBox(height: 16),
                         _buildSection(
                           'Additional Information',
                           Icons.notes,
-                          Colors.indigo,
+                          Theme.of(context).colorScheme.primary,
                           _buildTextFields(),
                         ),
                         const SizedBox(height: 24),
@@ -436,10 +496,10 @@ class _BorangBScreenState extends State<BorangBScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primaryLight,
+        color: Theme.of(context).colorScheme.primary,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -449,19 +509,19 @@ class _BorangBScreenState extends State<BorangBScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left, color: Colors.white),
+            icon: Icon(Icons.chevron_left, color: Theme.of(context).colorScheme.onPrimary),
             onPressed: () => _changeMonth(-1),
           ),
           Text(
             DateFormat('MMMM yyyy').format(_selectedMonth),
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onPrimary,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.chevron_right, color: Colors.white),
+            icon: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onPrimary),
             onPressed: () => _changeMonth(1),
           ),
         ],
@@ -577,7 +637,7 @@ class _BorangBScreenState extends State<BorangBScreen> {
           labelText: label,
           border: const OutlineInputBorder(),
           filled: true,
-          fillColor: Colors.grey[50],
+          fillColor: Theme.of(context).inputDecorationTheme.fillColor,
         ),
         keyboardType: TextInputType.number,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -596,7 +656,7 @@ class _BorangBScreenState extends State<BorangBScreen> {
           prefixText: 'RM ',
           border: const OutlineInputBorder(),
           filled: true,
-          fillColor: Colors.grey[50],
+          fillColor: Theme.of(context).inputDecorationTheme.fillColor,
         ),
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         inputFormatters: [
@@ -616,7 +676,7 @@ class _BorangBScreenState extends State<BorangBScreen> {
           labelText: label,
           border: const OutlineInputBorder(),
           filled: true,
-          fillColor: Colors.grey[50],
+          fillColor: Theme.of(context).inputDecorationTheme.fillColor,
         ),
         maxLines: maxLines,
         textCapitalization: TextCapitalization.sentences,
@@ -625,21 +685,69 @@ class _BorangBScreenState extends State<BorangBScreen> {
   }
 
   Widget _buildSaveButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: ElevatedButton.icon(
-        onPressed: _saveData,
-        icon: const Icon(Icons.save),
-        label: Text(_currentData == null ? 'Save Report' : 'Update Report'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryLight,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+    final isDraft = _currentData?.status != ReportStatus.submitted;
+
+    // If already submitted, show update button only
+    if (!isDraft) {
+      return SizedBox(
+        width: double.infinity,
+        height: 50,
+        child: ElevatedButton.icon(
+          onPressed: _saveData,
+          icon: const Icon(Icons.save),
+          label: const Text('Update Submitted Report'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         ),
-      ),
+      );
+    }
+
+    // If draft or new, show both Save Draft and Submit buttons
+    return Row(
+      children: [
+        Expanded(
+          flex: 1,
+          child: SizedBox(
+            height: 50,
+            child: OutlinedButton.icon(
+              onPressed: _saveData,
+              icon: const Icon(Icons.save_outlined),
+              label: const Text('Save Draft'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.primary,
+                side: BorderSide(color: Theme.of(context).colorScheme.primary),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 1,
+          child: SizedBox(
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: () => _saveData(asSubmission: true),
+              icon: const Icon(Icons.send),
+              label: const Text('Submit'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

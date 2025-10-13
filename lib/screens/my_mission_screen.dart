@@ -649,8 +649,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
         ),
       ]);
 
-      _financialData = results[0] as Map<String, double>;
-      _borangBFinancialData = results[1] as Map<String, double>;
+      _financialData = results[0];
+      _borangBFinancialData = results[1];
 
       // Get Borang B report count for this district
       final reports = await _borangBService.getReportsByDistrictAndMonth(
@@ -1904,7 +1904,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Theme.of(context).dividerColor),
               boxShadow: [
                 BoxShadow(
@@ -1944,7 +1944,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                         ? _churchesWithReports / _totalChurches
                         : 0,
                     minHeight: 12,
-                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       reportingPercentage >= 80
                           ? Colors.green
@@ -2046,9 +2047,16 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+              color: Theme.of(context)
+                  .colorScheme
+                  .primaryContainer
+                  .withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
+              border: Border.all(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -2231,7 +2239,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -2268,7 +2276,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
           // Header
           Row(
             children: [
-              Icon(Icons.assessment, color: Theme.of(context).colorScheme.primary, size: 28),
+              Icon(Icons.assessment,
+                  color: Theme.of(context).colorScheme.primary, size: 28),
               const SizedBox(width: 12),
               const Text(
                 'Ministry Activities Summary',
@@ -2475,9 +2484,17 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+          color: Theme.of(context)
+              .colorScheme
+              .primaryContainer
+              .withValues(alpha: 0.3),
           border: Border(
-            bottom: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3), width: 2),
+            bottom: BorderSide(
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.3),
+                width: 2),
           ),
         ),
         child: Column(
@@ -2566,7 +2583,11 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                     fillColor: Theme.of(context).cardColor,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
+                      borderSide: BorderSide(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.3)),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 12),
@@ -2707,7 +2728,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       builder: (context) => Container(
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
-        borderRadius: const BorderRadius.only(
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
@@ -2902,7 +2923,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       builder: (context) => Container(
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
-        borderRadius: const BorderRadius.only(
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
@@ -2970,7 +2991,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Theme.of(context).dividerColor),
+                        border:
+                            Border.all(color: Theme.of(context).dividerColor),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Column(
@@ -2988,7 +3010,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                             'District: ${district.name}',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Theme.of(context).textTheme.bodySmall?.color,
+                              color:
+                                  Theme.of(context).textTheme.bodySmall?.color,
                             ),
                           ),
                           if (church.memberCount != null) ...[
@@ -2997,7 +3020,11 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                               'Members: ${church.memberCount}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.color
+                                    ?.withValues(alpha: 0.7),
                               ),
                             ),
                           ],
@@ -3088,7 +3115,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
         builder: (context, scrollController) => Container(
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
-        borderRadius: const BorderRadius.only(
+            borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(20),
               topRight: Radius.circular(20),
             ),
@@ -3128,7 +3155,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                             DateFormat('MMMM yyyy').format(_selectedMonth),
                             style: TextStyle(
                               fontSize: 14,
-                              color: Theme.of(context).textTheme.bodySmall?.color,
+                              color:
+                                  Theme.of(context).textTheme.bodySmall?.color,
                             ),
                           ),
                         ],
@@ -3177,7 +3205,10 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                               'No discrepancies found',
                               style: TextStyle(
                                 fontSize: 18,
-                                color: Theme.of(context).textTheme.bodySmall?.color,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.color,
                               ),
                             ),
                           ],
@@ -3246,7 +3277,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                                 church.churchName,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.onSurface,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                               subtitle: Text(
@@ -3272,7 +3304,9 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                                               style: TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 14,
-                                                color: Theme.of(context).colorScheme.onSurface,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface,
                                               ),
                                             ),
                                             const Icon(Icons.check_circle,
@@ -3333,7 +3367,9 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                                               style: TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 14,
-                                                color: Theme.of(context).colorScheme.onSurface,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface,
                                               ),
                                             ),
                                             const Icon(Icons.check_circle,
@@ -3440,7 +3476,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                                         Container(
                                           padding: const EdgeInsets.all(12),
                                           decoration: BoxDecoration(
-                                            color: Colors.orange.withValues(alpha: 0.1),
+                                            color: Colors.orange
+                                                .withValues(alpha: 0.1),
                                             borderRadius:
                                                 BorderRadius.circular(8),
                                           ),

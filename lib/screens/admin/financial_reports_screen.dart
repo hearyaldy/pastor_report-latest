@@ -290,7 +290,8 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
               const SizedBox(height: 8),
               Text(
                 'You do not have permission to view financial reports',
-                style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
+                style: TextStyle(
+                    color: Theme.of(context).textTheme.bodySmall?.color),
               ),
             ],
           ),
@@ -398,7 +399,8 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(56),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.15),
@@ -450,7 +452,8 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                     : IconButton(
                         icon: const Icon(Icons.download),
                         tooltip: 'Export Reports',
-                        onPressed: _reports.isEmpty ? null : _showExportConfirmation,
+                        onPressed:
+                            _reports.isEmpty ? null : _showExportConfirmation,
                       ),
                 IconButton(
                   icon: const Icon(Icons.refresh),
@@ -859,12 +862,19 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
               const SizedBox(height: 16),
               Text(
                 'No reports found',
-                style: TextStyle(fontSize: 18, color: Theme.of(context).textTheme.bodySmall?.color),
+                style: TextStyle(
+                    fontSize: 18,
+                    color: Theme.of(context).textTheme.bodySmall?.color),
               ),
               const SizedBox(height: 8),
               Text(
                 'No financial reports for ${DateFormat('MMMM yyyy').format(_selectedMonth)}',
-                style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7)),
+                style: TextStyle(
+                    color: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.color
+                        ?.withValues(alpha: 0.7)),
               ),
             ],
           ),
@@ -915,308 +925,362 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
               children: [
                 Row(
                   children: [
-                // Rank Badge
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: rank <= 3
-                        ? (rank == 1
-                            ? Colors.amber
-                            : rank == 2
-                                ? Colors.grey[400]
-                                : Colors.brown[300])
-                        : Colors.grey[200],
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '#$rank',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: rank <= 3 ? Colors.white : Colors.grey[700],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        churchName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.location_city,
-                              size: 14, color: Theme.of(context).textTheme.bodySmall?.color),
-                          const SizedBox(width: 4),
-                          Text(
-                            districtName,
-                            style: TextStyle(
-                                fontSize: 13, color: Theme.of(context).textTheme.bodySmall?.color),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Flexible(
-                              child: _buildMiniStat(
-                                  'Tithe', report.tithe, Colors.blue)),
-                          const SizedBox(width: 4),
-                          Flexible(
-                              child: _buildMiniStat(
-                                  'Offerings', report.offerings, Colors.green)),
-                          const SizedBox(width: 4),
-                          Flexible(
-                              child: _buildMiniStat('Special',
-                                  report.specialOfferings, Colors.orange)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'RM ${report.totalFinancial.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryLight,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
+                    // Rank Badge
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
-                        color: _getStatusColor(report.status)
-                            .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        color: rank <= 3
+                            ? (rank == 1
+                                ? Colors.amber
+                                : rank == 2
+                                    ? Colors.grey[400]
+                                    : Colors.brown[300])
+                            : Colors.grey[200],
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Text(
-                        report.status.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: _getStatusColor(report.status),
+                      child: Center(
+                        child: Text(
+                          '#$rank',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: rank <= 3 ? Colors.white : Colors.grey[700],
+                          ),
                         ),
                       ),
                     ),
-                    // Submitted by info
-                    const SizedBox(height: 8),
-                    FutureBuilder<String>(
-                      future: _getUserName(report.submittedBy),
-                      builder: (context, snapshot) {
-                        final userName = snapshot.data ?? 'Loading...';
-                        return SizedBox(
-                          width: 120,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            churchName,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
                             children: [
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.person_outline,
-                                    size: 12,
-                                    color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Flexible(
-                                    child: Text(
-                                      'Submitted by',
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        color: Theme.of(context).textTheme.bodySmall?.color,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              Icon(Icons.location_city,
+                                  size: 14,
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.color),
+                              const SizedBox(width: 4),
                               Text(
-                                userName,
+                                districtName,
                                 style: TextStyle(
-                                  fontSize: 10,
-                                  color: Theme.of(context).textTheme.bodyMedium?.color,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.end,
+                                    fontSize: 13,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color),
                               ),
                             ],
                           ),
-                        );
-                      },
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Flexible(
+                                  child: _buildMiniStat(
+                                      'Tithe', report.tithe, Colors.blue)),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                  child: _buildMiniStat('Offerings',
+                                      report.offerings, Colors.green)),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                  child: _buildMiniStat('Special',
+                                      report.specialOfferings, Colors.orange)),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    // Last edit info (compact)
-                    if (report.history.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: 120,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.history,
-                                  size: 12,
-                                  color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
-                                ),
-                                const SizedBox(width: 4),
-                                Flexible(
-                                  child: Text(
-                                    report.history.last.action == 'created'
-                                        ? 'Created by'
-                                        : 'Edited by',
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'RM ${report.totalFinancial.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryLight,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(report.status)
+                                .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            report.status.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: _getStatusColor(report.status),
+                            ),
+                          ),
+                        ),
+                        // Submitted by info
+                        const SizedBox(height: 8),
+                        FutureBuilder<String>(
+                          future: _getUserName(report.submittedBy),
+                          builder: (context, snapshot) {
+                            final userName = snapshot.data ?? 'Loading...';
+                            return SizedBox(
+                              width: 120,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.person_outline,
+                                        size: 12,
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.color
+                                            ?.withValues(alpha: 0.7),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          'Submitted by',
+                                          style: TextStyle(
+                                            fontSize: 9,
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.color,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    userName,
                                     style: TextStyle(
-                                      fontSize: 9,
-                                      color: Theme.of(context).textTheme.bodySmall?.color,
+                                      fontSize: 10,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.color,
+                                      fontWeight: FontWeight.w600,
                                     ),
+                                    maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.end,
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                        // Last edit info (compact)
+                        if (report.history.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: 120,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.history,
+                                      size: 12,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.color
+                                          ?.withValues(alpha: 0.7),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        report.history.last.action == 'created'
+                                            ? 'Created by'
+                                            : 'Edited by',
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          color: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.color,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  report.history.last.editorName,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.color,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.end,
+                                ),
+                                Text(
+                                  DateFormat('dd MMM, HH:mm')
+                                      .format(report.history.last.editedAt),
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color
+                                        ?.withValues(alpha: 0.7),
                                   ),
                                 ),
                               ],
                             ),
-                            Text(
-                              report.history.last.editorName,
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Theme.of(context).textTheme.bodyMedium?.color,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.end,
-                            ),
-                            Text(
-                              DateFormat('dd MMM, HH:mm').format(report.history.last.editedAt),
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
                 // Full edit history section (if more than 1 entry)
-            if (report.history.length > 1) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Theme.of(context).dividerColor!),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.timeline, size: 14, color: Theme.of(context).textTheme.bodySmall?.color),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Edit History (${report.history.length} entries)',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).textTheme.bodyMedium?.color,
-                          ),
-                        ),
-                      ],
+                if (report.history.length > 1) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Theme.of(context).dividerColor),
                     ),
-                    const SizedBox(height: 8),
-                    ...report.history.reversed.take(3).map((entry) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              margin: const EdgeInsets.only(top: 5, right: 8),
-                              decoration: BoxDecoration(
-                                color: entry.action == 'created'
-                                    ? Colors.green
-                                    : entry.action == 'approved'
-                                    ? Colors.blue
-                                    : Colors.orange,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '${entry.action == 'created' ? '✨ Created' : entry.action == 'approved' ? '✓ Approved' : '✏️ Updated'} by ${entry.editorName}',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                    ),
-                                  ),
-                                  Text(
-                                    DateFormat('dd MMM yyyy, HH:mm').format(entry.editedAt),
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      color: Theme.of(context).textTheme.bodySmall?.color,
-                                    ),
-                                  ),
-                                  if (entry.changes != null && entry.changes!.isNotEmpty) ...[
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'Changed: ${entry.changes!.keys.join(", ")}',
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        color: Theme.of(context).textTheme.bodySmall?.color,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                  ],
-                                ],
+                            Icon(Icons.timeline,
+                                size: 14,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.color),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Edit History (${report.history.length} entries)',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.color,
                               ),
                             ),
                           ],
                         ),
-                      );
-                    }).toList(),
-                    if (report.history.length > 3) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        '+ ${report.history.length - 3} more edits',
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: Theme.of(context).textTheme.bodySmall?.color,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
+                        const SizedBox(height: 8),
+                        ...report.history.reversed.take(3).map((entry) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  margin:
+                                      const EdgeInsets.only(top: 5, right: 8),
+                                  decoration: BoxDecoration(
+                                    color: entry.action == 'created'
+                                        ? Colors.green
+                                        : entry.action == 'approved'
+                                            ? Colors.blue
+                                            : Colors.orange,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${entry.action == 'created' ? '✨ Created' : entry.action == 'approved' ? '✓ Approved' : '✏️ Updated'} by ${entry.editorName}',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
+                                        ),
+                                      ),
+                                      Text(
+                                        DateFormat('dd MMM yyyy, HH:mm')
+                                            .format(entry.editedAt),
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          color: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.color,
+                                        ),
+                                      ),
+                                      if (entry.changes != null &&
+                                          entry.changes!.isNotEmpty) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Changed: ${entry.changes!.keys.join(", ")}',
+                                          style: TextStyle(
+                                            fontSize: 9,
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.color,
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                        if (report.history.length > 3) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '+ ${report.history.length - 3} more edits',
+                            style: TextStyle(
+                              fontSize: 9,
+                              color:
+                                  Theme.of(context).textTheme.bodySmall?.color,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1734,28 +1798,37 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
         final church = _churches.firstWhere((c) => c.id == report.churchId);
 
         sheet
-            .cell(excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1))
+            .cell(excel.CellIndex.indexByColumnRow(
+                columnIndex: 0, rowIndex: i + 1))
             .value = excel.TextCellValue(church.churchName);
         sheet
-            .cell(excel.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: i + 1))
-            .value = excel.TextCellValue(DateFormat('MMM yyyy').format(report.month));
+                .cell(excel.CellIndex.indexByColumnRow(
+                    columnIndex: 1, rowIndex: i + 1))
+                .value =
+            excel.TextCellValue(DateFormat('MMM yyyy').format(report.month));
         sheet
-            .cell(excel.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: i + 1))
+            .cell(excel.CellIndex.indexByColumnRow(
+                columnIndex: 2, rowIndex: i + 1))
             .value = excel.DoubleCellValue(report.tithe);
         sheet
-            .cell(excel.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: i + 1))
+            .cell(excel.CellIndex.indexByColumnRow(
+                columnIndex: 3, rowIndex: i + 1))
             .value = excel.DoubleCellValue(report.offerings);
         sheet
-            .cell(excel.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: i + 1))
+            .cell(excel.CellIndex.indexByColumnRow(
+                columnIndex: 4, rowIndex: i + 1))
             .value = excel.DoubleCellValue(report.specialOfferings);
         sheet
-            .cell(excel.CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: i + 1))
+            .cell(excel.CellIndex.indexByColumnRow(
+                columnIndex: 5, rowIndex: i + 1))
             .value = excel.DoubleCellValue(report.totalFinancial);
         sheet
-            .cell(excel.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: i + 1))
+            .cell(excel.CellIndex.indexByColumnRow(
+                columnIndex: 6, rowIndex: i + 1))
             .value = excel.TextCellValue(report.status);
         sheet
-            .cell(excel.CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: i + 1))
+            .cell(excel.CellIndex.indexByColumnRow(
+                columnIndex: 7, rowIndex: i + 1))
             .value = excel.TextCellValue(report.notes ?? '');
       }
 
@@ -1996,7 +2069,8 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
   }
 
   Future<Map<String, dynamic>?> _showExportOptionsDialog() async {
-    String selectedFilter = 'current'; // current (filtered), month, region, district, church, all
+    String selectedFilter =
+        'current'; // current (filtered), month, region, district, church, all
     String? selectedRegionId;
     String? selectedDistrictId;
     String? selectedChurchId;
@@ -2133,7 +2207,8 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                           scope = _getCurrentScopeDescription();
                           break;
                         case 'month':
-                          scope = 'Month: ${DateFormat('MMMM yyyy').format(selectedMonth ?? DateTime.now())}';
+                          scope =
+                              'Month: ${DateFormat('MMMM yyyy').format(selectedMonth ?? DateTime.now())}';
                           break;
                         case 'region':
                           scope = 'All regions';
@@ -2176,7 +2251,8 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
     );
   }
 
-  Widget _buildExportOption(String title, String subtitle, IconData icon, bool isSelected, VoidCallback onTap) {
+  Widget _buildExportOption(String title, String subtitle, IconData icon,
+      bool isSelected, VoidCallback onTap) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: isSelected ? 4 : 0,
@@ -2218,7 +2294,9 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: isSelected ? AppColors.primaryLight : Colors.black87,
+                        color: isSelected
+                            ? AppColors.primaryLight
+                            : Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -2250,7 +2328,8 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
       final church = _churches.firstWhere((c) => c.id == _selectedChurchId);
       return church.churchName;
     } else if (_selectedDistrictId != null) {
-      final district = _districts.firstWhere((d) => d.id == _selectedDistrictId);
+      final district =
+          _districts.firstWhere((d) => d.id == _selectedDistrictId);
       return '${district.name} district';
     } else if (_selectedRegionId != null) {
       final region = _regions.firstWhere((r) => r.id == _selectedRegionId);
@@ -2524,11 +2603,11 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
       availableChurches = _churches
           .where((church) => church.districtId == user.district)
           .toList();
-    } else if (user.userRole == UserRole.churchTreasurer && user.churchId != null) {
+    } else if (user.userRole == UserRole.churchTreasurer &&
+        user.churchId != null) {
       // Church treasurers can only add reports for their church
-      availableChurches = _churches
-          .where((church) => church.id == user.churchId)
-          .toList();
+      availableChurches =
+          _churches.where((church) => church.id == user.churchId).toList();
     } else {
       // Admins and super admins can add reports for any church
       availableChurches = _churches;
@@ -2552,244 +2631,259 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
       isScrollControlled: true,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            // Handle bar
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Theme.of(context).dividerColor,
-                borderRadius: BorderRadius.circular(2),
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).dividerColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.add_chart,
+                        color: AppColors.primaryLight,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Add Financial Report',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            DateFormat('dd MMM yyyy')
+                                .format(selectedReportDate),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color:
+                                  Theme.of(context).textTheme.bodySmall?.color,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              // Date selector
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: InkWell(
+                  onTap: () async {
+                    final pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: selectedReportDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                      helpText: 'Select Report Date',
+                    );
+                    if (pickedDate != null) {
+                      setModalState(() {
+                        selectedReportDate = pickedDate;
+                      });
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryLight.withValues(alpha: 0.1),
+                      color: AppColors.primaryLight.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.primaryLight.withValues(alpha: 0.3),
+                      ),
                     ),
-                    child: Icon(
-                      Icons.add_chart,
-                      color: AppColors.primaryLight,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        const Text(
-                          'Add Financial Report',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color:
+                                AppColors.primaryLight.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.calendar_today,
+                            color: AppColors.primaryLight,
+                            size: 20,
                           ),
                         ),
-                        Text(
-                          DateFormat('dd MMM yyyy').format(selectedReportDate),
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Theme.of(context).textTheme.bodySmall?.color,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Report Date',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.color,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                DateFormat('EEEE, dd MMMM yyyy')
+                                    .format(selectedReportDate),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
+                        ),
+                        Icon(
+                          Icons.edit_calendar,
+                          color: AppColors.primaryLight,
+                          size: 20,
                         ),
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
+                ),
               ),
-            ),
-            // Date selector
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: InkWell(
-                onTap: () async {
-                  final pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: selectedReportDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                    helpText: 'Select Report Date',
-                  );
-                  if (pickedDate != null) {
-                    setModalState(() {
-                      selectedReportDate = pickedDate;
-                    });
-                  }
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
+              const SizedBox(height: 16),
+              // Instruction text
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'Select a church to create a financial report',
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+              // Scrollable church list
+              Expanded(
+                child: ListView.separated(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppColors.primaryLight.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.calendar_today,
-                          color: AppColors.primaryLight,
-                          size: 20,
-                        ),
+                  itemCount: availableChurches.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final church = availableChurches[index];
+                    return Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Theme.of(context).dividerColor),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Report Date',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context).textTheme.bodySmall?.color,
-                                fontWeight: FontWeight.w500,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _navigateToAddReport(church, selectedReportDate);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryLight
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  Icons.church,
+                                  color: AppColors.primaryLight,
+                                  size: 24,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              DateFormat('EEEE, dd MMMM yyyy').format(selectedReportDate),
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        Icons.edit_calendar,
-                        color: AppColors.primaryLight,
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Instruction text
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                'Select a church to create a financial report',
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodySmall?.color,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Divider(height: 1),
-            // Scrollable church list
-            Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: availableChurches.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final church = availableChurches[index];
-                  return Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Theme.of(context).dividerColor!),
-                    ),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _navigateToAddReport(church, selectedReportDate);
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryLight.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(
-                                Icons.church,
-                                color: AppColors.primaryLight,
-                                size: 24,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    church.churchName,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      church.churchName,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.location_city,
-                                        size: 14,
-                                        color: Theme.of(context).textTheme.bodySmall?.color,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        _getDistrictName(church.districtId),
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Theme.of(context).textTheme.bodySmall?.color,
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.location_city,
+                                          size: 14,
+                                          color: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.color,
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          _getDistrictName(church.districtId),
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.color,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            Icon(
-                              Icons.arrow_forward_ios,
-                              size: 16,
-                              color: Theme.of(context).dividerColor,
-                            ),
-                          ],
+                              Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: Theme.of(context).dividerColor,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
       ),
     );
   }

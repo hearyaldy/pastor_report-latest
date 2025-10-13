@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:pastor_report/models/appointment_model.dart';
 import 'package:pastor_report/services/appointment_storage_service.dart';
 import 'package:pastor_report/utils/constants.dart';
-import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
@@ -289,25 +288,43 @@ class _AddAppointmentSheetState extends State<_AddAppointmentSheet> {
       _selectedTime.minute,
     );
 
-    final appointment = Appointment(
-      id: widget.appointment?.id ?? const Uuid().v4(),
-      title: _titleController.text.trim(),
-      description: _descController.text.trim().isNotEmpty ? _descController.text.trim() : null,
-      dateTime: dateTime,
-      location: _locationController.text.trim().isNotEmpty ? _locationController.text.trim() : null,
-      contactPerson: _contactController.text.trim().isNotEmpty ? _contactController.text.trim() : null,
-      contactPhone: _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
-      createdAt: widget.appointment?.createdAt ?? DateTime.now(),
-    );
+    try {
+      if (widget.appointment == null) {
+        // Create new appointment
+        await AppointmentStorageService.instance.createAppointment(
+          title: _titleController.text.trim(),
+          dateTime: dateTime,
+          description: _descController.text.trim().isNotEmpty ? _descController.text.trim() : null,
+          location: _locationController.text.trim().isNotEmpty ? _locationController.text.trim() : null,
+          contactPerson: _contactController.text.trim().isNotEmpty ? _contactController.text.trim() : null,
+          contactPhone: _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
+        );
+      } else {
+        // Update existing appointment
+        await AppointmentStorageService.instance.updateAppointment(
+          appointmentId: widget.appointment!.id,
+          title: _titleController.text.trim(),
+          dateTime: dateTime,
+          description: _descController.text.trim().isNotEmpty ? _descController.text.trim() : null,
+          location: _locationController.text.trim().isNotEmpty ? _locationController.text.trim() : null,
+          contactPerson: _contactController.text.trim().isNotEmpty ? _contactController.text.trim() : null,
+          contactPhone: _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
+        );
+      }
 
-    await AppointmentStorageService.instance.saveAppointment(appointment);
-
-    if (mounted) {
-      widget.onSaved();
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Appointment ${widget.appointment == null ? 'added' : 'updated'}')),
-      );
+      if (mounted) {
+        widget.onSaved();
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Appointment ${widget.appointment == null ? 'added' : 'updated'}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving appointment: $e')),
+        );
+      }
     }
   }
 

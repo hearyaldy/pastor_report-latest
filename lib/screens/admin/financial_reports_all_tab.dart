@@ -761,7 +761,7 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
                             ],
                           ),
                         );
-                      }).toList(),
+                      }),
                       if (report.history.length > 3) ...[
                         Text(
                           '+ ${report.history.length - 3} more edits',

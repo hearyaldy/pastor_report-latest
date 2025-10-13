@@ -7,7 +7,8 @@ void main() {
   final districtFile = File('lib/screens/district_management_screen.dart');
   if (districtFile.existsSync()) {
     String content = districtFile.readAsStringSync();
-    content = content.replaceAll('.surfaceContainerHighest0', '.surfaceContainerHighest');
+    content = content.replaceAll(
+        '.surfaceContainerHighest0', '.surfaceContainerHighest');
     districtFile.writeAsStringSync(content);
     print('✓ Fixed district_management_screen.dart typos');
   }
@@ -31,7 +32,8 @@ void main() {
     int fileFixes = 0;
 
     // Remove const from Expanded widgets with Theme.of(context)
-    if (content.contains('const Expanded(') && content.contains('Theme.of(context)')) {
+    if (content.contains('const Expanded(') &&
+        content.contains('Theme.of(context)')) {
       final lines = content.split('\n');
       final newLines = <String>[];
 
@@ -61,7 +63,10 @@ void main() {
 
     // Remove const from Column/Row with Theme.of(context) children
     content = content.replaceAllMapped(
-      RegExp(r'const (Column|Row)\([^)]*children:\s*\[[^\]]*Theme\.of\(context\)', multiLine: true, dotAll: true),
+      RegExp(
+          r'const (Column|Row)\([^)]*children:\s*\[[^\]]*Theme\.of\(context\)',
+          multiLine: true,
+          dotAll: true),
       (match) {
         fileFixes++;
         return match.group(0)!.replaceFirst('const ', '');
@@ -89,7 +94,7 @@ void _fixFile(String path, List<List<RegExp>> patterns) {
   int fixes = 0;
 
   for (var pattern in patterns) {
-    final regex = pattern[0] as RegExp;
+    final regex = pattern[0];
     final replacement = pattern[1] as String;
     final matches = regex.allMatches(content).length;
     if (matches > 0) {

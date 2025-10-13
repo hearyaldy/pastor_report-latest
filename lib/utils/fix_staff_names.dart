@@ -19,7 +19,7 @@ class StaffNameFixer {
   /// Preview name corrections
   static Future<void> previewNameCorrections() async {
     debugPrint('\n📋 NAME CORRECTIONS PREVIEW:');
-    debugPrint('${'=' * 80}');
+    debugPrint('=' * 80);
 
     try {
       final staffSnapshot = await _firestore.collection('staff').get();
@@ -45,7 +45,8 @@ class StaffNameFixer {
       }
 
       debugPrint('\n${'=' * 80}');
-      debugPrint('Total corrections to apply: $foundCount / ${nameCorrections.length}');
+      debugPrint(
+          'Total corrections to apply: $foundCount / ${nameCorrections.length}');
     } catch (e) {
       debugPrint('❌ Error previewing corrections: $e');
     }
@@ -54,7 +55,7 @@ class StaffNameFixer {
   /// Apply name corrections
   static Future<Map<String, dynamic>> applyNameCorrections() async {
     debugPrint('\n🔧 APPLYING NAME CORRECTIONS:');
-    debugPrint('${'=' * 80}');
+    debugPrint('=' * 80);
 
     final results = {
       'total_corrections': nameCorrections.length,
@@ -115,7 +116,7 @@ class StaffNameFixer {
   /// This helps identify other mismatches
   static void suggestNameMatches() {
     debugPrint('\n💡 SUGGESTED NAME MATCHES:');
-    debugPrint('${'=' * 80}');
+    debugPrint('=' * 80);
     debugPrint('');
     debugPrint('Check churches_SAB.json for these staff members:');
     debugPrint('');
@@ -126,7 +127,8 @@ class StaffNameFixer {
     debugPrint('Need to check manually:');
     debugPrint('  • Alexander Maxon Horis');
     debugPrint('  • Lovell Juil');
-    debugPrint('  • A Harnnie Severinus (might be "A Hairrie Severinus" or different person)');
+    debugPrint(
+        '  • A Harnnie Severinus (might be "A Hairrie Severinus" or different person)');
     debugPrint('  • Timothy Chin Wei Jun');
     debugPrint('  • Ariman Paulus');
     debugPrint('  • Justin Wong Chong Yung');
@@ -146,6 +148,6 @@ class StaffNameFixer {
     debugPrint('  3. Run "Apply Name Corrections"');
     debugPrint('  4. Re-run "Import Staff Assignments"');
     debugPrint('');
-    debugPrint('${'=' * 80}');
+    debugPrint('=' * 80);
   }
 }

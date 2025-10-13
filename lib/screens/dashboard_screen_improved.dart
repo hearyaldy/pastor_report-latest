@@ -20,6 +20,7 @@ import 'package:pastor_report/services/church_storage_service.dart';
 import 'package:pastor_report/services/staff_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/utils/theme_colors.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/services.dart';
 
@@ -126,7 +127,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
       floating: false,
       pinned: true,
       elevation: 0,
-      backgroundColor: AppColors.primaryLight,
+      backgroundColor: context.colors.primary,
       actions: [
         if (user != null) ...[
           IconButton(
@@ -182,11 +183,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                AppColors.primaryLight,
-                AppColors.primaryLight.withValues(alpha: 0.8),
-                AppColors.primaryDark,
-              ],
+              colors: context.colors.primaryGradient,
             ),
           ),
           child: SafeArea(
@@ -241,7 +238,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.primaryLight,
+                              color: context.colors.primary,
                             ),
                           ),
                         ),
@@ -296,7 +293,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         decoration: InputDecoration(
           hintText: 'Search departments...',
           hintStyle: TextStyle(color: Theme.of(context).dividerColor),
-          prefixIcon: Icon(Icons.search, color: AppColors.primaryLight),
+          prefixIcon: Icon(Icons.search, color: context.colors.primary),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.clear, size: 20),
@@ -448,7 +445,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
-                  color: AppColors.primaryLight.withValues(alpha: 0.3),
+                  color: context.colors.withAlpha(context.colors.primary, 0.3),
                   width: 2,
                 ),
               ),
@@ -472,13 +469,13 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               color:
-                                  AppColors.primaryLight.withValues(alpha: 0.1),
+                                  context.colors.withAlpha(context.colors.primary, 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Icon(
                               Icons.dashboard_customize,
                               size: 32,
-                              color: AppColors.primaryLight,
+                              color: context.colors.primary,
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -500,7 +497,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                                       : 'Tap to add activities or todos',
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: Colors.grey.shade600,
+                                    color: context.colors.textSecondary,
                                   ),
                                 ),
                               ],
@@ -511,7 +508,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                                 ? Icons.expand_less
                                 : Icons.expand_more,
                             size: 24,
-                            color: Colors.grey.shade400,
+                            color: context.colors.emptyStateIcon,
                           ),
                         ],
                       ),
@@ -662,7 +659,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: context.colors.outline),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -686,7 +683,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
       Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(color: context.colors.outline),
           borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(8), topRight: Radius.circular(8)),
         ),
@@ -742,7 +739,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
       ),
       Container(
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(color: context.colors.outline),
           borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
         ),
@@ -898,7 +895,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         children: [
           Text('Priority:',
               style: TextStyle(
-                  fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
+                  fontWeight: FontWeight.w600, color: context.colors.textSecondary)),
           const SizedBox(width: 12),
           Expanded(child: _buildInlinePriorityChip('Low', 0, Colors.green)),
           const SizedBox(width: 8),
@@ -1535,14 +1532,14 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  AppColors.primaryLight,
-                  AppColors.primaryLight.withValues(alpha: 0.8),
+                  context.colors.primary,
+                  context.colors.withAlpha(context.colors.primary, 0.8),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primaryLight.withValues(alpha: 0.3),
+                  color: context.colors.withAlpha(context.colors.primary, 0.3),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -1807,7 +1804,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
+                          color: context.colors.onColor(cardColor),
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -1829,9 +1826,9 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   }
 
   Color _getIconColor(Color? bgColor) {
-    if (bgColor == null) return AppColors.primaryLight;
+    if (bgColor == null) return context.colors.primary;
     final luminance = bgColor.computeLuminance();
-    return luminance > 0.7 ? AppColors.primaryDark : AppColors.primaryLight;
+    return context.colors.onColor(bgColor);
   }
 
   Widget _buildRecentActivitiesSection() {
@@ -1982,7 +1979,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         title: Row(
           children: [
-            Icon(Icons.lock_outline, color: AppColors.primaryLight),
+            Icon(Icons.lock_outline, color: context.colors.primary),
             const SizedBox(width: 10),
             const Text('Login Required'),
           ],
@@ -1998,7 +1995,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryLight,
+              backgroundColor: context.colors.primary,
               foregroundColor: Colors.white,
             ),
             child: const Text('Login'),
@@ -2135,7 +2132,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   Row(
                     children: [
                       Icon(Icons.event_note,
-                          color: AppColors.primaryLight, size: 24),
+                          color: context.colors.primary, size: 24),
                       const SizedBox(width: 12),
                       const Text('Quick Add Activity',
                           style: TextStyle(
@@ -2164,13 +2161,13 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                       padding: const EdgeInsets.symmetric(
                           vertical: 12, horizontal: 12),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(color: context.colors.outline),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         children: [
                           Icon(Icons.calendar_today,
-                              size: 18, color: AppColors.primaryLight),
+                              size: 18, color: context.colors.primary),
                           const SizedBox(width: 8),
                           Text(
                               'Date: ${DateFormat('MMM dd, yyyy').format(selectedDate)}',
@@ -2185,7 +2182,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   Container(
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: context.colors.outline),
                       borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(4),
                           topRight: Radius.circular(4)),
@@ -2235,7 +2232,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   ),
                   Container(
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: context.colors.outline),
                       borderRadius: const BorderRadius.only(
                           bottomLeft: Radius.circular(4),
                           bottomRight: Radius.circular(4)),
@@ -2291,7 +2288,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                   const SizedBox(height: 20),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryLight,
+                      backgroundColor: context.colors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
@@ -2389,7 +2386,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 Row(
                   children: [
                     Icon(Icons.add_task,
-                        color: AppColors.primaryLight, size: 24),
+                        color: context.colors.primary, size: 24),
                     const SizedBox(width: 12),
                     const Text('Quick Add Todo',
                         style: TextStyle(
@@ -2445,7 +2442,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryLight,
+                    backgroundColor: context.colors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
@@ -2457,15 +2454,10 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                     }
 
                     try {
-                      final todo = Todo(
-                        id: const Uuid().v4(),
+                      await TodoStorageService.instance.createTodo(
                         content: todoController.text.trim(),
                         priority: selectedPriority,
-                        isCompleted: false,
-                        createdAt: DateTime.now(),
                       );
-
-                      await TodoStorageService.instance.saveTodo(todo);
 
                       if (context.mounted) {
                         Navigator.pop(context);
@@ -2623,15 +2615,10 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
     }
 
     try {
-      final todo = Todo(
-        id: const Uuid().v4(),
+      await TodoStorageService.instance.createTodo(
         content: _todoController.text.trim(),
         priority: _selectedTodoPriority,
-        isCompleted: false,
-        createdAt: DateTime.now(),
       );
-
-      await TodoStorageService.instance.saveTodo(todo);
 
       if (mounted) {
         // Clear the input
@@ -2737,10 +2724,10 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.church,
                       size: 60,
-                      color: AppColors.primaryLight,
+                      color: context.colors.primary,
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -2808,7 +2795,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                        foregroundColor: AppColors.primaryDark,
+                        foregroundColor: context.colors.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),

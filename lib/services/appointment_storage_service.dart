@@ -60,39 +60,81 @@ class AppointmentStorageService {
             .toList());
   }
 
-  /// Save or update an appointment
-  Future<void> saveAppointment(Appointment appointment) async {
+  /// Create a new appointment
+  Future<String> createAppointment({
+    required String title,
+    required DateTime dateTime,
+    String? description,
+    String? location,
+    String? contactPerson,
+    String? contactPhone,
+    bool isCompleted = false,
+  }) async {
     try {
       if (_userId == null) {
         throw Exception('User not authenticated');
       }
 
-      final appointmentData = appointment.toJson();
+      final appointmentData = {
+        'userId': _userId,
+        'title': title,
+        'description': description,
+        'dateTime': Timestamp.fromDate(dateTime),
+        'location': location,
+        'contactPerson': contactPerson,
+        'contactPhone': contactPhone,
+        'isCompleted': isCompleted,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
 
-      if (appointment.id.isEmpty) {
-        // New appointment - include userId and createdAt
-        appointmentData['userId'] = _userId;
-        appointmentData['createdAt'] = FieldValue.serverTimestamp();
-        appointmentData['updatedAt'] = FieldValue.serverTimestamp();
-        await _firestore
-            .collection(_appointmentsCollection)
-            .add(appointmentData);
-        debugPrint('✅ Appointment added');
-      } else {
-        // Update existing appointment - don't update userId, id, or createdAt
-        appointmentData['updatedAt'] = FieldValue.serverTimestamp();
-        // Remove immutable fields from update data
-        appointmentData.remove('userId');
-        appointmentData.remove('id');
-        appointmentData.remove('createdAt');
-        await _firestore
-            .collection(_appointmentsCollection)
-            .doc(appointment.id)
-            .update(appointmentData);
-        debugPrint('✅ Appointment updated: ${appointment.id}');
-      }
+      debugPrint('📝 Creating new appointment for user: $_userId');
+      final docRef =
+          await _firestore.collection(_appointmentsCollection).add(appointmentData);
+      debugPrint('✅ Appointment created with ID: ${docRef.id}');
+      return docRef.id;
     } catch (e) {
-      debugPrint('❌ Error saving appointment: $e');
+      debugPrint('❌ Error creating appointment: $e');
+      rethrow;
+    }
+  }
+
+  /// Update an existing appointment
+  Future<void> updateAppointment({
+    required String appointmentId,
+    String? title,
+    DateTime? dateTime,
+    String? description,
+    String? location,
+    String? contactPerson,
+    String? contactPhone,
+    bool? isCompleted,
+  }) async {
+    try {
+      if (_userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final updateData = <String, dynamic>{
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (title != null) updateData['title'] = title;
+      if (dateTime != null) updateData['dateTime'] = Timestamp.fromDate(dateTime);
+      if (description != null) updateData['description'] = description;
+      if (location != null) updateData['location'] = location;
+      if (contactPerson != null) updateData['contactPerson'] = contactPerson;
+      if (contactPhone != null) updateData['contactPhone'] = contactPhone;
+      if (isCompleted != null) updateData['isCompleted'] = isCompleted;
+
+      debugPrint('🔄 Updating appointment: $appointmentId');
+      await _firestore
+          .collection(_appointmentsCollection)
+          .doc(appointmentId)
+          .update(updateData);
+      debugPrint('✅ Appointment updated: $appointmentId');
+    } catch (e) {
+      debugPrint('❌ Error updating appointment: $e');
       rethrow;
     }
   }
@@ -104,6 +146,7 @@ class AppointmentStorageService {
         throw Exception('User not authenticated');
       }
 
+      debugPrint('🗑️ Deleting appointment: $id');
       await _firestore.collection(_appointmentsCollection).doc(id).delete();
       debugPrint('✅ Appointment deleted: $id');
     } catch (e) {
@@ -126,17 +169,14 @@ class AppointmentStorageService {
         throw Exception('Appointment not found');
       }
 
-      final appointment =
-          Appointment.fromJson({...docSnap.data()!, 'id': docSnap.id});
-      final updatedAppointment = appointment.copyWith(
-        isCompleted: !appointment.isCompleted,
-      );
+      final data = docSnap.data()!;
+      final isCurrentlyCompleted = data['isCompleted'] as bool? ?? false;
 
+      debugPrint('🔄 Toggling appointment: $id to completed: ${!isCurrentlyCompleted}');
       await docRef.update({
-        'isCompleted': updatedAppointment.isCompleted,
+        'isCompleted': !isCurrentlyCompleted,
         'updatedAt': FieldValue.serverTimestamp(),
       });
-
       debugPrint('✅ Appointment toggled: $id');
     } catch (e) {
       debugPrint('❌ Error toggling appointment: $e');

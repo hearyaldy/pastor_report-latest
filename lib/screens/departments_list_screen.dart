@@ -5,7 +5,7 @@ import 'package:pastor_report/models/department_model.dart';
 import 'package:pastor_report/services/department_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/screens/inapp_webview_screen.dart';
-import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/utils/theme_helper.dart';
 
 class DepartmentsListScreen extends StatefulWidget {
   const DepartmentsListScreen({super.key});
@@ -23,10 +23,17 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
     return color; // Return original bright color without modification
   }
 
-  Color _getIconColor(Color? bgColor) {
-    if (bgColor == null) return AppColors.primaryLight;
+  Color _getIconColor(Color? bgColor, BuildContext context) {
+    if (bgColor == null) return context.primaryColor;
     final luminance = bgColor.computeLuminance();
-    return luminance > 0.7 ? AppColors.primaryDark : AppColors.primaryLight;
+    return luminance > 0.7 ? context.inverseSurface : context.primaryColor;
+  }
+  
+  // Determine text color based on background to ensure readability
+  Color _getTextColorForBackground(Color backgroundColor) {
+    final luminance = backgroundColor.computeLuminance();
+    // If background is bright, use dark text; if background is dark, use light text
+    return luminance > 0.5 ? Colors.black87 : Colors.white;
   }
 
   // Handle department tap - check auth first
@@ -58,9 +65,9 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         title: Row(
           children: [
-            Icon(Icons.lock_outline, color: AppColors.primaryLight),
+            Icon(Icons.lock_outline, color: Theme.of(context).colorScheme.primary),
             const SizedBox(width: 10),
-            const Text('Login Required'),
+            Text('Login Required'),
           ],
         ),
         content: const Text(
@@ -74,8 +81,8 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryLight,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
             child: const Text('Login'),
           ),
@@ -144,18 +151,18 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
       expandedHeight: 180,
       floating: false,
       pinned: true,
-      backgroundColor: AppColors.primaryLight,
+      backgroundColor: Theme.of(context).colorScheme.primary,
       flexibleSpace: FlexibleSpaceBar(
         titlePadding: const EdgeInsets.only(left: 16, bottom: 16, right: 16),
         title: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'All Departments',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onPrimary,
                 fontSize: 18,
               ),
             ),
@@ -163,17 +170,17 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
+                Icon(
                   Icons.business,
-                  color: Colors.white70,
+                  color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7),
                   size: 14,
                 ),
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(
                     missionName,
-                    style: const TextStyle(
-                      color: Colors.white70,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7),
                       fontSize: 12,
                       fontWeight: FontWeight.normal,
                     ),
@@ -193,8 +200,8 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.primaryLight,
-                    AppColors.primaryDark,
+                    Theme.of(context).colorScheme.primary,
+                    Theme.of(context).colorScheme.primaryContainer,
                   ],
                 ),
               ),
@@ -205,7 +212,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
               child: Icon(
                 Icons.dashboard,
                 size: 150,
-                color: Colors.white.withValues(alpha: 0.1),
+                color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.1),
               ),
             ),
             Positioned(
@@ -218,14 +225,14 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                      border: Border.all(color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.3)),
                     ),
                     child: Text(
                       '$count Dept${count != 1 ? 's' : ''}',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -244,9 +251,9 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
     return TextField(
       decoration: InputDecoration(
         hintText: 'Search departments...',
-        prefixIcon: Icon(Icons.search, color: AppColors.primaryLight),
+        prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.primary),
         filled: true,
-        fillColor: Colors.grey.shade100,
+        fillColor: Theme.of(context).inputDecorationTheme.fillColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -257,7 +264,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.primaryLight, width: 2),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
         ),
       ),
       onChanged: (value) {
@@ -272,7 +279,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -302,14 +309,14 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryLight : Colors.transparent,
+          color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
           text,
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey.shade700,
+            color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).textTheme.bodySmall?.color,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -333,7 +340,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  Icon(Icons.error_outline, size: 64, color: Theme.of(context).colorScheme.error),
                   const SizedBox(height: 16),
                   Text('Error: ${snapshot.error}'),
                 ],
@@ -361,14 +368,14 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
                   Icon(
                     _searchQuery.isNotEmpty ? Icons.search_off : Icons.dashboard,
                     size: 64,
-                    color: Colors.grey,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     _searchQuery.isNotEmpty
                         ? 'No results found for "$_searchQuery"'
                         : 'No departments found',
-                    style: const TextStyle(fontSize: 18, color: Colors.grey),
+                    style: TextStyle(fontSize: 18, color: Theme.of(context).textTheme.bodySmall?.color),
                   ),
                 ],
               ),
@@ -399,7 +406,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
   }
 
   Widget _buildDepartmentCard(Department dept, List<Department> allDepartments) {
-    final cardColor = _brightenColor(dept.color ?? Colors.grey.shade100);
+    final cardColor = _brightenColor(dept.color ?? Theme.of(context).cardColor);
 
     return GestureDetector(
       onTap: () => _handleDepartmentTap(dept, allDepartments),
@@ -408,14 +415,14 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
           color: cardColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: Colors.white,
-            width: 3,
+            color: Theme.of(context).dividerColor,
+            width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -429,25 +436,25 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.red,
+                    color: Theme.of(context).colorScheme.error,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.pause_circle, size: 12, color: Colors.white),
-                      SizedBox(width: 4),
+                      Icon(Icons.pause_circle, size: 12, color: Theme.of(context).colorScheme.onError),
+                      const SizedBox(width: 4),
                       Text(
                         'Inactive',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onError,
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
@@ -468,11 +475,11 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
@@ -481,17 +488,17 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
                     child: Icon(
                       dept.icon,
                       size: 24,
-                      color: _getIconColor(dept.color),
+                      color: _getIconColor(dept.color, context),
                     ),
                   ),
                   const SizedBox(height: 8),
                   // Name
                   Text(
                     dept.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: _getTextColorForBackground(cardColor),
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,

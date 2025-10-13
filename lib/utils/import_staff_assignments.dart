@@ -10,7 +10,7 @@ class StaffAssignmentImporter {
   /// Import staff assignments from churches_SAB.json for Sabah Mission
   static Future<Map<String, dynamic>> importFromChurchesJSON() async {
     debugPrint('📥 IMPORTING STAFF ASSIGNMENTS FROM churches_SAB.json');
-    debugPrint('${'=' * 80}');
+    debugPrint('=' * 80);
 
     final results = {
       'total_pastors_in_json': 0,
@@ -27,8 +27,7 @@ class StaffAssignmentImporter {
       final data = json.decode(jsonString) as Map<String, dynamic>;
 
       // Get Sabah Mission ID
-      final missionsSnapshot =
-          await _firestore.collection('missions').get();
+      final missionsSnapshot = await _firestore.collection('missions').get();
       String? sabahMissionId;
 
       for (var doc in missionsSnapshot.docs) {
@@ -77,7 +76,8 @@ class StaffAssignmentImporter {
         }
       }
 
-      debugPrint('\n📊 Mapped ${regionNameToId.length} regions and ${districtNameToId.length} districts');
+      debugPrint(
+          '\n📊 Mapped ${regionNameToId.length} regions and ${districtNameToId.length} districts');
 
       // Parse the JSON structure
       final regions = data['regions'] as Map<String, dynamic>?;
@@ -145,7 +145,8 @@ class StaffAssignmentImporter {
           .where('mission', isEqualTo: sabahMissionId)
           .get();
 
-      debugPrint('📋 Processing ${staffSnapshot.docs.length} staff members...\n');
+      debugPrint(
+          '📋 Processing ${staffSnapshot.docs.length} staff members...\n');
 
       // Match and update staff
       for (var staffDoc in staffSnapshot.docs) {
@@ -191,8 +192,8 @@ class StaffAssignmentImporter {
             if (regionId == null || districtId == null) {
               debugPrint(
                   '  ⚠️ $staffName: Could not find IDs for $regionName / $districtName');
-              (results['errors'] as List).add(
-                  '$staffName: Region or district not found in Firestore');
+              (results['errors'] as List)
+                  .add('$staffName: Region or district not found in Firestore');
               continue;
             }
 
@@ -203,7 +204,8 @@ class StaffAssignmentImporter {
             });
 
             results['updated_staff'] = (results['updated_staff'] as int) + 1;
-            debugPrint('  ✅ $staffName: $regionName ($regionId) / $districtName ($districtId)');
+            debugPrint(
+                '  ✅ $staffName: $regionName ($regionId) / $districtName ($districtId)');
           } else {
             (results['unmatched_staff'] as List).add(staffName);
             debugPrint('  ⚠️ No match found for: $staffName');
@@ -219,7 +221,8 @@ class StaffAssignmentImporter {
       debugPrint('Total Pastors in JSON: ${results['total_pastors_in_json']}');
       debugPrint('Matched Staff: ${results['matched_staff']}');
       debugPrint('Updated Staff: ${results['updated_staff']}');
-      debugPrint('Unmatched Staff: ${(results['unmatched_staff'] as List).length}');
+      debugPrint(
+          'Unmatched Staff: ${(results['unmatched_staff'] as List).length}');
       debugPrint('Errors: ${(results['errors'] as List).length}');
 
       if ((results['unmatched_staff'] as List).isNotEmpty) {

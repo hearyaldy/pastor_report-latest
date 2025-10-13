@@ -1,6 +1,5 @@
 // lib/utils/data_import_util.dart
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,8 +7,6 @@ import 'package:uuid/uuid.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pastor_report/models/church_model.dart';
 import 'package:pastor_report/services/church_service.dart';
-import 'package:pastor_report/services/district_service.dart';
-import 'package:pastor_report/services/region_service.dart';
 
 class DataImportUtil {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -21,13 +18,14 @@ class DataImportUtil {
       BuildContext context) async {
     try {
       print('DataImportUtil: Starting NSM Churches import...');
-      
+
       // Load the JSON file
       print('DataImportUtil: Loading NSM_Churches_Updated.json');
       final jsonString =
           await rootBundle.loadString('assets/NSM_Churches_Updated.json');
-      print('DataImportUtil: JSON file loaded successfully. Length: ${jsonString.length}');
-      
+      print(
+          'DataImportUtil: JSON file loaded successfully. Length: ${jsonString.length}');
+
       final jsonData = json.decode(jsonString) as Map<String, dynamic>;
       print('DataImportUtil: JSON parsed successfully');
 
@@ -57,15 +55,18 @@ class DataImportUtil {
         print('DataImportUtil: Processing region $regionId: $regionName');
 
         // Process each district in the region
-        print('DataImportUtil: Getting pastoral_districts for region $regionId');
+        print(
+            'DataImportUtil: Getting pastoral_districts for region $regionId');
         final districts =
             regionData['pastoral_districts'] as Map<String, dynamic>;
-        print('DataImportUtil: Found ${districts.length} districts in region $regionId');
-        
+        print(
+            'DataImportUtil: Found ${districts.length} districts in region $regionId');
+
         for (final districtEntry in districts.entries) {
           final districtId = districtEntry.key;
           final districtData = districtEntry.value as Map<String, dynamic>;
-          print('DataImportUtil: Processing district $districtId in region $regionId');
+          print(
+              'DataImportUtil: Processing district $districtId in region $regionId');
 
           // Process organized churches
           await _processChurches(
@@ -127,8 +128,9 @@ class DataImportUtil {
     String missionId,
     Map<String, dynamic> summary,
   ) async {
-    print('DataImportUtil: Processing ${churches.length} churches with status ${status.name} in district $districtId, region $regionId');
-    
+    print(
+        'DataImportUtil: Processing ${churches.length} churches with status ${status.name} in district $districtId, region $regionId');
+
     for (final churchData in churches) {
       final churchName = churchData['name'] as String;
       summary['total'] = summary['total'] + 1;
@@ -136,13 +138,15 @@ class DataImportUtil {
 
       try {
         // Check if the church already exists
-        print('DataImportUtil: Checking if church "$churchName" already exists in district "$districtId"');
+        print(
+            'DataImportUtil: Checking if church "$churchName" already exists in district "$districtId"');
         final existingChurches = await _firestore
             .collection('churches')
             .where('churchName', isEqualTo: churchName)
             .where('districtId', isEqualTo: districtId)
             .get();
-        print('DataImportUtil: Found ${existingChurches.docs.length} existing churches matching "$churchName" in district "$districtId"');
+        print(
+            'DataImportUtil: Found ${existingChurches.docs.length} existing churches matching "$churchName" in district "$districtId"');
 
         if (existingChurches.docs.isNotEmpty) {
           // Update existing church

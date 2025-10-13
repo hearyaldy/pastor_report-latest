@@ -17,6 +17,7 @@ import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/services/region_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/utils/theme_colors.dart';
 
 class MyMinistryScreen extends StatefulWidget {
   const MyMinistryScreen({super.key});
@@ -454,7 +455,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.surface,
         border: Border.all(color: roleColor.withValues(alpha: 0.3), width: 1.5),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
@@ -544,7 +545,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                     : "No contact info"),
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey.shade600,
+                              color: context.colors.textSecondary,
                             ),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
@@ -563,16 +564,16 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                               _buildChip(
                                 _getMissionName(staff.mission),
                                 Icons.business,
-                                Colors.blue.shade100,
-                                Colors.blue.shade700,
+                                context.colors.adaptive(light: Colors.blue.shade100, dark: Colors.blue.shade900),
+                                context.colors.adaptive(light: Colors.blue.shade700, dark: Colors.blue.shade300),
                               ),
                               if (staff.department != null &&
                                   staff.department!.isNotEmpty)
                                 _buildChip(
                                   staff.department!,
                                   Icons.groups,
-                                  Colors.teal.shade100,
-                                  Colors.teal.shade700,
+                                  context.colors.adaptive(light: Colors.teal.shade100, dark: Colors.teal.shade900),
+                                  context.colors.adaptive(light: Colors.teal.shade700, dark: Colors.teal.shade300),
                                 ),
                             ],
                           ),
@@ -589,7 +590,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                             IconButton(
                               icon: Icon(
                                 Icons.edit,
-                                color: AppColors.primaryLight,
+                                color: context.colors.primary,
                               ),
                               iconSize: 20,
                               padding: const EdgeInsets.all(4),
@@ -645,17 +646,17 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
       expandedHeight: 200,
       floating: false,
       pinned: true,
-      backgroundColor: AppColors.primaryLight,
+      backgroundColor: context.colors.primary,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        icon: Icon(Icons.arrow_back, color: context.colors.onPrimary),
         onPressed: () => Navigator.of(context).pop(),
       ),
       flexibleSpace: FlexibleSpaceBar(
-        title: const Text(
+        title: Text(
           'My Ministry',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: context.colors.onPrimary,
           ),
         ),
         background: Container(
@@ -664,8 +665,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppColors.primaryLight,
-                AppColors.primaryDark,
+                context.colors.primary,
+                context.colors.primaryDark,
               ],
             ),
           ),
@@ -711,17 +712,17 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(56),
         child: Container(
-          color: AppColors.primaryLight,
+          color: context.colors.primary,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
+              color: context.colors.onPrimary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: TabBar(
               controller: _tabController,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white60,
+              labelColor: context.colors.onPrimary,
+              unselectedLabelColor: context.colors.onPrimary.withValues(alpha: 0.6),
               labelStyle: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
@@ -776,11 +777,11 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.church, size: 80, color: Colors.grey.shade300),
+            Icon(Icons.church, size: 80, color: context.colors.emptyStateIcon),
             const SizedBox(height: 16),
             Text(
               'No churches added yet',
-              style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 16, color: context.colors.emptyStateText),
             ),
             const SizedBox(height: 8),
             // Removed add action; data is managed via Admin Dashboard
@@ -889,7 +890,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                               borderSide: BorderSide.none,
                             ),
                             filled: true,
-                            fillColor: Colors.grey.shade100,
+                            fillColor: context.colors.searchFieldBackground,
                           ),
                           onChanged: (value) {
                             if (value != _churchSearchQuery) {
@@ -903,7 +904,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                         icon: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: context.colors.surface,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(Icons.sort),
@@ -919,8 +920,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                 Icon(Icons.church,
                                     size: 20,
                                     color: _churchSortBy == 'name'
-                                        ? AppColors.primaryLight
-                                        : Colors.grey),
+                                        ? context.colors.primary
+                                        : context.colors.iconSecondary),
                                 const SizedBox(width: 8),
                                 Text('Church Name',
                                     style: TextStyle(
@@ -937,8 +938,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                 Icon(Icons.person,
                                     size: 20,
                                     color: _churchSortBy == 'elder'
-                                        ? AppColors.primaryLight
-                                        : Colors.grey),
+                                        ? context.colors.primary
+                                        : context.colors.textSecondary),
                                 const SizedBox(width: 8),
                                 Text('Elder Name',
                                     style: TextStyle(
@@ -955,8 +956,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                 Icon(Icons.label,
                                     size: 20,
                                     color: _churchSortBy == 'status'
-                                        ? AppColors.primaryLight
-                                        : Colors.grey),
+                                        ? context.colors.primary
+                                        : context.colors.textSecondary),
                                 const SizedBox(width: 8),
                                 Text('Status',
                                     style: TextStyle(
@@ -973,8 +974,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                 Icon(Icons.people,
                                     size: 20,
                                     color: _churchSortBy == 'members'
-                                        ? AppColors.primaryLight
-                                        : Colors.grey),
+                                        ? context.colors.primary
+                                        : context.colors.textSecondary),
                                 const SizedBox(width: 8),
                                 Text('Members',
                                     style: TextStyle(
@@ -1001,11 +1002,11 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: context.colors.surface,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withValues(alpha: 0.1),
+                          color: context.colors.shadowColor.withValues(alpha: 0.1),
                           spreadRadius: 1,
                           blurRadius: 3,
                           offset: const Offset(0, 1),
@@ -1018,11 +1019,11 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color:
-                                AppColors.primaryLight.withValues(alpha: 0.1),
+                                context.colors.primary.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(Icons.analytics,
-                              color: AppColors.primaryLight),
+                              color: context.colors.primary),
                         ),
                         const SizedBox(width: 12),
                         Text(
@@ -1030,7 +1031,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
-                            color: AppColors.primaryLight,
+                            color: context.colors.primary,
                           ),
                         ),
                         const Spacer(),
@@ -1038,7 +1039,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                           _isStatsExpanded
                               ? Icons.expand_less
                               : Icons.expand_more,
-                          color: AppColors.primaryLight,
+                          color: context.colors.primary,
                         ),
                       ],
                     ),
@@ -1064,7 +1065,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                       icon: Icons.church,
                                       label: 'Total',
                                       value: '$totalChurches',
-                                      color: AppColors.primaryLight,
+                                      color: context.colors.primary,
                                     ),
                                   ),
                                   const SizedBox(width: 6),
@@ -1203,9 +1204,9 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
                                       colors: [
-                                        AppColors.primaryLight
+                                        context.colors.primary
                                             .withValues(alpha: 0.15),
-                                        AppColors.primaryLight
+                                        context.colors.primary
                                             .withValues(alpha: 0.05),
                                       ],
                                       begin: Alignment.centerLeft,
@@ -1213,7 +1214,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                     ),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: AppColors.primaryLight
+                                      color: context.colors.primary
                                           .withValues(alpha: 0.3),
                                       width: 1.5,
                                     ),
@@ -1224,12 +1225,12 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                       Container(
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
-                                          color: AppColors.primaryLight
+                                          color: context.colors.primary
                                               .withValues(alpha: 0.2),
                                           shape: BoxShape.circle,
                                         ),
                                         child: Icon(Icons.people,
-                                            color: AppColors.primaryLight,
+                                            color: context.colors.primary,
                                             size: 20),
                                       ),
                                       const SizedBox(width: 12),
@@ -1246,7 +1247,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
-                                          color: AppColors.primaryLight,
+                                          color: context.colors.primary,
                                         ),
                                       ),
                                     ],
@@ -1303,16 +1304,16 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                               child: Container(
                                 margin: const EdgeInsets.only(bottom: 12),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: context.colors.surface,
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: AppColors.primaryLight
+                                    color: context.colors.primary
                                         .withValues(alpha: 0.25),
                                     width: 1.2,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.primaryLight
+                                      color: context.colors.primary
                                           .withValues(alpha: 0.08),
                                       blurRadius: 10,
                                       offset: const Offset(0, 2),
@@ -1595,8 +1596,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                     Icon(Icons.person,
                                         size: 20,
                                         color: _staffSortBy == 'name'
-                                            ? AppColors.primaryLight
-                                            : Colors.grey),
+                                            ? context.colors.primary
+                                            : context.colors.textSecondary),
                                     const SizedBox(width: 8),
                                     Text('Name',
                                         style: TextStyle(
@@ -1613,8 +1614,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                     Icon(Icons.work,
                                         size: 20,
                                         color: _staffSortBy == 'role'
-                                            ? AppColors.primaryLight
-                                            : Colors.grey),
+                                            ? context.colors.primary
+                                            : context.colors.textSecondary),
                                     const SizedBox(width: 8),
                                     Text('Role',
                                         style: TextStyle(
@@ -1631,8 +1632,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                     Icon(Icons.church,
                                         size: 20,
                                         color: _staffSortBy == 'mission'
-                                            ? AppColors.primaryLight
-                                            : Colors.grey),
+                                            ? context.colors.primary
+                                            : context.colors.textSecondary),
                                     const SizedBox(width: 8),
                                     Text('Mission',
                                         style: TextStyle(
@@ -1676,12 +1677,12 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppColors.primaryLight
+                                color: context.colors.primary
                                     .withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(Icons.people,
-                                  color: AppColors.primaryLight),
+                                  color: context.colors.primary),
                             ),
                             const SizedBox(width: 12),
                             Text(
@@ -1689,7 +1690,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
-                                color: AppColors.primaryLight,
+                                color: context.colors.primary,
                               ),
                             ),
                             const Spacer(),
@@ -1697,7 +1698,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                               _isStaffStatsExpanded
                                   ? Icons.expand_less
                                   : Icons.expand_more,
-                              color: AppColors.primaryLight,
+                              color: context.colors.primary,
                             ),
                           ],
                         ),
@@ -1720,7 +1721,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                                       icon: Icons.people,
                                       label: 'Staff',
                                       value: '$totalStaff',
-                                      color: AppColors.primaryLight,
+                                      color: context.colors.primary,
                                     ),
                                   ),
                                   const SizedBox(width: 6),

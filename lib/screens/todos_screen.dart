@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:pastor_report/models/todo_model.dart';
 import 'package:pastor_report/services/todo_storage_service.dart';
 import 'package:pastor_report/utils/constants.dart';
-import 'package:uuid/uuid.dart';
 
 class TodosScreen extends StatefulWidget {
   const TodosScreen({super.key});
@@ -103,17 +102,31 @@ class _TodosScreenState extends State<TodosScreen>
                   return;
                 }
 
-                final todo = Todo(
-                  id: editTodo?.id ?? const Uuid().v4(),
-                  content: contentController.text.trim(),
-                  priority: selectedPriority,
-                  createdAt: editTodo?.createdAt ?? DateTime.now(),
-                  isCompleted: editTodo?.isCompleted ?? false,
-                );
+                try {
+                  if (editTodo == null) {
+                    // Create new todo
+                    await TodoStorageService.instance.createTodo(
+                      content: contentController.text.trim(),
+                      priority: selectedPriority,
+                    );
+                  } else {
+                    // Update existing todo
+                    await TodoStorageService.instance.updateTodo(
+                      todoId: editTodo.id,
+                      content: contentController.text.trim(),
+                      priority: selectedPriority,
+                    );
+                  }
 
-                await TodoStorageService.instance.saveTodo(todo);
-                if (context.mounted) {
-                  Navigator.pop(context, true);
+                  if (context.mounted) {
+                    Navigator.pop(context, true);
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error saving todo: $e')),
+                    );
+                  }
                 }
               },
               child: Text(editTodo == null ? 'Add' : 'Save'),

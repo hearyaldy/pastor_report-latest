@@ -8,13 +8,11 @@ class StaffDataDiagnostics {
   /// Show sample staff records with all their fields
   static Future<void> showSampleStaffRecords({int sampleSize = 10}) async {
     debugPrint('🔍 SAMPLE STAFF RECORDS (First $sampleSize):');
-    debugPrint('${'=' * 80}');
+    debugPrint('=' * 80);
 
     try {
-      final staffSnapshot = await _firestore
-          .collection('staff')
-          .limit(sampleSize)
-          .get();
+      final staffSnapshot =
+          await _firestore.collection('staff').limit(sampleSize).get();
 
       for (var doc in staffSnapshot.docs) {
         final data = doc.data();
@@ -40,7 +38,7 @@ class StaffDataDiagnostics {
   /// Count staff by mission and show district/region status
   static Future<void> analyzeStaffByMission() async {
     debugPrint('\n📊 STAFF ANALYSIS BY MISSION:');
-    debugPrint('${'=' * 80}');
+    debugPrint('=' * 80);
 
     try {
       final staffSnapshot = await _firestore.collection('staff').get();
@@ -58,10 +56,10 @@ class StaffDataDiagnostics {
       for (var staffDoc in staffSnapshot.docs) {
         final data = staffDoc.data();
         final mission = data['mission'] ?? 'Unknown';
-        final hasRegion = (data['region'] != null &&
-                          (data['region'] as String).isNotEmpty);
+        final hasRegion =
+            (data['region'] != null && (data['region'] as String).isNotEmpty);
         final hasDistrict = (data['district'] != null &&
-                            (data['district'] as String).isNotEmpty);
+            (data['district'] as String).isNotEmpty);
 
         if (!missionStats.containsKey(mission)) {
           missionStats[mission] = {
@@ -111,7 +109,8 @@ class StaffDataDiagnostics {
         debugPrint('   With Neither: ${stats['with_neither']}');
 
         final percentNeither = stats['with_neither']! * 100 / stats['total']!;
-        debugPrint('   Missing Location: ${percentNeither.toStringAsFixed(1)}%');
+        debugPrint(
+            '   Missing Location: ${percentNeither.toStringAsFixed(1)}%');
       }
 
       debugPrint('\n${'=' * 80}');
@@ -123,7 +122,7 @@ class StaffDataDiagnostics {
   /// Check if there's an import file or backup data
   static Future<void> suggestDataSources() async {
     debugPrint('\n💡 DATA SOURCE SUGGESTIONS:');
-    debugPrint('${'=' * 80}');
+    debugPrint('=' * 80);
     debugPrint('');
     debugPrint('To populate staff district/region data, you can:');
     debugPrint('');
@@ -143,6 +142,6 @@ class StaffDataDiagnostics {
     debugPrint('   - Sometimes data is stored in notes or other fields');
     debugPrint('   - Run "Show Sample Staff Records" to check');
     debugPrint('');
-    debugPrint('${'=' * 80}');
+    debugPrint('=' * 80);
   }
 }

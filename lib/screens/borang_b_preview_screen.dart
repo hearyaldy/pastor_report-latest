@@ -9,6 +9,7 @@ import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/utils/theme_colors.dart';
 
 class BorangBPreviewScreen extends StatefulWidget {
   const BorangBPreviewScreen({super.key});
@@ -124,7 +125,7 @@ class _BorangBPreviewScreenState extends State<BorangBPreviewScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error sharing: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -242,14 +243,18 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     final BorangBData data = args['data'] as BorangBData;
     final DateTime month = args['month'] as DateTime;
+
+    // Support both direct names (from all_borang_b_reports_screen) and IDs (from borang_b_list_screen)
+    final String? districtName = args['districtName'] as String?;
+    final String? missionName = args['missionName'] as String?;
     final String? districtId = args['districtId'] as String?;
     final String? missionId = args['missionId'] as String?;
 
     return Scaffold(
       appBar: AppBar(
         title: Text('Borang B - ${DateFormat('MMMM yyyy').format(month)}'),
-        backgroundColor: AppColors.primaryLight,
-        foregroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
@@ -271,7 +276,7 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-            _buildHeader(data, month, districtId, missionId),
+            _buildHeader(data, month, districtId, missionId, districtName, missionName),
             const SizedBox(height: 24),
 
             // Church Membership Statistics
@@ -401,7 +406,7 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
           FloatingActionButton.extended(
             onPressed:
                 _isExporting ? null : () => _showShareOptions(data, month),
-            backgroundColor: Colors.blue.shade700,
+            backgroundColor: Theme.of(context).colorScheme.primary,
             heroTag: 'share',
             icon: const Icon(Icons.share),
             label: const Text('Share'),
@@ -410,15 +415,15 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
           FloatingActionButton.extended(
             onPressed:
                 _isExporting ? null : () => _showExportOptions(data, month),
-            backgroundColor: AppColors.primaryLight,
+            backgroundColor: Theme.of(context).colorScheme.primary,
             heroTag: 'export',
             icon: _isExporting
-                ? const SizedBox(
+                ? SizedBox(
                     height: 20,
                     width: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.onPrimary),
                     ),
                   )
                 : const Icon(Icons.download),
@@ -430,7 +435,12 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
   }
 
   Widget _buildHeader(
-      BorangBData data, DateTime month, String? districtId, String? missionId) {
+      BorangBData data,
+      DateTime month,
+      String? districtId,
+      String? missionId,
+      String? districtName,
+      String? missionName) {
     return Card(
       elevation: 2,
       child: Padding(
@@ -438,36 +448,39 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'BORANG B - MONTHLY PASTORAL REPORT',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: AppColors.primaryDark,
+                color: context.colors.primary,
               ),
             ),
             const Divider(),
             const SizedBox(height: 8),
             _buildInfoRow('Pastor', data.userName),
-            // Mission name - synchronous lookup
+            // Mission name - use passed name if available, otherwise lookup by ID
             _buildInfoRow(
               'Mission',
-              missionId != null
+              missionName ??
+              (missionId != null
                   ? MissionService().getMissionNameById(missionId)
-                  : 'N/A',
+                  : 'N/A'),
             ),
-            // District name with FutureBuilder
-            FutureBuilder<String>(
-              future: districtId != null
-                  ? DistrictService().getDistrictNameById(districtId)
-                  : Future.value('N/A'),
-              builder: (context, snapshot) {
-                return _buildInfoRow(
-                  'District',
-                  snapshot.data ?? districtId ?? 'N/A',
-                );
-              },
-            ),
+            // District name - use passed name if available, otherwise lookup by ID
+            districtName != null
+                ? _buildInfoRow('District', districtName)
+                : FutureBuilder<String>(
+                    future: districtId != null
+                        ? DistrictService().getDistrictNameById(districtId)
+                        : Future.value('N/A'),
+                    builder: (context, snapshot) {
+                      return _buildInfoRow(
+                        'District',
+                        snapshot.data ?? districtId ?? 'N/A',
+                      );
+                    },
+                  ),
             _buildInfoRow('Month', DateFormat('MMMM yyyy').format(month)),
           ],
         ),
@@ -537,8 +550,9 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
               0: FlexColumnWidth(2),
               1: FlexColumnWidth(1),
             },
-            border: TableBorder.symmetric(
-              inside: BorderSide(color: Colors.grey.shade300),
+            border: TableBorder.all(
+              color: context.colors.outline,
+              width: 1.0,
             ),
             children: rows.map((row) {
               return TableRow(

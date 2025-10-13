@@ -379,11 +379,24 @@ service cloud.firestore {
 
     // Todos collection - personal todo list
     match /todos/{todoId} {
-  // All authenticated users can read todos
-  allow read: if isAuthenticated();
+      // Users can read their own todos (list queries and individual docs)
+      allow read: if isAuthenticated() &&
+                    (resource == null || resource.data.userId == request.auth.uid);
 
-  // All authenticated users can create, update, and delete todos
-  allow create, update, delete: if isAuthenticated();
+      // Users can only create their own todos
+      allow create: if isAuthenticated() &&
+                      request.resource.data.userId == request.auth.uid;
+
+      // Users can only update their own todos
+      // Allow update if: existing userId matches AND (new userId matches OR userId not in update)
+      allow update: if isAuthenticated() &&
+                      resource.data.userId == request.auth.uid &&
+                      (!request.resource.data.keys().hasAny(['userId']) ||
+                       request.resource.data.userId == request.auth.uid);
+
+      // Users can only delete their own todos
+      allow delete: if isAuthenticated() &&
+                      resource.data.userId == request.auth.uid;
     }
 
     // Appointments collection - personal appointments
@@ -437,6 +450,34 @@ service cloud.firestore {
       // Users can only delete their own events
       allow delete: if isAuthenticated() && 
                       resource.data.userId == request.auth.uid;
+    }
+    
+    // Resources collection - mission-specific resources
+    match /resources/{resourceId} {
+      // Allow mission members and admins to read resources from their mission
+      allow read: if isAuthenticated() &&
+                    (isAdmin() || 
+                     isMissionAdmin() ||
+                     isMissionMember(get(/databases/$(database)/documents/missions/$(get(/databases/$(database)/documents/resources/$(resourceId)).data.missionId)).data.name));
+      
+      // Allow mission members and admins to create resources for their mission
+      allow create: if isAuthenticated() &&
+                      (isAdmin() || 
+                       isMissionAdmin() ||
+                       isMissionMember(get(/databases/$(database)/documents/missions/$(request.resource.data.missionId)).data.name)) &&
+                       request.resource.data.userId == request.auth.uid;
+      
+      // Allow resource creators, admins, and mission admins to update their resources
+      allow update: if isAuthenticated() &&
+                      (isAdmin() || 
+                       isMissionAdmin() ||
+                       isOwner(get(/databases/$(database)/documents/resources/$(resourceId)).data.userId));
+      
+      // Allow resource creators, admins, and mission admins to delete their resources
+      allow delete: if isAuthenticated() &&
+                      (isAdmin() || 
+                       isMissionAdmin() ||
+                       isOwner(get(/databases/$(database)/documents/resources/$(resourceId)).data.userId));
     }
   }
 }

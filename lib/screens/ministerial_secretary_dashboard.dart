@@ -722,7 +722,8 @@ class _MinisterialSecretaryDashboardState
                     child: LinearProgressIndicator(
                       value: totalStaff > 0 ? submitted / totalStaff : 0,
                       minHeight: 12,
-                      backgroundColor: Theme.of(context).dividerColor.withValues(alpha: 0.3),
+                      backgroundColor:
+                          Theme.of(context).dividerColor.withValues(alpha: 0.3),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         submissionRate >= 80
                             ? Colors.green
@@ -904,10 +905,7 @@ class _MinisterialSecretaryDashboardState
           borderRadius: BorderRadius.circular(12),
           onTap: () {
             // Get district and mission names
-            final districtName = report.districtId != null
-                ? report
-                    .districtId // Will be improved in future with district name loading
-                : null;
+            final districtName = report.districtId;
             final missionName = report.missionId != null
                 ? (AppConstants.missions.firstWhere(
                     (m) => m['id'] == report.missionId,
@@ -939,7 +937,8 @@ class _MinisterialSecretaryDashboardState
                       child: Text(
                         report.userName[0].toUpperCase(),
                         style: TextStyle(
-                            color: Theme.of(context).cardColor, fontWeight: FontWeight.bold),
+                            color: Theme.of(context).cardColor,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -958,13 +957,15 @@ class _MinisterialSecretaryDashboardState
                             'Submitted on ${DateFormat('MMM d, yyyy').format(report.createdAt)}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Theme.of(context).textTheme.bodySmall?.color,
+                              color:
+                                  Theme.of(context).textTheme.bodySmall?.color,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.chevron_right, color: Theme.of(context).dividerColor),
+                    Icon(Icons.chevron_right,
+                        color: Theme.of(context).dividerColor),
                   ],
                 ),
                 const SizedBox(height: 16),

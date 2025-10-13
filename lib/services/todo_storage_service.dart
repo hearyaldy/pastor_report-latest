@@ -59,37 +59,68 @@ class TodoStorageService {
             .toList());
   }
 
-  /// Save or update a todo
-  Future<void> saveTodo(Todo todo) async {
+  /// Create a new todo
+  Future<String> createTodo({
+    required String content,
+    String? audioPath,
+    int priority = 0,
+  }) async {
     try {
       if (_userId == null) {
         throw Exception('User not authenticated');
       }
 
-      final todoData = todo.toJson();
+      final todoData = {
+        'userId': _userId,
+        'content': content,
+        'audioPath': audioPath,
+        'isCompleted': false,
+        'priority': priority,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
 
-      if (todo.id.isEmpty) {
-        // New todo - include userId and createdAt
-        todoData['userId'] = _userId;
-        todoData['createdAt'] = FieldValue.serverTimestamp();
-        todoData['updatedAt'] = FieldValue.serverTimestamp();
-        await _firestore.collection(_todosCollection).add(todoData);
-        debugPrint('✅ Todo added');
-      } else {
-        // Update existing todo - don't update userId, id, or createdAt
-        todoData['updatedAt'] = FieldValue.serverTimestamp();
-        // Remove immutable fields from update data
-        todoData.remove('userId');
-        todoData.remove('id');
-        todoData.remove('createdAt');
-        await _firestore
-            .collection(_todosCollection)
-            .doc(todo.id)
-            .update(todoData);
-        debugPrint('✅ Todo updated: ${todo.id}');
-      }
+      debugPrint('📝 Creating new todo for user: $_userId');
+      final docRef = await _firestore.collection(_todosCollection).add(todoData);
+      debugPrint('✅ Todo created with ID: ${docRef.id}');
+      return docRef.id;
     } catch (e) {
-      debugPrint('❌ Error saving todo: $e');
+      debugPrint('❌ Error creating todo: $e');
+      rethrow;
+    }
+  }
+
+  /// Update an existing todo
+  Future<void> updateTodo({
+    required String todoId,
+    String? content,
+    String? audioPath,
+    bool? isCompleted,
+    int? priority,
+    DateTime? completedAt,
+  }) async {
+    try {
+      if (_userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final updateData = <String, dynamic>{
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (content != null) updateData['content'] = content;
+      if (audioPath != null) updateData['audioPath'] = audioPath;
+      if (isCompleted != null) updateData['isCompleted'] = isCompleted;
+      if (priority != null) updateData['priority'] = priority;
+      if (completedAt != null) {
+        updateData['completedAt'] = completedAt.toIso8601String();
+      }
+
+      debugPrint('🔄 Updating todo: $todoId');
+      await _firestore.collection(_todosCollection).doc(todoId).update(updateData);
+      debugPrint('✅ Todo updated: $todoId');
+    } catch (e) {
+      debugPrint('❌ Error updating todo: $e');
       rethrow;
     }
   }
@@ -101,6 +132,7 @@ class TodoStorageService {
         throw Exception('User not authenticated');
       }
 
+      debugPrint('🗑️ Deleting todo: $id');
       await _firestore.collection(_todosCollection).doc(id).delete();
       debugPrint('✅ Todo deleted: $id');
     } catch (e) {
@@ -123,18 +155,23 @@ class TodoStorageService {
         throw Exception('Todo not found');
       }
 
-      final todo = Todo.fromJson({...docSnap.data()!, 'id': docSnap.id});
-      final updatedTodo = todo.copyWith(
-        isCompleted: !todo.isCompleted,
-        completedAt: !todo.isCompleted ? DateTime.now() : null,
-      );
+      final data = docSnap.data()!;
+      final isCurrentlyCompleted = data['isCompleted'] as bool? ?? false;
+      final newCompletedStatus = !isCurrentlyCompleted;
 
-      await docRef.update({
-        'isCompleted': updatedTodo.isCompleted,
-        'completedAt': updatedTodo.completedAt?.toIso8601String(),
+      final updateData = <String, dynamic>{
+        'isCompleted': newCompletedStatus,
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      };
 
+      if (newCompletedStatus) {
+        updateData['completedAt'] = DateTime.now().toIso8601String();
+      } else {
+        updateData['completedAt'] = null;
+      }
+
+      debugPrint('🔄 Toggling todo: $id to completed: $newCompletedStatus');
+      await docRef.update(updateData);
       debugPrint('✅ Todo toggled: $id');
     } catch (e) {
       debugPrint('❌ Error toggling todo: $e');
