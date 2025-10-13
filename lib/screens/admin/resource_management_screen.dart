@@ -141,7 +141,7 @@ class _ResourceManagementScreenState extends State<ResourceManagementScreen> {
               end: Alignment.bottomRight,
               colors: [
                 AppColors.primaryLight,
-                AppColors.primaryLight.withValues(alpha: 0.9),
+                AppColors.primaryLight.withOpacity(0.9),
                 AppColors.primaryDark,
               ],
             ),
@@ -158,7 +158,7 @@ class _ResourceManagementScreenState extends State<ResourceManagementScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(Icons.folder_open,
@@ -217,9 +217,7 @@ class _ResourceManagementScreenState extends State<ResourceManagementScreen> {
                 hintText: 'Search resources...',
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
-                fillColor: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade800
-                    : Colors.white,
+                fillColor: Theme.of(context).colorScheme.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -242,7 +240,7 @@ class _ResourceManagementScreenState extends State<ResourceManagementScreen> {
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: Theme.of(context).colorScheme.outline),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<ResourceCategory?>(

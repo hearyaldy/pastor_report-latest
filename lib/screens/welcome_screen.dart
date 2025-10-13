@@ -77,9 +77,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   Future<void> _forgotPassword() async {
     if (_emailController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter your email first'),
+        SnackBar(
+          content: const Text('Please enter your email first'),
           backgroundColor: AppTheme.warning,
+          behavior: SnackBarBehavior.floating,
         ),
       );
       return;
@@ -87,18 +88,23 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reset Password'),
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Theme.of(dialogContext).colorScheme.surface,
+        title: Text(
+          'Reset Password',
+          style: Theme.of(dialogContext).textTheme.titleLarge,
+        ),
         content: Text(
           'Send password reset email to ${_emailController.text.trim()}?',
+          style: Theme.of(dialogContext).textTheme.bodyMedium,
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             child: const Text('Send'),
           ),
         ],
@@ -120,6 +126,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 : authProvider.errorMessage ?? 'Failed to send reset email',
           ),
           backgroundColor: success ? AppTheme.success : AppTheme.error,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -127,8 +134,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -139,17 +149,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // App Logo/Icon
                   Center(
                     child: Container(
                       height: 100,
                       width: 100,
                       decoration: BoxDecoration(
-                        color: AppTheme.primary,
+                        color: colorScheme.primary,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: AppTheme.primary.withAlpha(76),
+                            color: colorScheme.primary.withAlpha(76),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -167,9 +176,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   // App Name
                   Text(
                     AppConstants.appName,
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    style: theme.textTheme.displaySmall?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -178,9 +186,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   // Tagline
                   Text(
                     'Digital Ministry Platform',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
+                    style: theme.textTheme.bodyLarge,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 40),
@@ -252,7 +258,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                               setState(() => _rememberMe = value ?? false);
                             },
                           ),
-                          const Text('Remember me'),
+                          Text(
+                            'Remember me',
+                            style: theme.textTheme.bodyMedium,
+                          ),
                         ],
                       ),
                       TextButton(
@@ -321,8 +330,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       icon: const Icon(Icons.person_add),
                       label: const Text('Create New Account'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.primary,
-                        side: const BorderSide(color: AppTheme.primary),
+                        foregroundColor: colorScheme.primary,
+                        side: BorderSide(color: colorScheme.primary),
                       ),
                     ),
                   ),
@@ -331,9 +340,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   // Footer
                   Text(
                     'Copyright © 2025 HaweeInc',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
+                    style: theme.textTheme.bodySmall,
                     textAlign: TextAlign.center,
                   ),
                 ],

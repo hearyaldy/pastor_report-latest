@@ -150,7 +150,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                 child: Icon(
                   Icons.people_alt_rounded,
                   size: 150,
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: context.colors.onPrimary.withOpacity(0.1),
                 ),
               ),
             ],
@@ -740,7 +740,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: roleColor.withValues(alpha: 0.2),
+                color: roleColor.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -810,11 +810,11 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        border: Border.all(color: roleColor.withValues(alpha: 0.3), width: 1.5),
+        border: Border.all(color: roleColor.withOpacity(0.3), width: 1.5),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: roleColor.withValues(alpha: 0.08),
+            color: roleColor.withOpacity(0.08),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -863,7 +863,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            roleColor.withValues(alpha: 0.8),
+                            roleColor.withOpacity(0.8),
                             roleColor,
                           ],
                         ),
@@ -908,7 +908,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                               _buildChip(
                                 staff.role,
                                 _getRoleIcon(staff.role),
-                                roleColor.withValues(alpha: 0.1),
+                                roleColor.withOpacity(0.1),
                                 roleColor,
                               ),
                               if (staff.mission.isNotEmpty)

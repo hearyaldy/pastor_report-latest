@@ -137,6 +137,9 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     if (_isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -144,7 +147,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: RefreshIndicator(
         onRefresh: () async {
           setState(() {});
@@ -167,8 +170,8 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
       floatingActionButton: _effectiveMissionId != null
           ? FloatingActionButton.extended(
               onPressed: () => _showAddDistrictDialog(),
-              backgroundColor: AppColors.primaryLight,
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
               icon: const Icon(Icons.add),
               label: const Text('Add District'),
             )
@@ -177,12 +180,15 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
   }
 
   Widget _buildModernAppBar() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return SliverAppBar(
       expandedHeight: 160,
       pinned: true,
       elevation: 0,
-      backgroundColor: AppColors.primaryLight,
-      foregroundColor: Colors.white,
+      backgroundColor: colorScheme.primary,
+      foregroundColor: colorScheme.onPrimary,
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: BoxDecoration(
@@ -190,9 +196,9 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppColors.primaryLight,
-                AppColors.primaryLight.withValues(alpha: 0.9),
-                AppColors.primaryDark,
+                colorScheme.primary,
+                colorScheme.primary.withOpacity(0.9),
+                colorScheme.primaryContainer,
               ],
             ),
           ),
@@ -208,12 +214,12 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: colorScheme.onPrimary.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
                           Icons.location_city,
-                          color: Theme.of(context).cardColor,
+                          color: colorScheme.onPrimary,
                           size: 24,
                         ),
                       ),
@@ -227,14 +233,14 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: Theme.of(context).cardColor,
+                                color: colorScheme.onPrimary,
                               ),
                             ),
                             Text(
                               'Manage districts and their configurations',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.white70,
+                                color: colorScheme.onPrimary.withOpacity(0.9),
                               ),
                             ),
                           ],
@@ -252,15 +258,18 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
   }
 
   Widget _buildMissionSelector() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return SliverToBoxAdapter(
       child: Container(
         margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.primaryLight.withValues(alpha: 0.1),
+          color: colorScheme.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
           border:
-              Border.all(color: AppColors.primaryLight.withValues(alpha: 0.3)),
+              Border.all(color: colorScheme.primary.withOpacity(0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,7 +278,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
               children: [
                 Icon(
                   Icons.admin_panel_settings,
-                  color: AppColors.primaryLight,
+                  color: colorScheme.primary,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
@@ -277,7 +286,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                   'Mission Selector (Super Admin)',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: AppColors.primaryDark,
+                    color: colorScheme.onSurface,
                     fontSize: 14,
                   ),
                 ),
@@ -297,19 +306,17 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                   decoration: InputDecoration(
                     labelText: 'Select Mission to Manage',
                     prefixIcon:
-                        Icon(Icons.business, color: AppColors.primaryLight),
+                        Icon(Icons.business, color: colorScheme.primary),
                     filled: true,
-                    fillColor: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.grey.shade800
-                        : Colors.white,
+                    fillColor: colorScheme.surface,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: AppColors.primaryLight),
+                      borderSide: BorderSide(color: colorScheme.primary),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide(
-                          color: AppColors.primaryLight.withValues(alpha: 0.5)),
+                          color: colorScheme.primary.withOpacity(0.5)),
                     ),
                   ),
                   items: [
@@ -339,6 +346,9 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
   }
 
   Widget _buildSearchSection() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -357,9 +367,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                   )
                 : null,
             filled: true,
-            fillColor: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade800
-                : Colors.white,
+            fillColor: theme.cardColor,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -370,7 +378,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.primaryLight, width: 2),
+              borderSide: BorderSide(color: colorScheme.primary, width: 2),
             ),
           ),
           onChanged: (value) {
@@ -389,6 +397,9 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -406,9 +417,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                   labelText: 'Filter by Region',
                   prefixIcon: const Icon(Icons.map),
                   filled: true,
-                  fillColor: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey.shade800
-                      : Colors.white,
+                  fillColor: theme.cardColor,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -420,7 +429,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide:
-                        BorderSide(color: AppColors.primaryLight, width: 2),
+                        BorderSide(color: colorScheme.primary, width: 2),
                   ),
                 ),
                 items: [
@@ -445,6 +454,8 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
   }
 
   Widget _buildStatsCards() {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -466,7 +477,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                     title: 'Total Districts',
                     value: totalDistricts.toString(),
                     icon: Icons.location_city,
-                    color: AppColors.primaryLight,
+                    color: colorScheme.primary,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -477,7 +488,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                         : 'All Districts',
                     value: filteredDistricts.toString(),
                     icon: Icons.filter_list,
-                    color: Colors.blue,
+                    color: colorScheme.secondary,
                   ),
                 ),
               ],
@@ -494,14 +505,17 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
     required IconData icon,
     required Color color,
   }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: colorScheme.shadow.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -515,7 +529,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
+                  color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 20),
@@ -536,7 +550,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
             title,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade600,
+              color: colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -546,6 +560,8 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
   }
 
   Widget _buildSelectMissionPrompt() {
+    final theme = Theme.of(context);
+
     return SliverFillRemaining(
       child: Center(
         child: Column(
@@ -554,7 +570,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
             Icon(
               Icons.business,
               size: 64,
-              color: Colors.grey.shade400,
+              color: theme.colorScheme.outline,
             ),
             const SizedBox(height: 16),
             Text(
@@ -562,7 +578,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
+                color: theme.colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -570,7 +586,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
               'Please select a mission to manage its districts',
               style: TextStyle(
                 fontSize: 14,
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -584,12 +600,13 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
       stream: _getDistrictStream(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
+          final errorColor = Theme.of(context).colorScheme.error;
           return SliverFillRemaining(
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  Icon(Icons.error_outline, size: 64, color: errorColor),
                   const SizedBox(height: 16),
                   Text('Error: ${snapshot.error}'),
                 ],
@@ -626,6 +643,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
         }
 
         if (districts.isEmpty) {
+          final theme = Theme.of(context);
           return SliverFillRemaining(
             child: Center(
               child: Column(
@@ -634,7 +652,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                   Icon(
                     Icons.location_city_outlined,
                     size: 64,
-                    color: Colors.grey.shade400,
+                    color: theme.colorScheme.outline,
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -643,7 +661,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                         : 'No districts found',
                     style: TextStyle(
                       fontSize: 18,
-                      color: Colors.grey.shade600,
+                      color: theme.textTheme.titleMedium?.color,
                     ),
                   ),
                   if (_searchQuery.isEmpty) ...[
@@ -652,9 +670,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                       'Tap + to create a new district',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -682,14 +698,17 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
   }
 
   Widget _buildDistrictCard(District district) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -707,12 +726,12 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryLight.withValues(alpha: 0.1),
+                    color: colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     Icons.location_city,
-                    color: AppColors.primaryLight,
+                    color: colorScheme.primary,
                     size: 24,
                   ),
                 ),
@@ -732,7 +751,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                       Text(
                         'Code: ${district.code}',
                         style: TextStyle(
-                          color: Colors.grey.shade600,
+                          color: theme.colorScheme.onSurfaceVariant,
                           fontSize: 14,
                         ),
                       ),
@@ -746,9 +765,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                               child: Text(
                                 'Region: ${regionSnapshot.data!.name}',
                                 style: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .surfaceContainerHighest,
+                                  color: theme.colorScheme.onSurfaceVariant,
                                   fontSize: 12,
                                 ),
                               ),
@@ -772,23 +789,23 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                     }
                   },
                   itemBuilder: (context) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'edit',
                       child: Row(
                         children: [
-                          Icon(Icons.edit, size: 20, color: Colors.blue),
-                          SizedBox(width: 8),
-                          Text('Edit'),
+                          Icon(Icons.edit, size: 20, color: colorScheme.primary),
+                          const SizedBox(width: 8),
+                          const Text('Edit'),
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete, size: 20, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Delete'),
+                          Icon(Icons.delete, size: 20, color: colorScheme.error),
+                          const SizedBox(width: 8),
+                          const Text('Delete'),
                         ],
                       ),
                     ),
@@ -796,13 +813,12 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color:
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                      color: colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       Icons.more_vert,
-                      color: Colors.grey.shade600,
+                      color: theme.colorScheme.onSurfaceVariant,
                       size: 20,
                     ),
                   ),
@@ -879,9 +895,9 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
   void _showAddDistrictDialog() {
     if (_effectiveMissionId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a mission first'),
-          backgroundColor: Colors.orange,
+        SnackBar(
+          content: const Text('Please select a mission first'),
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
       return;
@@ -940,9 +956,9 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                     builder: (context, snapshot) {
                       final regions = snapshot.data ?? [];
                       if (regions.isEmpty) {
-                        return const Text(
+                        return Text(
                           'No regions available. Please create a region first.',
-                          style: TextStyle(color: Colors.red),
+                          style: TextStyle(color: Theme.of(context).colorScheme.error),
                         );
                       }
 
@@ -993,7 +1009,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('District code "$code" already exists'),
-                        backgroundColor: Colors.red,
+                        backgroundColor: Theme.of(context).colorScheme.error,
                       ),
                     );
                     return;
@@ -1014,9 +1030,9 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                     if (mounted) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('District created successfully'),
-                          backgroundColor: Colors.green,
+                        SnackBar(
+                          content: const Text('District created successfully'),
+                          backgroundColor: Theme.of(context).colorScheme.primary,
                         ),
                       );
                     }
@@ -1025,7 +1041,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Error: $e'),
-                          backgroundColor: Colors.red,
+                          backgroundColor: Theme.of(context).colorScheme.error,
                         ),
                       );
                     }
@@ -1140,7 +1156,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('District code "$code" already exists'),
-                          backgroundColor: Colors.red,
+                          backgroundColor: Theme.of(context).colorScheme.error,
                         ),
                       );
                       return;
@@ -1158,9 +1174,9 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                     if (mounted) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('District updated successfully'),
-                          backgroundColor: Colors.green,
+                        SnackBar(
+                          content: const Text('District updated successfully'),
+                          backgroundColor: Theme.of(context).colorScheme.primary,
                         ),
                       );
                     }
@@ -1169,7 +1185,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Error: $e'),
-                          backgroundColor: Colors.red,
+                          backgroundColor: Theme.of(context).colorScheme.error,
                         ),
                       );
                     }
@@ -1185,6 +1201,8 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
   }
 
   void _confirmDeleteDistrict(District district) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1204,9 +1222,9 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                 if (mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('District deleted successfully'),
-                      backgroundColor: Colors.green,
+                    SnackBar(
+                      content: const Text('District deleted successfully'),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                     ),
                   );
                 }
@@ -1216,15 +1234,15 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error: $e'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: Theme.of(context).colorScheme.error,
                     ),
                   );
                 }
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
             ),
             child: const Text('Delete'),
           ),

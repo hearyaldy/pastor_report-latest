@@ -218,52 +218,113 @@ class _MainScreenState extends State<MainScreen> {
           });
         }
       },
-      child: Scaffold(
-        body: IndexedStack(
-          index: _currentIndex,
-          children: _screens,
-        ),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: _onTabTapped,
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: AppTheme.primary,
-          unselectedItemColor: AppTheme.textSecondary,
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
-          items: [
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_outlined),
-              activeIcon: Icon(Icons.dashboard),
-              label: 'Dashboard',
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.business_outlined),
-              activeIcon: const Icon(Icons.business),
-              label: 'My Mission',
-              // This item will still be shown but tapping it won't do anything for church treasurers
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-            BottomNavigationBarItem(
-              icon: Provider.of<AuthProvider>(context).user?.userRole ==
-                      UserRole.churchTreasurer
-                  ? const Icon(Icons.account_balance_wallet_outlined)
-                  : const Icon(Icons.admin_panel_settings_outlined),
-              activeIcon: Provider.of<AuthProvider>(context).user?.userRole ==
-                      UserRole.churchTreasurer
-                  ? const Icon(Icons.account_balance_wallet)
-                  : const Icon(Icons.admin_panel_settings),
-              label: Provider.of<AuthProvider>(context).user?.userRole ==
-                      UserRole.churchTreasurer
-                  ? 'Treasury'
-                  : 'Admin',
-            ),
-          ],
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth > 1024) {
+            // Desktop layout with sidebar navigation
+            return Row(
+              children: [
+                SizedBox(
+                  width: 250, // Fixed width for navigation rail
+                  child: NavigationRail(
+                    selectedIndex: _currentIndex,
+                    onDestinationSelected: _onTabTapped,
+                    labelType: NavigationRailLabelType.all,
+                    destinations: [
+                      const NavigationRailDestination(
+                        icon: Icon(Icons.dashboard_outlined),
+                        selectedIcon: Icon(Icons.dashboard),
+                        label: Text('Dashboard'),
+                      ),
+                      NavigationRailDestination(
+                        icon: const Icon(Icons.business_outlined),
+                        selectedIcon: const Icon(Icons.business),
+                        label: const Text('My Mission'),
+                      ),
+                      const NavigationRailDestination(
+                        icon: Icon(Icons.person_outline),
+                        selectedIcon: Icon(Icons.person),
+                        label: Text('Profile'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Provider.of<AuthProvider>(context).user?.userRole ==
+                                UserRole.churchTreasurer
+                            ? const Icon(Icons.account_balance_wallet_outlined)
+                            : const Icon(Icons.admin_panel_settings_outlined),
+                        selectedIcon: Provider.of<AuthProvider>(context).user?.userRole ==
+                                UserRole.churchTreasurer
+                            ? const Icon(Icons.account_balance_wallet)
+                            : const Icon(Icons.admin_panel_settings),
+                        label: Text(
+                          Provider.of<AuthProvider>(context).user?.userRole ==
+                                  UserRole.churchTreasurer
+                              ? 'Treasury'
+                              : 'Admin',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const VerticalDivider(width: 1),
+                Expanded(
+                  child: IndexedStack(
+                    index: _currentIndex,
+                    children: _screens,
+                  ),
+                ),
+              ],
+            );
+          } else {
+            // Mobile layout with bottom navigation
+            return Scaffold(
+              body: IndexedStack(
+                index: _currentIndex,
+                children: _screens,
+              ),
+              bottomNavigationBar: BottomNavigationBar(
+                currentIndex: _currentIndex,
+                onTap: _onTabTapped,
+                type: BottomNavigationBarType.fixed,
+                selectedItemColor: AppTheme.primary,
+                unselectedItemColor: AppTheme.textSecondary,
+                selectedFontSize: 12,
+                unselectedFontSize: 12,
+                items: [
+                  const BottomNavigationBarItem(
+                    icon: Icon(Icons.dashboard_outlined),
+                    activeIcon: Icon(Icons.dashboard),
+                    label: 'Dashboard',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.business_outlined),
+                    activeIcon: const Icon(Icons.business),
+                    label: 'My Mission',
+                    // This item will still be shown but tapping it won't do anything for church treasurers
+                  ),
+                  const BottomNavigationBarItem(
+                    icon: Icon(Icons.person_outline),
+                    activeIcon: Icon(Icons.person),
+                    label: 'Profile',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Provider.of<AuthProvider>(context).user?.userRole ==
+                            UserRole.churchTreasurer
+                        ? const Icon(Icons.account_balance_wallet_outlined)
+                        : const Icon(Icons.admin_panel_settings_outlined),
+                    activeIcon: Provider.of<AuthProvider>(context).user?.userRole ==
+                            UserRole.churchTreasurer
+                        ? const Icon(Icons.account_balance_wallet)
+                        : const Icon(Icons.admin_panel_settings),
+                    label: Provider.of<AuthProvider>(context).user?.userRole ==
+                            UserRole.churchTreasurer
+                        ? 'Treasury'
+                        : 'Admin',
+                  ),
+                ],
+              ),
+            );
+          }
+        },
       ),
     );
   }

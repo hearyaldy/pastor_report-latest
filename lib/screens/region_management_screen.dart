@@ -46,11 +46,14 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         onPressed:
             _selectedMissionId == null ? null : () => _showAddRegionDialog(),
-        backgroundColor: AppColors.primaryLight,
+        backgroundColor: colorScheme.primary,
         icon: const Icon(Icons.add),
         label: const Text('Add Region'),
       ),
@@ -84,10 +87,13 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
 
   // Modern UI additions
   Widget _buildModernAppBar() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return SliverAppBar(
       expandedHeight: 160,
       pinned: true,
-      backgroundColor: AppColors.primaryLight,
+      backgroundColor: colorScheme.primary,
       flexibleSpace: FlexibleSpaceBar(
         title: Text(
           _selectedMissionName != null && _selectedMissionName!.isNotEmpty
@@ -104,8 +110,8 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppColors.primaryLight,
-                AppColors.primaryDark,
+                colorScheme.primary,
+                colorScheme.primaryContainer,
               ],
             ),
           ),
@@ -117,7 +123,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
                 child: Icon(
                   Icons.map_rounded,
                   size: 140,
-                  color: Colors.white.withValues(alpha: 0.08),
+                  color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.08),
                 ),
               ),
             ],
@@ -143,9 +149,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
               )
             : null,
         filled: true,
-        fillColor: Theme.of(context).brightness == Brightness.dark
-            ? Colors.grey.shade800
-            : Colors.grey.shade100,
+        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -160,6 +164,8 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
   }
 
   Widget _buildRegionListSliver() {
+    final theme = Theme.of(context);
+
     if (_selectedMissionId == null || _selectedMissionId!.isEmpty) {
       return SliverFillRemaining(
         hasScrollBody: false,
@@ -167,11 +173,13 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.flag, size: 64, color: Colors.grey.shade400),
+              Icon(Icons.flag, size: 64, color: theme.colorScheme.outline),
               const SizedBox(height: 12),
               Text(
                 'Select a mission to view its regions',
-                style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -211,20 +219,23 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.map_outlined,
-                      size: 64, color: Colors.grey.shade400),
+                      size: 64, color: theme.colorScheme.outline),
                   const SizedBox(height: 16),
                   Text(
                     _searchQuery.isEmpty
                         ? 'No regions yet'
                         : 'No regions found',
-                    style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   if (_searchQuery.isEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
                       'Tap + to create a new region',
-                      style:
-                          TextStyle(fontSize: 14, color: Colors.grey.shade500),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ],
@@ -266,14 +277,10 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade800
-                  : Colors.grey.shade100,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade700
-                    : Colors.grey.shade300,
+                color: Theme.of(context).colorScheme.outline,
               ),
             ),
             child: const Text('No missions found'),
@@ -293,9 +300,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
           decoration: InputDecoration(
             labelText: 'Mission',
             filled: true,
-            fillColor: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade800
-                : Colors.grey.shade100,
+            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -329,25 +334,26 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
     return Container(
       height: 52,
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.grey.shade800
-            : Colors.grey.shade200,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
     );
   }
 
   Widget _buildModernRegionCard(Region region) {
-    final Color c = AppColors.primaryLight;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final Color c = colorScheme.primary;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: c.withValues(alpha: 0.25), width: 1.2),
+        border: Border.all(color: c.withOpacity(0.25), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: c.withValues(alpha: 0.08),
+            color: c.withOpacity(0.08),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -368,7 +374,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [c.withValues(alpha: 0.8), c],
+                    colors: [c.withOpacity(0.8), c],
                   ),
                 ),
                 child: const Icon(Icons.map, color: Colors.white),
@@ -391,7 +397,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
                       spacing: 6,
                       children: [
                         _chip('Code: ${region.code}', Icons.tag,
-                            c.withValues(alpha: 0.1), c),
+                            c.withOpacity(0.1), c),
                       ],
                     ),
                   ],
@@ -444,6 +450,8 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
     final nameController = TextEditingController();
     final codeController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     showModalBottomSheet(
       context: context,
@@ -451,9 +459,9 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
       isScrollControlled: true,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           children: [
@@ -463,7 +471,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Theme.of(context).dividerColor,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -475,32 +483,28 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryLight.withValues(alpha: 0.1),
+                      color: colorScheme.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       Icons.add_location,
-                      color: AppColors.primaryLight,
+                      color: colorScheme.primary,
                       size: 32,
                     ),
                   ),
                   const SizedBox(width: 16),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Add New Region',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: theme.textTheme.titleLarge,
                         ),
                         Text(
                           'Create a new region for your mission',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -592,7 +596,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
                               SnackBar(
                                 content:
                                     Text('Region code "$code" already exists'),
-                                backgroundColor: Colors.red,
+                                backgroundColor: theme.colorScheme.error,
                               ),
                             );
                             return;
@@ -612,8 +616,8 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
                             if (mounted) {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Region created successfully'),
+                                SnackBar(
+                                  content: const Text('Region created successfully'),
                                   backgroundColor: Colors.green,
                                 ),
                               );
@@ -623,7 +627,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text('Error: $e'),
-                                  backgroundColor: Colors.red,
+                                  backgroundColor: theme.colorScheme.error,
                                 ),
                               );
                             }
@@ -631,7 +635,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryLight,
+                        backgroundColor: colorScheme.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
@@ -651,6 +655,8 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
     final nameController = TextEditingController(text: region.name);
     final codeController = TextEditingController(text: region.code);
     final formKey = GlobalKey<FormState>();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     showModalBottomSheet(
       context: context,
@@ -658,9 +664,9 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
       isScrollControlled: true,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           children: [
@@ -670,7 +676,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Theme.of(context).dividerColor,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -682,12 +688,12 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryLight.withValues(alpha: 0.1),
+                      color: colorScheme.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       Icons.edit_location,
-                      color: AppColors.primaryLight,
+                      color: colorScheme.primary,
                       size: 32,
                     ),
                   ),
@@ -696,18 +702,14 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Edit Region',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: theme.textTheme.titleLarge,
                         ),
                         Text(
                           'Update ${region.name} information',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -801,7 +803,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
                               SnackBar(
                                 content:
                                     Text('Region code "$code" already exists'),
-                                backgroundColor: Colors.red,
+                                backgroundColor: theme.colorScheme.error,
                               ),
                             );
                             return;
@@ -817,8 +819,8 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
                             if (mounted) {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Region updated successfully'),
+                                SnackBar(
+                                  content: const Text('Region updated successfully'),
                                   backgroundColor: Colors.green,
                                 ),
                               );
@@ -828,7 +830,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text('Error: $e'),
-                                  backgroundColor: Colors.red,
+                                  backgroundColor: theme.colorScheme.error,
                                 ),
                               );
                             }
@@ -836,7 +838,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryLight,
+                        backgroundColor: colorScheme.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
@@ -873,8 +875,8 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
                 if (mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Region deleted successfully'),
+                    SnackBar(
+                      content: const Text('Region deleted successfully'),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -885,7 +887,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(e.toString().replaceAll('Exception: ', '')),
-                      backgroundColor: Colors.red,
+                      backgroundColor: Theme.of(context).colorScheme.error,
                       duration: const Duration(seconds: 4),
                     ),
                   );

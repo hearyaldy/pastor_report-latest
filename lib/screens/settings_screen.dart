@@ -31,7 +31,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // App Theme Card
+          // App Theme Card
             Card(
               elevation: 2,
               margin: const EdgeInsets.only(bottom: 16.0),

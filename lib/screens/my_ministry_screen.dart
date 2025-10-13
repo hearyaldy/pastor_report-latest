@@ -565,16 +565,24 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                               _buildChip(
                                 _getMissionName(staff.mission),
                                 Icons.business,
-                                context.colors.adaptive(light: Colors.blue.shade100, dark: Colors.blue.shade900),
-                                context.colors.adaptive(light: Colors.blue.shade700, dark: Colors.blue.shade300),
+                                context.colors.adaptive(
+                                    light: Colors.blue.shade100,
+                                    dark: Colors.blue.shade900),
+                                context.colors.adaptive(
+                                    light: Colors.blue.shade700,
+                                    dark: Colors.blue.shade300),
                               ),
                               if (staff.department != null &&
                                   staff.department!.isNotEmpty)
                                 _buildChip(
                                   staff.department!,
                                   Icons.groups,
-                                  context.colors.adaptive(light: Colors.teal.shade100, dark: Colors.teal.shade900),
-                                  context.colors.adaptive(light: Colors.teal.shade700, dark: Colors.teal.shade300),
+                                  context.colors.adaptive(
+                                      light: Colors.teal.shade100,
+                                      dark: Colors.teal.shade900),
+                                  context.colors.adaptive(
+                                      light: Colors.teal.shade700,
+                                      dark: Colors.teal.shade300),
                                 ),
                             ],
                           ),
@@ -723,7 +731,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
             child: TabBar(
               controller: _tabController,
               labelColor: context.colors.onPrimary,
-              unselectedLabelColor: context.colors.onPrimary.withValues(alpha: 0.6),
+              unselectedLabelColor:
+                  context.colors.onPrimary.withValues(alpha: 0.6),
               labelStyle: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
@@ -782,7 +791,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
             const SizedBox(height: 16),
             Text(
               'No churches added yet',
-              style: TextStyle(fontSize: 16, color: context.colors.emptyStateText),
+              style:
+                  TextStyle(fontSize: 16, color: context.colors.emptyStateText),
             ),
             const SizedBox(height: 8),
             // Removed add action; data is managed via Admin Dashboard
@@ -1007,7 +1017,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: context.colors.shadowColor.withValues(alpha: 0.1),
+                          color:
+                              context.colors.shadowColor.withValues(alpha: 0.1),
                           spreadRadius: 1,
                           blurRadius: 3,
                           offset: const Offset(0, 1),
@@ -1880,7 +1891,9 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
     // All users should only see staff from their assigned mission
     if (user.mission != null && user.mission!.isNotEmpty) {
       // Create a unique stream each time by using map to establish a new identity
-      return StaffService.instance.streamStaffByMission(user.mission!).map((data) => data);
+      return StaffService.instance
+          .streamStaffByMission(user.mission!)
+          .map((data) => data);
     }
 
     // If no mission is assigned, return empty list

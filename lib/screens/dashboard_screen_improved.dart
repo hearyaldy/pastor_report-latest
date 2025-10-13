@@ -357,35 +357,82 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
             }
 
             final stats = snapshot.data!;
-            return Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    'Pending Todos',
-                    stats['todos'] ?? 0,
-                    Icons.check_circle_outline,
-                    Colors.blue,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildStatCard(
-                    'Events',
-                    stats['appointments'] ?? 0,
-                    Icons.event,
-                    Colors.orange,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildStatCard(
-                    'Activities',
-                    stats['activities'] ?? 0,
-                    Icons.assignment,
-                    Colors.green,
-                  ),
-                ),
-              ],
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth > 1024) {
+                  // Desktop: 3 or 4 columns depending on screen width
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: constraints.maxWidth > 1200 ? 4 : 3,
+                      childAspectRatio: 1.3,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
+                    itemCount: 3,
+                    itemBuilder: (context, index) {
+                      switch (index) {
+                        case 0:
+                          return _buildStatCard(
+                            'Pending Todos',
+                            stats['todos'] ?? 0,
+                            Icons.check_circle_outline,
+                            Colors.blue,
+                          );
+                        case 1:
+                          return _buildStatCard(
+                            'Events',
+                            stats['appointments'] ?? 0,
+                            Icons.event,
+                            Colors.orange,
+                          );
+                        case 2:
+                          return _buildStatCard(
+                            'Activities',
+                            stats['activities'] ?? 0,
+                            Icons.assignment,
+                            Colors.green,
+                          );
+                        default:
+                          return const SizedBox.shrink();
+                      }
+                    },
+                  );
+                } else {
+                  // Mobile & tablet: 3 columns in a row
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatCard(
+                          'Pending Todos',
+                          stats['todos'] ?? 0,
+                          Icons.check_circle_outline,
+                          Colors.blue,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildStatCard(
+                          'Events',
+                          stats['appointments'] ?? 0,
+                          Icons.event,
+                          Colors.orange,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildStatCard(
+                          'Activities',
+                          stats['activities'] ?? 0,
+                          Icons.assignment,
+                          Colors.green,
+                        ),
+                      ),
+                    ],
+                  );
+                }
+              },
             );
           },
         ),
@@ -524,27 +571,53 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                           const Divider(),
                           const SizedBox(height: 12),
 
-                          // Tab Selector
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildTabButton(
-                                  'Activity',
-                                  Icons.event_note,
-                                  'activity',
-                                  Colors.green,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildTabButton(
-                                  'Todo',
-                                  Icons.check_circle_outline,
-                                  'todo',
-                                  Colors.blue,
-                                ),
-                              ),
-                            ],
+                          // Tab Selector - Responsive
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              if (constraints.maxWidth > 800) {
+                                // On desktop, use horizontal layout with more padding
+                                return Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildTabButton(
+                                        'Activity',
+                                        Icons.event_note,
+                                        'activity',
+                                        Colors.green,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: _buildTabButton(
+                                        'Todo',
+                                        Icons.check_circle_outline,
+                                        'todo',
+                                        Colors.blue,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              } else {
+                                // On mobile, use vertical layout to save space
+                                return Column(
+                                  children: [
+                                    _buildTabButton(
+                                      'Activity',
+                                      Icons.event_note,
+                                      'activity',
+                                      Colors.green,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    _buildTabButton(
+                                      'Todo',
+                                      Icons.check_circle_outline,
+                                      'todo',
+                                      Colors.blue,
+                                    ),
+                                  ],
+                                );
+                              }
+                            },
                           ),
                           const SizedBox(height: 16),
 
@@ -771,43 +844,83 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
       ),
       const SizedBox(height: 12),
 
-      // Mileage + Location
-      Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: TextField(
-              controller: _mileageController,
-              autofocus: false,
-              decoration: InputDecoration(
-                labelText: 'Mileage (km)',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              ),
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
+      // Mileage + Location - Responsive
+      LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth > 800) {
+            // On desktop, use side-by-side layout
+            return Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: _mileageController,
+                    autofocus: false,
+                    decoration: InputDecoration(
+                      labelText: 'Mileage (km)',
+                      border:
+                          OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 3,
+                  child: TextField(
+                    controller: _locationController,
+                    autofocus: false,
+                    decoration: InputDecoration(
+                      labelText: 'Location (Optional)',
+                      border:
+                          OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                  ),
+                ),
               ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 3,
-            child: TextField(
-              controller: _locationController,
-              autofocus: false,
-              decoration: InputDecoration(
-                labelText: 'Location (Optional)',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              ),
-            ),
-          ),
-        ],
+            );
+          } else {
+            // On mobile, stack vertically to save horizontal space
+            return Column(
+              children: [
+                TextField(
+                  controller: _mileageController,
+                  autofocus: false,
+                  decoration: InputDecoration(
+                    labelText: 'Mileage (km)',
+                    border:
+                        OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _locationController,
+                  autofocus: false,
+                  decoration: InputDecoration(
+                    labelText: 'Location (Optional)',
+                    border:
+                        OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+              ],
+            );
+          }
+        },
       ),
       const SizedBox(height: 12),
 
@@ -825,39 +938,83 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
       ),
       const SizedBox(height: 12),
 
-      // Buttons
-      Row(
-        children: [
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: _saveActivityInline,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Activity'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade700,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () => Navigator.pushNamed(context, '/activities'),
-              icon: const Icon(Icons.list),
-              label: const Text('View All'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.green.shade700,
-                side: BorderSide(color: Colors.green.shade700),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-          ),
-        ],
+      // Buttons - Responsive
+      LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth > 800) {
+            // On desktop, place buttons side by side
+            return Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _saveActivityInline,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Activity'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.pushNamed(context, '/activities'),
+                    icon: const Icon(Icons.list),
+                    label: const Text('View All'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.green.shade700,
+                      side: BorderSide(color: Colors.green.shade700),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          } else {
+            // On mobile, stack vertically to save space
+            return Column(
+              children: [
+                SizedBox(
+                  width: double.infinity, // Full width button
+                  child: ElevatedButton.icon(
+                    onPressed: _saveActivityInline,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Activity'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity, // Full width button
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.pushNamed(context, '/activities'),
+                    icon: const Icon(Icons.list),
+                    label: const Text('View All'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.green.shade700,
+                      side: BorderSide(color: Colors.green.shade700),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+        },
       ),
     ];
   }
@@ -908,39 +1065,83 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
       ),
       const SizedBox(height: 12),
 
-      // Buttons
-      Row(
-        children: [
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: _saveTodoInline,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Todo'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue.shade700,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () => Navigator.pushNamed(context, '/todos'),
-              icon: const Icon(Icons.checklist),
-              label: const Text('View All'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.blue.shade700,
-                side: BorderSide(color: Colors.blue.shade700),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-          ),
-        ],
+      // Buttons - Responsive
+      LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth > 800) {
+            // On desktop, place buttons side by side
+            return Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _saveTodoInline,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Todo'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.pushNamed(context, '/todos'),
+                    icon: const Icon(Icons.checklist),
+                    label: const Text('View All'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.blue.shade700,
+                      side: BorderSide(color: Colors.blue.shade700),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          } else {
+            // On mobile, stack vertically to save space
+            return Column(
+              children: [
+                SizedBox(
+                  width: double.infinity, // Full width button
+                  child: ElevatedButton.icon(
+                    onPressed: _saveTodoInline,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Todo'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity, // Full width button
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.pushNamed(context, '/todos'),
+                    icon: const Icon(Icons.checklist),
+                    label: const Text('View All'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.blue.shade700,
+                      side: BorderSide(color: Colors.blue.shade700),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+        },
       ),
     ];
   }
@@ -979,15 +1180,41 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   Widget _buildUpcomingCards() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: SizedBox(
-        height: 200,
-        child: Row(
-          children: [
-            Expanded(child: _buildTodosCard()),
-            const SizedBox(width: 12),
-            Expanded(child: _buildAppointmentsCard()),
-          ],
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth > 1024) {
+            // Desktop: Grid layout
+            return SizedBox(
+              height: 250, // Slightly taller for desktop
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 1.8, // Adjust as needed
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                ),
+                itemCount: 2,
+                itemBuilder: (context, index) {
+                  return index == 0 ? _buildTodosCard() : _buildAppointmentsCard();
+                },
+              ),
+            );
+          } else {
+            // Mobile: Row layout
+            return SizedBox(
+              height: 200,
+              child: Row(
+                children: [
+                  Expanded(child: _buildTodosCard()),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildAppointmentsCard()),
+                ],
+              ),
+            );
+          }
+        },
       ),
     );
   }
@@ -1673,19 +1900,36 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
             children: [
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 1.1,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                ),
-                itemCount: displayDepartments.length,
-                itemBuilder: (context, index) {
-                  return _buildDepartmentCard(
-                      displayDepartments[index], departments);
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  int crossAxisCount;
+                  double aspectRatio = 1.1;
+                  
+                  if (constraints.maxWidth > 1200) {
+                    crossAxisCount = 4; // 4 columns on very large screens
+                  } else if (constraints.maxWidth > 1024) {
+                    crossAxisCount = 4; // 4 columns on desktop
+                  } else if (constraints.maxWidth > 768) {
+                    crossAxisCount = 3; // 3 columns on tablets
+                  } else {
+                    crossAxisCount = 2; // 2 columns on mobile
+                  }
+
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      childAspectRatio: aspectRatio,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
+                    itemCount: displayDepartments.length,
+                    itemBuilder: (context, index) {
+                      return _buildDepartmentCard(
+                          displayDepartments[index], departments);
+                    },
+                  );
                 },
               ),
               if (hasMore) ...[

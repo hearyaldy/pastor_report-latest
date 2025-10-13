@@ -146,7 +146,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to complete onboarding: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppTheme.error,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -154,7 +155,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -169,14 +174,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 Icon(
                   Icons.waving_hand,
                   size: 80,
-                  color: AppTheme.primary,
+                  color: colorScheme.primary,
                 ),
                 const SizedBox(height: 24),
 
                 // Welcome Text
                 Text(
                   'Welcome to Pastor Report!',
-                  style: Theme.of(context).textTheme.displaySmall,
+                  style: theme.textTheme.displaySmall,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
@@ -199,9 +204,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                   return Text(
                     welcomeText,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
+                    style: theme.textTheme.bodyLarge,
                     textAlign: TextAlign.center,
                   );
                 }),
@@ -209,8 +212,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 const SizedBox(height: 12),
                 Text(
                   'All users need to complete onboarding again for our new database system.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.primary,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.primary,
                         fontWeight: FontWeight.bold,
                       ),
                   textAlign: TextAlign.center,
@@ -220,6 +223,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 // Mission Dropdown
                 DropdownButtonFormField<String>(
                   value: _selectedMission,
+                  style: theme.textTheme.bodyLarge,
+                  dropdownColor: colorScheme.surface,
                   decoration: const InputDecoration(
                     labelText: 'Mission / Organization',
                     hintText: 'Select your mission',
@@ -228,7 +233,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   items: _missions.map((Mission mission) {
                     return DropdownMenuItem<String>(
                       value: mission.id,
-                      child: Text(mission.name),
+                      child: Text(
+                        mission.name,
+                        style: theme.textTheme.bodyLarge,
+                      ),
                     );
                   }).toList(),
                   onChanged: (String? newValue) {
@@ -251,6 +259,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 // Region Dropdown
                 DropdownButtonFormField<String>(
                   value: _selectedRegion,
+                  style: theme.textTheme.bodyLarge,
+                  dropdownColor: colorScheme.surface,
                   decoration: const InputDecoration(
                     labelText: 'Region',
                     hintText: 'Select your region',
@@ -259,7 +269,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   items: _regions.map((Region region) {
                     return DropdownMenuItem<String>(
                       value: region.id,
-                      child: Text(region.name),
+                      child: Text(
+                        region.name,
+                        style: theme.textTheme.bodyLarge,
+                      ),
                     );
                   }).toList(),
                   onChanged: _regions.isEmpty
@@ -285,6 +298,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 // District Dropdown
                 DropdownButtonFormField<String>(
                   value: _selectedDistrict,
+                  style: theme.textTheme.bodyLarge,
+                  dropdownColor: colorScheme.surface,
                   decoration: const InputDecoration(
                     labelText: 'District',
                     hintText: 'Select your district',
@@ -293,7 +308,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   items: _districts.map((District district) {
                     return DropdownMenuItem<String>(
                       value: district.id,
-                      child: Text(district.name),
+                      child: Text(
+                        district.name,
+                        style: theme.textTheme.bodyLarge,
+                      ),
                     );
                   }).toList(),
                   onChanged: _districts.isEmpty
@@ -318,6 +336,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 // Role Dropdown
                 DropdownButtonFormField<String>(
                   value: _selectedRole,
+                  style: theme.textTheme.bodyLarge,
+                  dropdownColor: colorScheme.surface,
                   decoration: const InputDecoration(
                     labelText: 'Role',
                     hintText: 'Select your role',
@@ -326,7 +346,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   items: AppConstants.roles.map((String role) {
                     return DropdownMenuItem<String>(
                       value: role,
-                      child: Text(role),
+                      child: Text(
+                        role,
+                        style: theme.textTheme.bodyLarge,
+                      ),
                     );
                   }).toList(),
                   onChanged: (String? newValue) {
@@ -385,23 +408,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   return Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.primary.withValues(alpha: 0.1),
+                      color: colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: colorScheme.primary.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(
                           infoIcon,
-                          color: AppTheme.primary,
+                          color: colorScheme.primary,
                           size: 24,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             infoText,
-                            style: TextStyle(
-                              color: AppTheme.textPrimary,
+                            style: theme.textTheme.bodySmall?.copyWith(
                               fontSize: 13,
                             ),
                           ),

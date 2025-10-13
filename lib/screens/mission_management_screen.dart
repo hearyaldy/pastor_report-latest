@@ -43,8 +43,11 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: RefreshIndicator(
         onRefresh: () async {
           final missionProvider =
@@ -63,7 +66,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddMissionDialog,
-        backgroundColor: AppColors.primaryLight,
+        backgroundColor: colorScheme.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text('Add Mission'),
@@ -72,11 +75,14 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
   }
 
   Widget _buildModernAppBar() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return SliverAppBar(
       expandedHeight: 160,
       pinned: true,
       elevation: 0,
-      backgroundColor: AppColors.primaryLight,
+      backgroundColor: colorScheme.primary,
       foregroundColor: Colors.white,
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
@@ -85,9 +91,9 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppColors.primaryLight,
-                AppColors.primaryLight.withValues(alpha: 0.9),
-                AppColors.primaryDark,
+                colorScheme.primary,
+                colorScheme.primary.withOpacity(0.9),
+                colorScheme.primaryContainer,
               ],
             ),
           ),
@@ -103,7 +109,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(Icons.public,
@@ -122,11 +128,11 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                                 color: Colors.white,
                               ),
                             ),
-                            const Text(
+                            Text(
                               'Manage mission configurations',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.white70,
+                                color: Colors.white.withOpacity(0.9),
                               ),
                             ),
                           ],
@@ -167,7 +173,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -177,7 +183,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                 onChanged: (value) => setState(() => _searchQuery = value),
                 decoration: InputDecoration(
                   hintText: 'Search missions...',
-                  prefixIcon: Icon(Icons.search, color: AppColors.primaryLight),
+                  prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.primary),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear, size: 20),
@@ -242,7 +248,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -255,7 +261,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
+                  color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 24),
@@ -278,7 +284,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
               title,
               style: TextStyle(
                 fontSize: 14,
-                color: Theme.of(context).textTheme.bodySmall?.color,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -321,7 +327,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: Theme.of(context).textTheme.bodySmall?.color,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -331,7 +337,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                         : 'Tap the + button to add your first mission',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -354,14 +360,17 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
   }
 
   Widget _buildMissionCard(Mission mission) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -382,12 +391,12 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryLight.withValues(alpha: 0.1),
+                        color: colorScheme.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
                         Icons.public,
-                        color: AppColors.primaryLight,
+                        color: colorScheme.primary,
                         size: 24,
                       ),
                     ),
@@ -408,7 +417,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                             'Code: ${mission.code}',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Theme.of(context).textTheme.bodySmall?.color,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -416,7 +425,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                       ),
                     ),
                     PopupMenuButton<String>(
-                      icon: Icon(Icons.more_vert, color: Theme.of(context).textTheme.bodySmall?.color),
+                      icon: Icon(Icons.more_vert, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       onSelected: (value) {
                         if (value == 'edit') {
                           _showEditMissionDialog(mission);
@@ -435,15 +444,20 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                             ],
                           ),
                         ),
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, size: 20, color: Colors.red),
-                              SizedBox(width: 12),
-                              Text('Delete',
-                                  style: TextStyle(color: Colors.red)),
-                            ],
+                          child: Builder(
+                            builder: (context) {
+                              final errorColor = Theme.of(context).colorScheme.error;
+                              return Row(
+                                children: [
+                                  Icon(Icons.delete, size: 20, color: errorColor),
+                                  const SizedBox(width: 12),
+                                  Text('Delete',
+                                      style: TextStyle(color: errorColor)),
+                                ],
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -456,14 +470,14 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       mission.description!,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         height: 1.4,
                       ),
                     ),
@@ -711,6 +725,8 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
   }
 
   void _showDeleteMissionConfirmation(Mission mission) {
+    final errorColor = Theme.of(context).colorScheme.error;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -728,7 +744,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
                   .deleteMission(mission.id);
               Navigator.pop(context);
             },
-            child: const Text('DELETE', style: TextStyle(color: Colors.red)),
+            child: Text('DELETE', style: TextStyle(color: errorColor)),
           ),
         ],
       ),
