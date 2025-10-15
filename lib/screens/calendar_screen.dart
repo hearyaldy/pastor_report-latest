@@ -411,7 +411,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.grey.withOpacity(0.3),
+                      color: Theme.of(context).dividerColor,
                     ),
                   ),
                   child: ListTile(
@@ -464,7 +464,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Colors.grey.withOpacity(0.3),
+                        color: Theme.of(context).dividerColor,
                       ),
                     ),
                     child: ListTile(
@@ -700,10 +700,10 @@ class _CalendarScreenState extends State<CalendarScreen>
                           ),
                           Text(
                             item.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: Colors.black87,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ],
@@ -719,7 +719,7 @@ class _CalendarScreenState extends State<CalendarScreen>
               const SizedBox(height: 16),
               const Text(
                 'Are you sure you want to delete this item?',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
                   color: Colors.black87,
                 ),
@@ -845,10 +845,10 @@ class _CalendarScreenState extends State<CalendarScreen>
                           ),
                           Text(
                             item.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ],
@@ -891,13 +891,13 @@ class _CalendarScreenState extends State<CalendarScreen>
               Row(
                 children: [
                   Icon(Icons.access_time,
-                      size: 16, color: Colors.grey.shade600),
+                      size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
                     DateFormat('MMM dd, yyyy • h:mm a').format(item.dateTime),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -908,13 +908,13 @@ class _CalendarScreenState extends State<CalendarScreen>
                 Row(
                   children: [
                     Icon(Icons.event_available,
-                        size: 16, color: Colors.grey.shade600),
+                        size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(
                       'Ends: ${DateFormat('MMM dd, yyyy • h:mm a').format((item.originalItem as Event).endDate!)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -925,7 +925,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                 Row(
                   children: [
                     Icon(Icons.location_on,
-                        size: 16, color: Colors.grey.shade600),
+                        size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
@@ -952,9 +952,9 @@ class _CalendarScreenState extends State<CalendarScreen>
                 const SizedBox(height: 4),
                 Text(
                   item.description!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -998,9 +998,9 @@ class _CalendarScreenState extends State<CalendarScreen>
                         const SizedBox(width: 4),
                         Text(
                           (item.originalItem as Appointment).contactPhone!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -1193,7 +1193,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                                       ? Icons.event
                                       : Icons.calendar_month,
                               size: 64,
-                              color: Colors.grey.shade400,
+                              color: Colors.grey.shade600,
                             ),
                             const SizedBox(height: 16),
                             Text(
@@ -1267,10 +1267,10 @@ class _CalendarScreenState extends State<CalendarScreen>
                                               Expanded(
                                                 child: Text(
                                                   item.title,
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontWeight: FontWeight.w600,
                                                     fontSize: 15,
-                                                    color: Colors.black87,
+                                                    color: Theme.of(context).colorScheme.onSurface,
                                                   ),
                                                 ),
                                               ),
@@ -1305,15 +1305,15 @@ class _CalendarScreenState extends State<CalendarScreen>
                                                   Icon(
                                                     Icons.location_on,
                                                     size: 14,
-                                                    color: Colors.grey.shade600,
+                                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                                                   ),
                                                   const SizedBox(width: 4),
                                                   Expanded(
                                                     child: Text(
                                                       item.location!,
-                                                      style: const TextStyle(
+                                                      style: TextStyle(
                                                         fontSize: 12,
-                                                        color: Colors.grey,
+                                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                                                       ),
                                                       maxLines: 1,
                                                       overflow: TextOverflow.ellipsis,
@@ -1325,9 +1325,9 @@ class _CalendarScreenState extends State<CalendarScreen>
                                         ],
                                       ),
                                     ),
-                                    const Icon(
+                                    Icon(
                                       Icons.chevron_right,
-                                      color: Colors.grey,
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ],
                                 ),
@@ -1549,10 +1549,10 @@ class _CalendarScreenState extends State<CalendarScreen>
                             Expanded(
                               child: Text(
                                 item.title,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 15,
-                                  color: Colors.black87,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -1582,9 +1582,9 @@ class _CalendarScreenState extends State<CalendarScreen>
                         const SizedBox(height: 4),
                         Text(
                           DateFormat('h:mm a').format(item.dateTime),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.w400,
                           ),
                         ),
@@ -1602,9 +1602,9 @@ class _CalendarScreenState extends State<CalendarScreen>
                                 Expanded(
                                   child: Text(
                                     item.location!,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey,
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -1616,9 +1616,9 @@ class _CalendarScreenState extends State<CalendarScreen>
                       ],
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.chevron_right,
-                    color: Colors.grey,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ],
               ),

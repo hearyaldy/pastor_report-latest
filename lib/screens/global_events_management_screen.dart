@@ -707,9 +707,10 @@ class _GlobalEventsManagementScreenState
                         children: [
                           Text(
                             event.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
