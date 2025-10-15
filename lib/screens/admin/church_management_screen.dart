@@ -9,6 +9,9 @@ import 'package:pastor_report/services/church_service.dart';
 import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/services/region_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
+import 'package:pastor_report/services/restoration_service.dart';
+import 'package:pastor_report/services/region_migration_service.dart';
+import 'package:pastor_report/services/user_staff_region_migration_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:intl/intl.dart';
@@ -25,6 +28,9 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
   final DistrictService _districtService = DistrictService();
   final RegionService _regionService = RegionService();
   final MissionService _missionService = MissionService.instance;
+  final RestorationService _restorationService = RestorationService();
+  final RegionMigrationService _migrationService = RegionMigrationService();
+  final UserStaffRegionMigrationService _userStaffMigrationService = UserStaffRegionMigrationService();
 
   List<Church> _churches = [];
   List<District> _districts = [];
@@ -87,6 +93,29 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
 
       // Load regions for selected mission
       _regions = await _regionService.getRegionsByMission(_selectedMissionId!);
+
+      // Debug: Log loaded regions with full details
+      print('ChurchManagement: Loaded ${_regions.length} regions for mission $_selectedMissionId');
+      final selectedMission = _missions.firstWhere((m) => m.id == _selectedMissionId,
+        orElse: () => Mission(id: _selectedMissionId!, name: 'Unknown'));
+      print('ChurchManagement: Selected mission name: ${selectedMission.name}');
+      for (var region in _regions) {
+        print('  - Region: ${region.name} | ID: ${region.id} | missionId: ${region.missionId}');
+      }
+
+      // Check for duplicates or regions from other missions
+      final regionsByName = <String, List<Region>>{};
+      for (var region in _regions) {
+        regionsByName.putIfAbsent(region.name, () => []).add(region);
+      }
+      regionsByName.forEach((name, regions) {
+        if (regions.length > 1) {
+          print('WARNING: Duplicate regions found for "$name":');
+          for (var r in regions) {
+            print('  * ID: ${r.id} | missionId: ${r.missionId}');
+          }
+        }
+      });
 
       if (user?.userRole == UserRole.districtPastor) {
         if (user?.district != null) {
@@ -172,6 +201,48 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
       ),
     );
     return region.name;
+  }
+
+  // Natural sort comparator for sorting strings with numbers
+  int _naturalCompare(String a, String b) {
+    // Extract numbers from strings for comparison
+    final aMatch = RegExp(r'\d+').firstMatch(a);
+    final bMatch = RegExp(r'\d+').firstMatch(b);
+
+    if (aMatch != null && bMatch != null) {
+      final aNum = int.parse(aMatch.group(0)!);
+      final bNum = int.parse(bMatch.group(0)!);
+      if (aNum != bNum) {
+        return aNum.compareTo(bNum);
+      }
+    }
+
+    // Fall back to string comparison
+    return a.compareTo(b);
+  }
+
+  // Check if a region belongs to the selected mission
+  // Handles both mission IDs and mission names (for backward compatibility)
+  bool _regionBelongsToMission(Region region, String? missionId) {
+    if (missionId == null) return true;
+
+    // Direct ID match
+    if (region.missionId == missionId) return true;
+
+    // Check if region's missionId matches the mission's name (backward compatibility)
+    final selectedMission = _missions.firstWhere(
+      (m) => m.id == missionId,
+      orElse: () => Mission(id: missionId, name: ''),
+    );
+
+    if (selectedMission.name.isNotEmpty) {
+      // Exact match (case-insensitive)
+      if (region.missionId.toLowerCase() == selectedMission.name.toLowerCase()) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   List<Church> get _filteredChurches {
@@ -280,6 +351,19 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
         ),
       ),
       actions: [
+        // Cleanup button - only for super admin
+        Consumer<AuthProvider>(
+          builder: (context, authProvider, child) {
+            if (authProvider.user?.userRole != UserRole.superAdmin) {
+              return const SizedBox.shrink();
+            }
+            return IconButton(
+              icon: const Icon(Icons.cleaning_services),
+              tooltip: 'Clean Duplicates',
+              onPressed: _showCleanupDialog,
+            );
+          },
+        ),
         IconButton(
           icon: const Icon(Icons.refresh),
           tooltip: 'Refresh',
@@ -419,11 +503,18 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                         [
                           const DropdownMenuItem(
                               value: null, child: Text('All Regions')),
-                          ..._regions.map((r) => DropdownMenuItem(
-                                value: r.id,
-                                child: Text(r.name,
-                                    overflow: TextOverflow.ellipsis),
-                              )),
+                          // Filter regions by selected mission and sort naturally
+                          ...(_regions
+                                  .where((r) =>
+                                      _regionBelongsToMission(r, _selectedMissionId))
+                                  .toList()
+                                    ..sort((a, b) =>
+                                        _naturalCompare(a.name, b.name)))
+                              .map((r) => DropdownMenuItem(
+                                    value: r.id,
+                                    child: Text(r.name,
+                                        overflow: TextOverflow.ellipsis),
+                                  )),
                         ],
                         (value) {
                           setState(() {
@@ -443,11 +534,15 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                         [
                           const DropdownMenuItem(
                               value: null, child: Text('All Districts')),
-                          ..._districts.map((d) => DropdownMenuItem(
-                                value: d.id,
-                                child: Text(d.name,
-                                    overflow: TextOverflow.ellipsis),
-                              )),
+                          // Sort districts naturally as well
+                          ...(_districts.toList()
+                                ..sort(
+                                    (a, b) => _naturalCompare(a.name, b.name)))
+                              .map((d) => DropdownMenuItem(
+                                    value: d.id,
+                                    child: Text(d.name,
+                                        overflow: TextOverflow.ellipsis),
+                                  )),
                         ],
                         (value) {
                           setState(() => _selectedDistrictId = value);
@@ -1005,8 +1100,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
     final bool isSuperAdmin = currentUser?.userRole == UserRole.superAdmin;
 
     List<Region> modalRegions = _regions
-        .where((r) =>
-            selectedMissionId == null || r.missionId == selectedMissionId)
+        .where((r) => _regionBelongsToMission(r, selectedMissionId))
         .toList();
     if (selectedRegionId == null && modalRegions.isNotEmpty) {
       selectedRegionId = modalRegions.first.id;
@@ -1330,7 +1424,8 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                               border: OutlineInputBorder(),
                             ),
                             isExpanded: true,
-                            items: modalRegions
+                            items: (modalRegions.toList()
+                                  ..sort((a, b) => _naturalCompare(a.name, b.name)))
                                 .map((r) => DropdownMenuItem(
                                       value: r.id,
                                       child: Text(r.name),
@@ -1368,7 +1463,8 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                               border: OutlineInputBorder(),
                             ),
                             isExpanded: true,
-                            items: modalDistricts
+                            items: (modalDistricts.toList()
+                                  ..sort((a, b) => _naturalCompare(a.name, b.name)))
                                 .map((d) => DropdownMenuItem(
                                       value: d.id,
                                       child: Text(d.name),
@@ -1553,6 +1649,707 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
     }
   }
 
+  void _showCleanupDialog() {
+    if (_selectedMissionId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a mission first'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final selectedMission = _missions.firstWhere(
+      (m) => m.id == _selectedMissionId,
+      orElse: () => Mission(id: _selectedMissionId!, name: 'Unknown'),
+    );
+
+    // Check if this is North Sabah Mission or Sabah Mission
+    final isNorthSabahMission = selectedMission.name == 'North Sabah Mission';
+    final isSabahMission = selectedMission.name == 'Sabah Mission';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.cleaning_services, color: Colors.blue),
+            SizedBox(width: 12),
+            Text('Region Management'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Current mission: ${selectedMission.name}',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryLight,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // CRITICAL: Migrate semantic IDs to UUIDs
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.purple, width: 2),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.transform,
+                            size: 16, color: Colors.purple),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Convert IDs to UUIDs (CRITICAL)',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.purple,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '⚠️ Run this FIRST if regions have semantic IDs\n• Converts "nsm_region_1" → UUID format\n• Updates all districts and churches\n• Required for app to work correctly',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Fix User/Staff Region References
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.teal.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.teal),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.people_alt,
+                            size: 16, color: Colors.teal),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Fix User/Staff Regions',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.teal,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '⚠️ Run this AFTER UUID migration\n• Updates user and staff region references\n• Fixes UUID display issues\n• Matches by name, pattern, or number',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            if (isNorthSabahMission) ...[
+              // Special option for North Sabah Mission
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.auto_fix_high,
+                            size: 16, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Fix NSM Regions',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '• Keep NSM Region 1-4\n• Reassign Region 5-12 to Sabah Mission\n• Preserves all IDs, districts, and churches',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (isSabahMission) ...[
+              // Restore from JSON
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.restore,
+                            size: 16, color: Colors.green),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Restore from JSON',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '• Restore all 10 regions from churches_SAB.json\n• Create/update districts and churches\n• Preserves existing church data',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.cleaning_services,
+                          size: 16, color: Colors.orange),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Clean Duplicates',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '• Keeps the most recent region\n• Removes older duplicates\n• Cannot be undone',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ), // Closes SingleChildScrollView
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          // CRITICAL: Convert semantic IDs to UUIDs
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _performMigrationToUUIDs();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.purple,
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.transform, size: 18),
+            label: const Text('Convert to UUIDs'),
+          ),
+          // Fix User/Staff Regions
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _performUserStaffRegionMigration();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.people_alt, size: 18),
+            label: const Text('Fix User/Staff'),
+          ),
+          if (isNorthSabahMission)
+            ElevatedButton.icon(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _performNSMFix();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.auto_fix_high, size: 18),
+              label: const Text('Fix NSM'),
+            ),
+          if (isSabahMission)
+            ElevatedButton.icon(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _performSabahRestoration();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.restore, size: 18),
+              label: const Text('Restore from JSON'),
+            ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _performCleanup();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Clean Duplicates'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performSabahRestoration() async {
+    if (_selectedMissionId == null) return;
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Restoring Sabah Mission from JSON...'),
+                SizedBox(height: 8),
+                Text(
+                  'This may take a few minutes',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final userId = authProvider.user?.uid ?? 'system';
+
+      final result = await _restorationService.restoreSabahMissionFromJson(
+        sabahMissionId: _selectedMissionId!,
+        userId: userId,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      if (result['success'] == true) {
+        final regionsCreated = result['regionsCreated'] as int;
+        final regionsUpdated = result['regionsUpdated'] as int;
+        final districtsCreated = result['districtsCreated'] as int;
+        final churchesCreated = result['churchesCreated'] as int;
+
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 12),
+                Text('Restoration Complete'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Successfully restored Sabah Mission from JSON!',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '📍 Regions: $regionsCreated created, $regionsUpdated updated',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '🏛️ Districts: $districtsCreated created',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '⛪ Churches: $churchesCreated created/updated',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'All regions (1-10), districts, and churches have been restored from churches_SAB.json',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                ),
+              ],
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _loadData(); // Refresh data
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${result['message']}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error during restoration: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _performNSMFix() async {
+    if (_selectedMissionId == null) return;
+
+    // Sabah Mission ID
+    const sabahMissionId = '4LFC9isp22H7Og1FHBm6';
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Fixing NSM regions...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final result = await _regionService.fixNorthSabahMissionRegions(
+        northSabahMissionId: _selectedMissionId!,
+        sabahMissionId: sabahMissionId,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      if (result['success'] == true) {
+        final kept = result['kept'] as int;
+        final reassigned = result['reassigned'] as int;
+        final details = result['details'] as Map<String, dynamic>;
+
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 12),
+                Text('Migration Complete'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Successfully fixed NSM regions!',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '✓ Kept in NSM: $kept regions',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '→ Reassigned to Sabah Mission: $reassigned regions (IDs preserved)',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Regions kept in NSM:',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  (details['kept'] as List).join(', '),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+                if ((details['reassigned'] as List).isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    'Regions reassigned to Sabah Mission:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    (details['reassigned'] as List).join(', '),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _loadData(); // Refresh data
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${result['message']}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error during fix: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _performCleanup() async {
+    if (_selectedMissionId == null) return;
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Cleaning up duplicates...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final result = await _regionService.cleanupDuplicateRegions(_selectedMissionId!);
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      if (result['success'] == true) {
+        final removed = result['duplicatesRemoved'] as int;
+        final total = result['totalRegions'] as int;
+
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                Icon(
+                  removed > 0 ? Icons.check_circle : Icons.info,
+                  color: removed > 0 ? Colors.green : Colors.blue,
+                ),
+                const SizedBox(width: 12),
+                const Text('Cleanup Complete'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  removed > 0
+                      ? 'Successfully removed $removed duplicate region(s)'
+                      : 'No duplicates found',
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Total regions now: $total',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _loadData(); // Refresh data
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${result['message']}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error during cleanup: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   void _deleteChurch(Church church) {
     showDialog(
       context: context,
@@ -1594,5 +2391,303 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _performMigrationToUUIDs() async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Converting regions to UUID format...'),
+                SizedBox(height: 8),
+                Text(
+                  'This may take a moment',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final result = await _migrationService.migrateRegionsToUUIDs();
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      if (result['success'] == true) {
+        final migrated = result['migrated'] as int;
+        final skipped = result['skipped'] as int;
+        final migrations = result['migrations'] as Map<String, String>;
+
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.purple),
+                SizedBox(width: 12),
+                Text('Migration Complete'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  migrated > 0
+                      ? 'Successfully migrated $migrated region(s) to UUID format!'
+                      : 'All regions already using UUID format',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '✓ Migrated: $migrated regions',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '→ Already UUID: $skipped regions',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '✓ Updated all districts and churches',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+                if (migrations.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    'ID Conversions:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 150),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: migrations.entries.map((entry) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              '• ${entry.key} → ${entry.value.substring(0, 8)}...',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[600],
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _loadData(); // Refresh data
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${result['message']}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error during migration: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _performUserStaffRegionMigration() async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Fixing user and staff region references...'),
+                SizedBox(height: 8),
+                Text(
+                  'This may take a moment',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final result = await _userStaffMigrationService.migrateUserAndStaffRegionReferences();
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      if (result['success'] == true) {
+        final usersUpdated = result['usersUpdated'] as int;
+        final staffUpdated = result['staffUpdated'] as int;
+        final usersSkipped = result['usersSkipped'] as int;
+        final staffSkipped = result['staffSkipped'] as int;
+
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.teal),
+                SizedBox(width: 12),
+                Text('Migration Complete'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  usersUpdated + staffUpdated > 0
+                      ? 'Successfully fixed user and staff region references!'
+                      : 'All users and staff already have correct region references',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '✓ Users Updated: $usersUpdated',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '✓ Staff Updated: $staffUpdated',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '→ Total Fixed: ${usersUpdated + staffUpdated}',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                      if (usersSkipped + staffSkipped > 0) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'ℹ Skipped: ${usersSkipped + staffSkipped} (already correct or no region)',
+                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Region names should now display correctly for all users and staff.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                ),
+              ],
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _loadData(); // Refresh data
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${result['message']}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error during migration: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

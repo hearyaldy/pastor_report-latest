@@ -180,12 +180,13 @@ service cloud.firestore {
       allow read: if true;
 
       // Authenticated users can create regions during onboarding
+      // Admins and super admins can create regions (for migrations)
       allow create: if isAuthenticated() &&
-                       request.resource.data.createdBy == request.auth.uid;
+                       (isAdmin() || isSuperAdmin() || request.resource.data.createdBy == request.auth.uid);
 
       // Users can update regions they created, admins can update any
       allow update: if isAuthenticated() &&
-                       (resource.data.createdBy == request.auth.uid || isAdmin());
+                       (resource.data.createdBy == request.auth.uid || isAdmin() || isSuperAdmin());
 
       // Admins and mission admins can delete regions
       allow delete: if isAdmin() || isMissionAdmin();

@@ -15,6 +15,8 @@ import 'package:pastor_report/utils/import_staff_assignments.dart';
 import 'package:pastor_report/utils/check_unmatched_staff.dart';
 import 'package:pastor_report/utils/fix_staff_names.dart';
 import 'package:pastor_report/utils/data_import_util.dart';
+import 'package:pastor_report/utils/update_staff_regions_districts_util.dart';
+import 'package:pastor_report/utils/staff_data_fixer.dart';
 
 class AdminUtilitiesScreen extends StatelessWidget {
   const AdminUtilitiesScreen({super.key});
@@ -673,6 +675,209 @@ class AdminUtilitiesScreen extends StatelessWidget {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Error importing: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+              ),
+              _ActionCard(
+                title: 'Update Staff from Corrected Data',
+                description:
+                    'Update staff regions and districts based on corrected information from JSON files for both Sabah and North Sabah Missions.',
+                icon: Icons.sync_alt,
+                color: Colors.cyan,
+                onTap: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Confirm Staff Update'),
+                      content: const Text(
+                          'This will update staff regions and districts based on corrected information from JSON files.\n\n'
+                          'The update will:\n'
+                          '• Update Sabah Mission staff with data from churches_SAB.json\n'
+                          '• Update North Sabah Mission staff with data from NSM_Churches_Updated.json\n'
+                          '• Preserve existing staff assignments not in the JSON files\n\n'
+                          'Do you want to continue?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('CANCEL'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: TextButton.styleFrom(
+                              foregroundColor: Colors.cyan),
+                          child: const Text('YES, UPDATE STAFF'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true && context.mounted) {
+                    _showLoadingDialog(context, 'Updating staff from corrected data...');
+
+                    try {
+                      final results = await StaffRegionDistrictUtil
+                          .updateStaffFromCorrectedData(context);
+
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close loading
+
+                        if (results['success'] as bool) {
+                          final resultsData = results['results'];
+                          final sabahResults = resultsData['sabah'];
+                          final nsmResults = resultsData['nsm'];
+
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Update Complete'),
+                              content: SingleChildScrollView(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text('Overall Status: Success'),
+                                    const Divider(),
+                                    Text('Sabah Mission:'),
+                                    Text('  • Updated: ${sabahResults['updated']}'),
+                                    Text('  • Not Found: ${sabahResults['notFound']}'),
+                                    Text('  • Errors: ${sabahResults['errors']}'),
+                                    const SizedBox(height: 8),
+                                    Text('North Sabah Mission:'),
+                                    Text('  • Updated: ${nsmResults['updated']}'),
+                                    Text('  • Not Found: ${nsmResults['notFound']}'),
+                                    Text('  • Errors: ${nsmResults['errors']}'),
+                                    const Divider(),
+                                    Text('Total Updated: ${sabahResults['updated'] + nsmResults['updated']}'),
+                                    const Padding(
+                                      padding: EdgeInsets.only(top: 16),
+                                      child: Text(
+                                        'Staff database has been updated with corrected region and district assignments based on the JSON files.',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('CLOSE'),
+                                ),
+                              ],
+                            ),
+                          );
+                        } else {
+                          // Show error dialog
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Update Failed'),
+                              content: Text(results['message'] as String),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('CLOSE'),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close loading
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error updating staff: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+              ),
+              _ActionCard(
+                title: 'Fix Staff Notes Data',
+                description:
+                    'Fix staff records where the notes field was incorrectly set as an array instead of a string. Use this if you are getting type casting errors in the staff management screen.',
+                icon: Icons.bug_report,
+                color: Colors.deepOrange,
+                onTap: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Confirm Data Fix'),
+                      content: const Text(
+                          'This will fix staff records where the notes field was incorrectly stored as an array instead of a string.\n\n'
+                          'This is typically caused by a bug in previous staff updates.\n\n'
+                          'Do you want to continue?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('CANCEL'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: TextButton.styleFrom(
+                              foregroundColor: Colors.deepOrange),
+                          child: const Text('YES, FIX DATA'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true && context.mounted) {
+                    _showLoadingDialog(context, 'Fixing staff notes data...');
+
+                    try {
+                      final results = await StaffDataFixer.fixStaffNotesData();
+
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close loading
+
+                        if (results['success'] as bool) {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Fix Complete'),
+                              content: Text(results['message'] as String),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('CLOSE'),
+                                ),
+                              ],
+                            ),
+                          );
+                        } else {
+                          // Show error dialog
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Fix Failed'),
+                              content: Text(results['message'] as String),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('CLOSE'),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close loading
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error fixing staff data: $e'),
                             backgroundColor: Colors.red,
                           ),
                         );

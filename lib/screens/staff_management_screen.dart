@@ -524,6 +524,18 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     return StreamBuilder<List<Staff>>(
       stream: _getStaffStream(user),
       builder: (context, snapshot) {
+        print('StaffManagementScreen: StreamBuilder builder called');
+        print('StaffManagementScreen: ConnectionState: ${snapshot.connectionState}');
+        print('StaffManagementScreen: Has error: ${snapshot.hasError}');
+        if (snapshot.hasError) {
+          print('StaffManagementScreen: Error: ${snapshot.error}');
+          print('StaffManagementScreen: Error type: ${snapshot.error.runtimeType}');
+        }
+        print('StaffManagementScreen: Has data: ${snapshot.hasData}');
+        if (snapshot.hasData) {
+          print('StaffManagementScreen: Data length: ${snapshot.data!.length}');
+        }
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SliverFillRemaining(
             child: Center(child: CircularProgressIndicator()),
@@ -564,8 +576,10 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
         }
 
         var staffList = snapshot.data!;
+        print('StaffManagementScreen: Initial staff list length: ${staffList.length}');
 
         // Apply search filter
+        print('StaffManagementScreen: Applying search filter with query: $_searchQuery');
         if (_searchQuery.isNotEmpty) {
           staffList = staffList
               .where((s) =>
@@ -573,16 +587,21 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                   s.role.toLowerCase().contains(_searchQuery.toLowerCase()) ||
                   s.email.toLowerCase().contains(_searchQuery.toLowerCase()))
               .toList();
+          print('StaffManagementScreen: Staff list after search filter: ${staffList.length}');
         }
 
         // Apply mission filter
+        print('StaffManagementScreen: Applying mission filter with selected: $_selectedMission');
         if (_selectedMission != 'All') {
           staffList =
               staffList.where((s) => s.mission == _selectedMission).toList();
+          print('StaffManagementScreen: Staff list after mission filter: ${staffList.length}');
         }
 
         // Apply sorting
+        print('StaffManagementScreen: Applying sort with _sortBy: $_sortBy');
         staffList = _sortStaffList(staffList);
+        print('StaffManagementScreen: Staff list after sorting: ${staffList.length}');
 
         if (staffList.isEmpty) {
           return SliverFillRemaining(
@@ -1005,17 +1024,27 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
   }
 
   Stream<List<Staff>> _getStaffStream(UserModel? user) {
-    if (user == null) return Stream.value([]);
+    print('StaffManagementScreen: _getStaffStream called');
+    print('StaffManagementScreen: User UID: ${user?.uid}, Role: ${user?.userRole}');
+    if (user == null) {
+      print('StaffManagementScreen: User is null, returning empty stream');
+      return Stream.value([]);
+    }
 
+    print('StaffManagementScreen: About to return stream for role: ${user.userRole}');
     switch (user.userRole) {
       case UserRole.superAdmin:
       case UserRole.admin:
+        print('StaffManagementScreen: Returning streamAllStaff');
         return StaffService.instance.streamAllStaff();
       case UserRole.missionAdmin:
+        print('StaffManagementScreen: Returning streamStaffByMission for mission: ${user.mission}');
         return StaffService.instance.streamStaffByMission(user.mission ?? '');
       case UserRole.districtPastor:
+        print('StaffManagementScreen: Returning streamStaffByDistrict for district: ${user.district}');
         return StaffService.instance.streamStaffByDistrict(user.district ?? '');
       default:
+        print('StaffManagementScreen: Returning default streamStaffByMission for mission: ${user.mission}');
         return StaffService.instance.streamStaffByMission(user.mission ?? '');
     }
   }

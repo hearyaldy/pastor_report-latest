@@ -392,4 +392,288 @@ class RegionService {
     _regionNameCache.clear();
     _missionRegionsCache.clear();
   }
+
+  // Manually remove specific regions by ID
+  Future<void> deleteRegionsByIds(List<String> regionIds) async {
+    for (var regionId in regionIds) {
+      await deleteRegion(regionId);
+      print('Deleted region: $regionId');
+    }
+  }
+
+  // Update mission for multiple regions (to reassign them)
+  Future<void> reassignRegionsToMission(
+      List<String> regionIds, String newMissionId) async {
+    for (var regionId in regionIds) {
+      final region = await getRegionById(regionId);
+      if (region != null) {
+        final updated = region.copyWith(missionId: newMissionId);
+        await updateRegion(updated);
+        print('Reassigned region ${region.name} to mission $newMissionId');
+      }
+    }
+  }
+
+  // Fix NSM regions: Keep only NSM regions 1-4, REASSIGN regions 5-12 to Sabah Mission
+  Future<Map<String, dynamic>> fixNorthSabahMissionRegions({
+    required String northSabahMissionId,
+    required String sabahMissionId,
+  }) async {
+    try {
+      print('RegionService: Starting NSM region fix...');
+      print('  North Sabah Mission ID: $northSabahMissionId');
+      print('  Sabah Mission ID: $sabahMissionId');
+
+      // Get all regions currently under North Sabah Mission
+      final nsmRegions = await getRegionsByMission(northSabahMissionId);
+      print('  Found ${nsmRegions.length} regions under NSM');
+
+      // Regions that should stay with NSM (Region 1-4)
+      final regionsToKeep = <String>[
+        'nsm_region_1',
+        'nsm_region_2',
+        'nsm_region_3',
+        'nsm_region_4',
+      ];
+
+      // Separate regions
+      final toKeep = <Region>[];
+      final toReassign = <Region>[];
+
+      for (var region in nsmRegions) {
+        if (regionsToKeep.contains(region.id)) {
+          toKeep.add(region);
+          print('  ✓ Keep: ${region.name} (${region.id})');
+        } else {
+          // This is Region 5-12, should be reassigned to Sabah Mission
+          toReassign.add(region);
+          print('  → Reassign: ${region.name} (${region.id})');
+        }
+      }
+
+      // Reassign regions to Sabah Mission (preserving their IDs)
+      final reassigned = <String>[];
+
+      for (var region in toReassign) {
+        try {
+          // Update the region's missionId
+          await _firestore.collection(_collectionName).doc(region.id).update({
+            'missionId': sabahMissionId,
+          });
+
+          // Also update all districts in this region
+          final districts = await _firestore
+              .collection('districts')
+              .where('regionId', isEqualTo: region.id)
+              .get();
+
+          for (var districtDoc in districts.docs) {
+            await _firestore.collection('districts').doc(districtDoc.id).update({
+              'missionId': sabahMissionId,
+            });
+          }
+
+          // Update all churches in this region
+          final churches = await _firestore
+              .collection('churches')
+              .where('regionId', isEqualTo: region.id)
+              .get();
+
+          for (var churchDoc in churches.docs) {
+            await _firestore.collection('churches').doc(churchDoc.id).update({
+              'missionId': sabahMissionId,
+            });
+          }
+
+          reassigned.add(region.name);
+          print('  ✓ Reassigned ${region.name} to Sabah Mission');
+        } catch (e) {
+          print('  ✗ Error reassigning ${region.name}: $e');
+        }
+      }
+
+      clearCaches();
+
+      return {
+        'success': true,
+        'message': 'Migration completed successfully',
+        'kept': toKeep.length,
+        'reassigned': reassigned.length,
+        'details': {
+          'kept': toKeep.map((r) => r.name).toList(),
+          'reassigned': reassigned,
+        },
+      };
+    } catch (e) {
+      print('RegionService: Error during migration: $e');
+      return {
+        'success': false,
+        'message': 'Error during migration: $e',
+      };
+    }
+  }
+
+  // Emergency: Restore Sabah Mission regions by deleting recently created ones
+  Future<Map<String, dynamic>> emergencyCleanupSabahDuplicates(
+      String sabahMissionId) async {
+    try {
+      print('RegionService: Emergency cleanup for Sabah Mission...');
+
+      // Get all regions for Sabah Mission
+      final sabahRegions = await getRegionsByMission(sabahMissionId);
+      print('  Found ${sabahRegions.length} regions');
+
+      // Group by name to find duplicates
+      final regionsByName = <String, List<Region>>{};
+      for (var region in sabahRegions) {
+        regionsByName.putIfAbsent(region.name, () => []).add(region);
+      }
+
+      final deleted = <String>[];
+
+      // For duplicates, keep the OLDER one (original), delete the newer one
+      for (var entry in regionsByName.entries) {
+        if (entry.value.length > 1) {
+          // Sort by creation date (oldest first)
+          final regions = entry.value.toList()
+            ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+          // Keep the oldest (first), delete the rest
+          final toKeep = regions.first;
+          final toDelete = regions.sublist(1);
+
+          print('  ${entry.key}: Keep ${toKeep.id}, Delete ${toDelete.length}');
+
+          for (var region in toDelete) {
+            try {
+              await _firestore
+                  .collection(_collectionName)
+                  .doc(region.id)
+                  .delete();
+              deleted.add('${region.name} (${region.id})');
+              print('    ✓ Deleted ${region.id}');
+            } catch (e) {
+              print('    ✗ Error deleting ${region.id}: $e');
+            }
+          }
+        }
+      }
+
+      clearCaches();
+
+      return {
+        'success': true,
+        'message': 'Emergency cleanup completed',
+        'deleted': deleted.length,
+        'details': {'deleted': deleted},
+      };
+    } catch (e) {
+      print('RegionService: Error: $e');
+      return {
+        'success': false,
+        'message': 'Error: $e',
+      };
+    }
+  }
+
+  // Clean up duplicate regions for a mission
+  // Keeps the most recent region and removes older duplicates
+  Future<Map<String, dynamic>> cleanupDuplicateRegions(String missionId) async {
+    try {
+      print('RegionService: Starting cleanup for mission $missionId');
+
+      // Get all regions for this mission
+      final querySnapshot = await _firestore
+          .collection(_collectionName)
+          .where('missionId', isEqualTo: missionId)
+          .get();
+
+      print('RegionService: Found ${querySnapshot.docs.length} regions');
+
+      // Group regions by name
+      final regionsByName = <String, List<QueryDocumentSnapshot>>{};
+
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data();
+        final name = data['name'] as String;
+        regionsByName.putIfAbsent(name, () => []).add(doc);
+      }
+
+      // Find duplicates
+      final duplicates = <String, List<QueryDocumentSnapshot>>{};
+      regionsByName.forEach((name, docs) {
+        if (docs.length > 1) {
+          duplicates[name] = docs;
+        }
+      });
+
+      if (duplicates.isEmpty) {
+        print('RegionService: No duplicates found');
+        return {
+          'success': true,
+          'message': 'No duplicates found',
+          'duplicatesRemoved': 0,
+          'totalRegions': querySnapshot.docs.length,
+        };
+      }
+
+      print('RegionService: Found ${duplicates.length} region names with duplicates');
+
+      // Identify which regions to remove
+      final toRemove = <QueryDocumentSnapshot>[];
+      final details = <String, dynamic>{};
+
+      duplicates.forEach((name, docs) {
+        print('  Checking "$name" (${docs.length} duplicates)');
+
+        // Sort by creation date (most recent first)
+        docs.sort((a, b) {
+          final aData = a.data() as Map<String, dynamic>;
+          final bData = b.data() as Map<String, dynamic>;
+          final aTime = (aData['createdAt'] as Timestamp?)?.toDate() ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+          final bTime = (bData['createdAt'] as Timestamp?)?.toDate() ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+          return bTime.compareTo(aTime); // Descending (newest first)
+        });
+
+        // Keep the first (most recent), mark rest for deletion
+        final toKeep = docs.first;
+        final toDelete = docs.sublist(1);
+
+        details[name] = {
+          'kept': toKeep.id,
+          'removed': toDelete.map((d) => d.id).toList(),
+        };
+
+        toRemove.addAll(toDelete);
+      });
+
+      print('RegionService: Will remove ${toRemove.length} duplicate regions');
+
+      // Delete the duplicates
+      for (var doc in toRemove) {
+        print('  Deleting: ${doc.id}');
+        await _firestore.collection(_collectionName).doc(doc.id).delete();
+      }
+
+      clearCaches(); // Clear caches after deletion
+
+      return {
+        'success': true,
+        'message':
+            'Successfully removed ${toRemove.length} duplicate region(s)',
+        'duplicatesRemoved': toRemove.length,
+        'totalRegions': querySnapshot.docs.length - toRemove.length,
+        'details': details,
+      };
+    } catch (e) {
+      print('RegionService: Error during cleanup: $e');
+      return {
+        'success': false,
+        'message': 'Error during cleanup: $e',
+        'duplicatesRemoved': 0,
+      };
+    }
+  }
 }
