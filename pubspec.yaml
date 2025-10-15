@@ -64,3 +64,5 @@ flutter:
     - assets/churches_SAB.json
     - assets/NSM STAFF.json
     - assets/NSM_Churches_Updated.json
+    - assets/Special_events.pdf
+    - assets/special_events_2025.json

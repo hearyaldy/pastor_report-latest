@@ -1,0 +1,340 @@
+{
+  "CalendarOfSpecialDays2025": [
+    {
+      "month": "January",
+      "events": [
+        {
+          "date": "4",
+          "title": "Quarterly Day of Prayer",
+          "department": "R&RCom"
+        },
+        {
+          "date": "8-18",
+          "title": "Ten Days of Prayer",
+          "department": "GC-MIN"
+        },
+        {
+          "date": "11",
+          "title": "#Health Ministries",
+          "department": "GC-HM/DIV"
+        },
+        {
+          "date": "18",
+          "title": "Religious Liberty Day",
+          "department": "GC/NAD-PARL"
+        }
+      ]
+    },
+    {
+      "month": "February",
+      "events": [
+        {
+          "date": "1",
+          "title": "Reach the World: Personal Outreach",
+          "department": "GC-SSPM"
+        },
+        {
+          "date": "8-15",
+          "title": "Christian Home and Marriage Week",
+          "department": "GC-FM"
+        }
+      ]
+    },
+    {
+      "month": "March",
+      "events": [
+        {
+          "date": "1",
+          "title": "Women’s Day of Prayer",
+          "department": "GC-WM"
+        },
+        {
+          "date": "8",
+          "title": "Adventist World Radio",
+          "department": "GC-AWR"
+        },
+        {
+          "date": "15-22",
+          "title": "Youth Week of Prayer",
+          "department": "GC-YOU"
+        },
+        {
+          "date": "15",
+          "title": "Global Youth Day / Global Children’s Day",
+          "department": "GC-YOU/CHM"
+        },
+        {
+          "date": "22",
+          "title": "#Christian Education",
+          "department": "Divisions"
+        }
+      ]
+    },
+    {
+      "month": "April",
+      "events": [
+        {
+          "date": "5",
+          "title": "Quarterly Day of Prayer",
+          "department": "R&RCom"
+        },
+        {
+          "date": "5",
+          "title": "World Ambassador Day",
+          "department": "GC-YOU"
+        },
+        {
+          "date": "12-18",
+          "title": "#Literature Evangelism Rally Week",
+          "department": "Divisions"
+        },
+        {
+          "date": "12",
+          "title": "Friends of Hope Day (Visitor’s Day)",
+          "department": "GC-SSPM"
+        },
+        {
+          "date": "12",
+          "title": "Hope Channel International",
+          "department": "GC-HCI"
+        },
+        {
+          "date": "12",
+          "title": "World Impact Day—for Distribution of Missionary Book",
+          "department": "Divisions"
+        },
+        {
+          "date": "19",
+          "title": "Possibility Ministries Day",
+          "department": "GC-APM"
+        }
+      ]
+    },
+    {
+      "month": "May",
+      "events": [
+        {
+          "date": "3-31",
+          "title": "Drug Awareness Month",
+          "department": "GC-HM"
+        },
+        {
+          "date": "3",
+          "title": "Reach the World: Using Communication Channels",
+          "department": "GC-COM"
+        },
+        {
+          "date": "17",
+          "title": "Global Adventurer’s Day",
+          "department": "GC-YOU"
+        },
+        {
+          "date": "24",
+          "title": "World Day of Prayer for Children at Risk",
+          "department": "GC-CHM"
+        }
+      ]
+    },
+    {
+      "month": "June",
+      "events": [
+        {
+          "date": "7",
+          "title": "Reach the World: Bible Study: Sabbath School and Correspondence Courses",
+          "department": "GC-SSPM"
+        },
+        {
+          "date": "14",
+          "title": "Women’s Ministries Emphasis Day",
+          "department": "GC-WM"
+        },
+        {
+          "date": "21",
+          "title": "Reach the World: Nurturing Other Members and Reclaiming",
+          "department": "GC-SSPM"
+        },
+        {
+          "date": "21",
+          "title": "Adventist Church World Refugee Day",
+          "department": "ADRA"
+        },
+        {
+          "date": "28",
+          "title": "World Public Campus Ministries Day",
+          "department": "GC-YOU"
+        }
+      ]
+    },
+    {
+      "month": "July",
+      "events": [
+        {
+          "date": "5",
+          "title": "Quarterly Day of Prayer",
+          "department": "R&RCom"
+        },
+        {
+          "date": "12",
+          "title": "Mission Promotion",
+          "department": "GC-AM"
+        },
+        {
+          "date": "19",
+          "title": "Reach the World: Media Ministry",
+          "department": "GC-COM"
+        },
+        {
+          "date": "26",
+          "title": "Children’s Sabbath",
+          "department": "GC-CHM"
+        }
+      ]
+    },
+    {
+      "month": "August",
+      "events": [
+        {
+          "date": "2",
+          "title": "#Global Mission Evangelism",
+          "department": "Divisions"
+        },
+        {
+          "date": "9",
+          "title": "Reach the World: Church Planting",
+          "department": "GC-AM"
+        },
+        {
+          "date": "16",
+          "title": "Education Day",
+          "department": "GC-EDU"
+        },
+        {
+          "date": "23",
+          "title": "enditnow Day",
+          "department": "GC-WM"
+        },
+        {
+          "date": "23",
+          "title": "#Lay Evangelism",
+          "department": "Divisions"
+        }
+      ]
+    },
+    {
+      "month": "September",
+      "events": [
+        {
+          "date": "6",
+          "title": "#Youth Spiritual and Mission Commitment Day",
+          "department": "Divisions"
+        },
+        {
+          "date": "7-13",
+          "title": "Family Togetherness Week of Prayer",
+          "department": "GC-FM"
+        },
+        {
+          "date": "13",
+          "title": "Family Togetherness Day of Prayer",
+          "department": "GC-FM"
+        },
+        {
+          "date": "13",
+          "title": "Mission Promotion",
+          "department": "GC-AM"
+        },
+        {
+          "date": "20",
+          "title": "Pathfinder Day",
+          "department": "GC-YOU"
+        },
+        {
+          "date": "27",
+          "title": "#Sabbath School Guest Day",
+          "department": "Divisions"
+        }
+      ]
+    },
+    {
+      "month": "October",
+      "events": [
+        {
+          "date": "4",
+          "title": "Quarterly Day of Prayer",
+          "department": "R&RCom"
+        },
+        {
+          "date": "4",
+          "title": "Adventist Review Subscription Promotion",
+          "department": "GC-ARMies"
+        },
+        {
+          "date": "11",
+          "title": "Pastor Appreciation Day",
+          "department": "GC-MIN"
+        },
+        {
+          "date": "18",
+          "title": "Spirit of Prophecy and Adventist Heritage",
+          "department": "GC-WHT"
+        },
+        {
+          "date": "25",
+          "title": "Creation Sabbath",
+          "department": "Faith&ScCou"
+        }
+      ]
+    },
+    {
+      "month": "November",
+      "events": [
+        {
+          "date": "1-8",
+          "title": "Week of Prayer",
+          "department": "GC-ARMies"
+        },
+        {
+          "date": "8-14",
+          "title": "e-Week of Prayer for Youth and Young Adults",
+          "department": "GC-YOU"
+        },
+        {
+          "date": "8",
+          "title": "Mission Promotion",
+          "department": "GC-AM"
+        },
+        {
+          "date": "15",
+          "title": "World Orphans-Vulnerable Children Day",
+          "department": "GC-APM"
+        },
+        {
+          "date": "22",
+          "title": "HIV/AIDS Awareness",
+          "department": "GC-AAIM"
+        },
+        {
+          "date": "29-6",
+          "title": "Stewardship Revival Week",
+          "department": "GC-STW"
+        }
+      ]
+    },
+    {
+      "month": "December",
+      "events": [
+        {
+          "date": "6",
+          "title": "Annual Stewardship Sabbath",
+          "department": "GC-STW"
+        },
+        {
+          "date": "13",
+          "title": "#Health Emphasis",
+          "department": "GC-HM/DIV"
+        }
+      ]
+    }
+  ],
+  "note": "#Divisions to prepare materials. Promotional materials for events sponsored by GC departments can be found at https://gc.adventist.org/events/special-days."
+}

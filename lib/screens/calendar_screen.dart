@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:pastor_report/models/appointment_model.dart';
 import 'package:pastor_report/models/event_model.dart';
+import 'package:pastor_report/models/global_event_model.dart';
 import 'package:pastor_report/services/appointment_storage_service.dart';
 import 'package:pastor_report/services/event_service.dart';
+import 'package:pastor_report/services/global_event_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
@@ -53,6 +55,19 @@ class CalendarItem {
       originalItem: event,
     );
   }
+
+  // Factory constructor to create from GlobalEvent
+  factory CalendarItem.fromGlobalEvent(GlobalEvent globalEvent) {
+    return CalendarItem(
+      id: globalEvent.id,
+      title: globalEvent.title,
+      description: globalEvent.notes,
+      dateTime: globalEvent.dateTime,
+      location: globalEvent.department,
+      type: 'global_event',
+      originalItem: globalEvent,
+    );
+  }
 }
 
 class CalendarScreen extends StatefulWidget {
@@ -68,9 +83,11 @@ class _CalendarScreenState extends State<CalendarScreen>
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   String _selectedView = 'all'; // 'all', 'appointments', 'events'
+  bool _isMonthView = false; // New state to toggle month view
 
   Map<DateTime, List<CalendarItem>> _calendarItems = {};
   List<CalendarItem> _selectedDayItems = [];
+  List<CalendarItem> _monthViewItems = []; // Items for month view
 
   late TabController _tabController;
 
@@ -84,10 +101,13 @@ class _CalendarScreenState extends State<CalendarScreen>
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
-    _tabController = TabController(length: 3, vsync: this);
+    print('Initializing TabController with length: 4');
+    _tabController = TabController(length: 4, vsync: this);
+    print('TabController initialized. Current index: ${_tabController.index}');
     _tabController.addListener(() {
       // Defensive check for valid index
-      if (_tabController.index < 0 || _tabController.index >= 3) {
+      print('TabController index changed to: ${_tabController.index}, Length: ${_tabController.length}');
+      if (_tabController.index < 0 || _tabController.index >= 4) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && _tabController.index != 0) {
             _tabController.animateTo(0);
@@ -108,9 +128,18 @@ class _CalendarScreenState extends State<CalendarScreen>
             case 2:
               _selectedView = 'events';
               break;
+            case 3:
+              _selectedView = 'global_events';
+              break;
           }
         });
         _filterItems();
+        if (_isMonthView) {
+          // Update month view items when tab changes
+          setState(() {
+            _monthViewItems = _getItemsForMonth();
+          });
+        }
       }
     });
     _loadCalendarItems();
@@ -125,12 +154,15 @@ class _CalendarScreenState extends State<CalendarScreen>
     super.dispose();
   }
 
-  // Load both appointments and events
+  // Load appointments, events, and global events
   Future<void> _loadCalendarItems() async {
     // Load appointments
     final appointments =
         await AppointmentStorageService.instance.getAppointments();
     final events = await EventService.instance.getLocalEvents();
+    print('Loading global events from service...');
+    final globalEvents = await GlobalEventService.instance.getAllEvents();
+    print('Retrieved ${globalEvents.length} global events from service');
 
     final Map<DateTime, List<CalendarItem>> itemsMap = {};
 
@@ -156,6 +188,20 @@ class _CalendarScreenState extends State<CalendarScreen>
       itemsMap[date]!.add(CalendarItem.fromEvent(event));
     }
 
+    // Process global events
+    print('Processing ${globalEvents.length} global events...');
+    for (var globalEvent in globalEvents) {
+      print('Processing global event: ${globalEvent.title} on ${globalEvent.dateTime}');
+      final date = DateTime(
+          globalEvent.dateTime.year, globalEvent.dateTime.month, globalEvent.dateTime.day);
+
+      if (itemsMap[date] == null) {
+        itemsMap[date] = [];
+      }
+      itemsMap[date]!.add(CalendarItem.fromGlobalEvent(globalEvent));
+    }
+    print('Finished processing global events');
+
     // Update selected day items
     List<CalendarItem> selectedDayItems = [];
     if (_selectedDay != null) {
@@ -168,14 +214,33 @@ class _CalendarScreenState extends State<CalendarScreen>
     setState(() {
       _calendarItems = itemsMap;
       _selectedDayItems = _filterItemsByView(selectedDayItems);
+      
+      // Update month view items if in month view
+      if (_isMonthView) {
+        _monthViewItems = _getItemsForMonth();
+      }
     });
   }
 
   List<CalendarItem> _filterItemsByView(List<CalendarItem> items) {
     if (_selectedView == 'all') return items;
-    // Match singular type with plural view (appointments -> appointment, events -> event)
-    final typeToMatch =
-        _selectedView == 'appointments' ? 'appointment' : 'event';
+    
+    // Match view with item type
+    String typeToMatch;
+    switch (_selectedView) {
+      case 'appointments':
+        typeToMatch = 'appointment';
+        break;
+      case 'events':
+        typeToMatch = 'event';
+        break;
+      case 'global_events':
+        typeToMatch = 'global_event';
+        break;
+      default:
+        typeToMatch = _selectedView;
+    }
+    
     return items.where((item) => item.type == typeToMatch).toList();
   }
 
@@ -190,6 +255,11 @@ class _CalendarScreenState extends State<CalendarScreen>
 
     setState(() {
       _selectedDayItems = _filterItemsByView(allItems);
+      
+      // Update month view items if in month view
+      if (_isMonthView) {
+        _monthViewItems = _getItemsForMonth();
+      }
     });
   }
 
@@ -205,6 +275,11 @@ class _CalendarScreenState extends State<CalendarScreen>
 
     setState(() {
       _selectedDayItems = _filterItemsByView(allItems);
+      
+      // Update month view items if in month view
+      if (_isMonthView) {
+        _monthViewItems = _getItemsForMonth();
+      }
     });
   }
 
@@ -223,6 +298,10 @@ class _CalendarScreenState extends State<CalendarScreen>
     _selectedDateTime = _selectedDay ?? DateTime.now();
     _selectedEndDateTime = null;
 
+    Color eventTypeColor = type == 'appointment' 
+        ? Colors.orange 
+        : AppColors.primaryLight;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -230,7 +309,7 @@ class _CalendarScreenState extends State<CalendarScreen>
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Padding(
+        return Container(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
             left: 16,
@@ -242,26 +321,65 @@ class _CalendarScreenState extends State<CalendarScreen>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Add ${type.capitalize()}',
-                      style: Theme.of(context).textTheme.headlineSmall,
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: eventTypeColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: eventTypeColor.withOpacity(0.3),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: eventTypeColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: eventTypeColor.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Icon(
+                          type == 'appointment' 
+                              ? Icons.calendar_today 
+                              : Icons.event,
+                          color: eventTypeColor,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Add ${type.capitalize()}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: eventTypeColor,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _titleController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Title',
                     hintText: 'Enter title',
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: eventTypeColor,
+                      ),
+                    ),
                   ),
                   autofocus: true,
                   textCapitalization: TextCapitalization.sentences,
@@ -289,56 +407,30 @@ class _CalendarScreenState extends State<CalendarScreen>
                   textCapitalization: TextCapitalization.words,
                 ),
                 const SizedBox(height: 16),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Date & Time'),
-                  subtitle: Text(DateFormat('MMM dd, yyyy • h:mm a')
-                      .format(_selectedDateTime)),
-                  trailing: const Icon(Icons.calendar_today),
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _selectedDateTime,
-                      firstDate:
-                          DateTime.now().subtract(const Duration(days: 365)),
-                      lastDate:
-                          DateTime.now().add(const Duration(days: 365 * 2)),
-                    );
-                    if (date != null && context.mounted) {
-                      final time = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
-                      );
-                      if (time != null) {
-                        setState(() {
-                          _selectedDateTime = DateTime(
-                            date.year,
-                            date.month,
-                            date.day,
-                            time.hour,
-                            time.minute,
-                          );
-                        });
-                      }
-                    }
-                  },
-                ),
-
-                // Show end date/time field for events only
-                if (type == 'event')
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('End Date & Time (optional)'),
-                    subtitle: _selectedEndDateTime != null
-                        ? Text(DateFormat('MMM dd, yyyy • h:mm a')
-                            .format(_selectedEndDateTime!))
-                        : const Text('Not specified'),
-                    trailing: const Icon(Icons.event_available),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.grey.withOpacity(0.3),
+                    ),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    leading: Icon(
+                      Icons.calendar_today,
+                      color: eventTypeColor,
+                    ),
+                    title: const Text('Date & Time'),
+                    subtitle: Text(DateFormat('MMM dd, yyyy • h:mm a')
+                        .format(_selectedDateTime)),
+                    trailing: const Icon(Icons.chevron_right),
                     onTap: () async {
                       final date = await showDatePicker(
                         context: context,
-                        initialDate: _selectedEndDateTime ??
-                            _selectedDateTime.add(const Duration(hours: 1)),
+                        initialDate: _selectedDateTime,
                         firstDate:
                             DateTime.now().subtract(const Duration(days: 365)),
                         lastDate:
@@ -347,14 +439,11 @@ class _CalendarScreenState extends State<CalendarScreen>
                       if (date != null && context.mounted) {
                         final time = await showTimePicker(
                           context: context,
-                          initialTime: TimeOfDay.fromDateTime(
-                              _selectedEndDateTime ??
-                                  _selectedDateTime
-                                      .add(const Duration(hours: 1))),
+                          initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
                         );
                         if (time != null) {
                           setState(() {
-                            _selectedEndDateTime = DateTime(
+                            _selectedDateTime = DateTime(
                               date.year,
                               date.month,
                               date.day,
@@ -366,32 +455,105 @@ class _CalendarScreenState extends State<CalendarScreen>
                       }
                     },
                   ),
+                ),
+
+                // Show end date/time field for events only
+                if (type == 'event') ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.grey.withOpacity(0.3),
+                      ),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      leading: Icon(
+                        Icons.event_available,
+                        color: eventTypeColor,
+                      ),
+                      title: const Text('End Date & Time (optional)'),
+                      subtitle: _selectedEndDateTime != null
+                          ? Text(DateFormat('MMM dd, yyyy • h:mm a')
+                              .format(_selectedEndDateTime!))
+                          : const Text('Not specified'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: _selectedEndDateTime ??
+                              _selectedDateTime.add(const Duration(hours: 1)),
+                          firstDate:
+                              DateTime.now().subtract(const Duration(days: 365)),
+                          lastDate:
+                              DateTime.now().add(const Duration(days: 365 * 2)),
+                        );
+                        if (date != null && context.mounted) {
+                          final time = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(
+                                _selectedEndDateTime ??
+                                    _selectedDateTime
+                                        .add(const Duration(hours: 1))),
+                          );
+                          if (time != null) {
+                            setState(() {
+                              _selectedEndDateTime = DateTime(
+                                date.year,
+                                date.month,
+                                date.day,
+                                time.hour,
+                                time.minute,
+                              );
+                            });
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                ],
 
                 const SizedBox(height: 24),
 
-                ElevatedButton(
-                  onPressed: () {
-                    // Validate
-                    if (_titleController.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter a title')),
-                      );
-                      return;
-                    }
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Validate
+                      if (_titleController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter a title')),
+                        );
+                        return;
+                      }
 
-                    if (type == 'appointment') {
-                      _addAppointment();
-                    } else {
-                      _addEvent();
-                    }
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(50),
+                      if (type == 'appointment') {
+                        _addAppointment();
+                      } else {
+                        _addEvent();
+                      }
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: eventTypeColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Save',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                  child: const Text('Save', style: TextStyle(fontSize: 16)),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -449,32 +611,22 @@ class _CalendarScreenState extends State<CalendarScreen>
 
   // Delete an item
   Future<void> _deleteItem(CalendarItem item) async {
-    bool confirmed = await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('Delete ${item.type.capitalize()}'),
-            content: Text('Are you sure you want to delete "${item.title}"?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Delete'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+    bool confirmed = await _showDeleteConfirmationBottomSheet(item);
 
     if (!confirmed) return;
 
     if (item.type == 'appointment') {
       await AppointmentStorageService.instance.deleteAppointment(item.id);
-    } else {
+    } else if (item.type == 'event') {
       await EventService.instance.deleteLocalEvent(item.id);
+    } else if (item.type == 'global_event') {
+      // Note: Global events should typically only be managed by admins through the global events management screen
+      // But if we allow deletion from here, we would use:
+      // await GlobalEventService.instance.deleteEvent(item.id);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Global events can only be deleted by administrators')),
+      );
+      return;
     }
 
     _loadCalendarItems();
@@ -482,9 +634,157 @@ class _CalendarScreenState extends State<CalendarScreen>
       SnackBar(content: Text('${item.type.capitalize()} deleted')),
     );
   }
+  
+  // Show delete confirmation bottom sheet
+  Future<bool> _showDeleteConfirmationBottomSheet(CalendarItem item) async {
+    Color eventTypeColor = item.type == 'appointment' 
+        ? Colors.orange 
+        : item.type == 'global_event' 
+            ? Colors.purple 
+            : AppColors.primaryLight;
+
+    return showModalBottomSheet<bool>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: eventTypeColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: eventTypeColor.withOpacity(0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: eventTypeColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: eventTypeColor.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Icon(
+                        item.type == 'appointment'
+                            ? Icons.calendar_today
+                            : item.type == 'global_event'
+                                ? Icons.public
+                                : _getEventIcon(item.title),
+                        color: eventTypeColor,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Delete ${item.type.capitalize()}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: eventTypeColor,
+                            ),
+                          ),
+                          Text(
+                            item.title,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context, false),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Are you sure you want to delete this item?',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Delete',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    ).then((value) => value ?? false);
+  }
 
   // Show details of an item
   void _showItemDetails(CalendarItem item) {
+    Color eventTypeColor = item.type == 'appointment' 
+        ? Colors.orange 
+        : item.type == 'global_event' 
+            ? Colors.purple 
+            : AppColors.primaryLight;
+            
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -497,69 +797,97 @@ class _CalendarScreenState extends State<CalendarScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: item.type == 'appointment'
-                          ? Colors.orange.shade100
-                          : Colors.indigo.shade100,
-                      borderRadius: BorderRadius.circular(8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: eventTypeColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: eventTypeColor.withOpacity(0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: eventTypeColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: eventTypeColor.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Icon(
+                        item.type == 'appointment'
+                            ? Icons.calendar_today
+                            : item.type == 'global_event'
+                                ? Icons.public
+                                : _getEventIcon(item.title),
+                        color: eventTypeColor,
+                        size: 20,
+                      ),
                     ),
-                    child: Icon(
-                      item.type == 'appointment'
-                          ? Icons.calendar_today
-                          : _getEventIcon(item.title),
-                      size: 20,
-                      color: item.type == 'appointment'
-                          ? Colors.orange.shade700
-                          : Colors.indigo.shade700,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.type == 'global_event' 
+                                ? 'Global Event' 
+                                : item.type.capitalize(),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: eventTypeColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            item.title,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    item.type.capitalize(),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: item.type == 'appointment'
-                          ? Colors.orange.shade700
-                          : Colors.indigo.shade700,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: 20),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      if (item.type == 'appointment') {
-                        Navigator.pushNamed(context, '/appointments',
-                            arguments: item.originalItem);
-                      } else {
-                        Navigator.pushNamed(context, '/events',
-                            arguments: item.originalItem);
-                      }
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _deleteItem(item);
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                item.title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                    if (item.type != 'global_event') ...[
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 20),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          if (item.type == 'appointment') {
+                            Navigator.pushNamed(context, '/appointments',
+                                arguments: item.originalItem);
+                          } else if (item.type == 'event') {
+                            Navigator.pushNamed(context, '/events',
+                                arguments: item.originalItem);
+                          }
+                        },
+                        color: eventTypeColor,
+                        style: IconButton.styleFrom(
+                          backgroundColor: eventTypeColor.withOpacity(0.1),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, size: 20),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _deleteItem(item);
+                        },
+                        color: Colors.red,
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.red.withOpacity(0.1),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Icon(Icons.access_time,
@@ -567,13 +895,16 @@ class _CalendarScreenState extends State<CalendarScreen>
                   const SizedBox(width: 4),
                   Text(
                     DateFormat('MMM dd, yyyy • h:mm a').format(item.dateTime),
-                    style: TextStyle(color: Colors.grey.shade700),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
                   ),
                 ],
               ),
               if (item.type == 'event' &&
                   (item.originalItem as Event).endDate != null) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     Icon(Icons.event_available,
@@ -581,13 +912,16 @@ class _CalendarScreenState extends State<CalendarScreen>
                     const SizedBox(width: 4),
                     Text(
                       'Ends: ${DateFormat('MMM dd, yyyy • h:mm a').format((item.originalItem as Event).endDate!)}',
-                      style: TextStyle(color: Colors.grey.shade700),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
                     ),
                   ],
                 ),
               ],
               if (item.location != null && item.location!.isNotEmpty) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     Icon(Icons.location_on,
@@ -596,7 +930,10 @@ class _CalendarScreenState extends State<CalendarScreen>
                     Expanded(
                       child: Text(
                         item.location!,
-                        style: TextStyle(color: Colors.grey.shade700),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
                       ),
                     ),
                   ],
@@ -604,18 +941,21 @@ class _CalendarScreenState extends State<CalendarScreen>
               ],
               if (item.description != null && item.description!.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                Text(
+                const Text(
                   'Description',
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade800,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   item.description!,
-                  style: const TextStyle(fontSize: 14),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
                 ),
               ],
               if (item.type == 'appointment') ...[
@@ -624,12 +964,12 @@ class _CalendarScreenState extends State<CalendarScreen>
                         .contactPerson!
                         .isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'Contact',
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade800,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -639,7 +979,10 @@ class _CalendarScreenState extends State<CalendarScreen>
                       const SizedBox(width: 4),
                       Text(
                         (item.originalItem as Appointment).contactPerson!,
-                        style: TextStyle(color: Colors.grey.shade700),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
                       ),
                     ],
                   ),
@@ -655,7 +998,10 @@ class _CalendarScreenState extends State<CalendarScreen>
                         const SizedBox(width: 4),
                         Text(
                           (item.originalItem as Appointment).contactPhone!,
-                          style: TextStyle(color: Colors.grey.shade700),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
                         ),
                       ],
                     ),
@@ -699,6 +1045,24 @@ class _CalendarScreenState extends State<CalendarScreen>
     }
   }
 
+  List<CalendarItem> _getItemsForMonth() {
+    // Filter items based on the selected tab view for the current month
+    List<CalendarItem> monthItems = [];
+    
+    // Get all items for the current month
+    _calendarItems.forEach((date, items) {
+      if (date.month == _focusedDay.month && date.year == _focusedDay.year) {
+        // Apply the same filter as for day view to each item before adding
+        List<CalendarItem> filteredItems = _filterItemsByView(items);
+        monthItems.addAll(filteredItems);
+      }
+    });
+    
+    // Sort the final list
+    monthItems.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    return monthItems;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -713,6 +1077,16 @@ class _CalendarScreenState extends State<CalendarScreen>
             onPressed: _loadCalendarItems,
             tooltip: 'Refresh',
           ),
+          // Toggle between day view and month view
+          IconButton(
+            icon: Icon(_isMonthView ? Icons.today : Icons.date_range),
+            onPressed: () {
+              setState(() {
+                _isMonthView = !_isMonthView;
+              });
+            },
+            tooltip: _isMonthView ? 'Switch to Day View' : 'Switch to Month View',
+          ),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -723,6 +1097,7 @@ class _CalendarScreenState extends State<CalendarScreen>
             Tab(text: 'All'),
             Tab(text: 'Appointments'),
             Tab(text: 'Events'),
+            Tab(text: 'Global Events'),
           ],
         ),
       ),
@@ -744,6 +1119,12 @@ class _CalendarScreenState extends State<CalendarScreen>
             },
             onPageChanged: (focusedDay) {
               _focusedDay = focusedDay;
+              if (_isMonthView) {
+                // Update month view items when month changes
+                setState(() {
+                  _monthViewItems = _getItemsForMonth();
+                });
+              }
             },
             eventLoader: _getEventsForDay,
             calendarStyle: CalendarStyle(
@@ -767,18 +1148,28 @@ class _CalendarScreenState extends State<CalendarScreen>
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Row(
               children: [
-                Text(
-                  _selectedDay == null
-                      ? 'No Date Selected'
-                      : DateFormat.yMMMMd().format(_selectedDay!),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
+                _isMonthView
+                    ? Text(
+                        '${DateFormat('MMMM yyyy').format(_focusedDay)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      )
+                    : Text(
+                        _selectedDay == null
+                            ? 'No Date Selected'
+                            : DateFormat.yMMMMd().format(_selectedDay!),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
                 const Spacer(),
                 Text(
-                  '${_selectedDayItems.length} items',
+                  _isMonthView
+                      ? '${_getItemsForMonth().length} items this month'
+                      : '${_selectedDayItems.length} items',
                   style: TextStyle(
                     color: Colors.grey.shade600,
                     fontWeight: FontWeight.w500,
@@ -788,132 +1179,163 @@ class _CalendarScreenState extends State<CalendarScreen>
             ),
           ),
           Expanded(
-            child: _selectedDayItems.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _selectedView == 'appointment'
-                              ? Icons.calendar_today
-                              : _selectedView == 'event'
-                                  ? Icons.event
-                                  : Icons.calendar_month,
-                          size: 64,
-                          color: Colors.grey.shade400,
+            child: _isMonthView
+                ? _buildMonthView()
+                : (_selectedDayItems.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _selectedView == 'appointment'
+                                  ? Icons.calendar_today
+                                  : _selectedView == 'event'
+                                      ? Icons.event
+                                      : Icons.calendar_month,
+                              size: 64,
+                              color: Colors.grey.shade400,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              _selectedView == 'all'
+                                  ? 'No appointments or events for this day'
+                                  : 'No ${_selectedView}s for this day',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _selectedView == 'all'
-                              ? 'No appointments or events for this day'
-                              : 'No ${_selectedView}s for this day',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _selectedDayItems.length,
-                    itemBuilder: (context, index) {
-                      final item = _selectedDayItems[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () => _showItemDetails(item),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: item.type == 'appointment'
-                                        ? Colors.orange.shade100
-                                        : Colors.indigo.shade100,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    item.type == 'appointment'
-                                        ? Icons.calendar_today
-                                        : _getEventIcon(item.title),
-                                    color: item.type == 'appointment'
-                                        ? Colors.orange.shade700
-                                        : Colors.indigo.shade700,
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              item.title,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                              ),
-                                            ),
-                                          ),
-                                          Text(
-                                            DateFormat('h:mm a')
-                                                .format(item.dateTime),
-                                            style: TextStyle(
-                                              color: Colors.grey.shade600,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _selectedDayItems.length,
+                        itemBuilder: (context, index) {
+                          final item = _selectedDayItems[index];
+                          Color eventTypeColor = item.type == 'appointment' 
+                              ? Colors.orange 
+                              : item.type == 'global_event' 
+                                  ? Colors.purple 
+                                  : AppColors.primaryLight;
+                          
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(
+                                color: eventTypeColor.withOpacity(0.3),
+                                width: 1,
+                              ),
+                            ),
+                            elevation: 1,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () => _showItemDetails(item),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: eventTypeColor.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: eventTypeColor.withOpacity(0.3),
+                                        ),
                                       ),
-                                      if (item.location != null &&
-                                          item.location!.isNotEmpty)
-                                        Padding(
-                                          padding:
-                                              const EdgeInsets.only(top: 4),
-                                          child: Row(
+                                      child: Icon(
+                                        item.type == 'appointment'
+                                            ? Icons.calendar_today
+                                            : item.type == 'global_event'
+                                                ? Icons.public
+                                                : _getEventIcon(item.title),
+                                        color: eventTypeColor,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
                                             children: [
-                                              Icon(Icons.location_on,
-                                                  size: 14,
-                                                  color: Colors.grey.shade600),
-                                              const SizedBox(width: 4),
                                               Expanded(
                                                 child: Text(
-                                                  item.location!,
+                                                  item.title,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 15,
+                                                    color: Colors.black87,
+                                                  ),
+                                                ),
+                                              ),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 4,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: eventTypeColor.withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  border: Border.all(
+                                                    color: eventTypeColor.withOpacity(0.3),
+                                                  ),
+                                                ),
+                                                child: Text(
+                                                  DateFormat('h:mm a').format(item.dateTime),
                                                   style: TextStyle(
                                                     fontSize: 12,
-                                                    color: Colors.grey.shade700,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: eventTypeColor,
                                                   ),
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
                                                 ),
                                               ),
                                             ],
                                           ),
-                                        ),
-                                    ],
-                                  ),
+                                          if (item.location != null && item.location!.isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 6),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.location_on,
+                                                    size: 14,
+                                                    color: Colors.grey.shade600,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Expanded(
+                                                    child: Text(
+                                                      item.location!,
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.grey,
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.chevron_right,
+                                      color: Colors.grey,
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                          );
+                        },
+                      )),
           ),
         ],
       ),
@@ -924,33 +1346,105 @@ class _CalendarScreenState extends State<CalendarScreen>
           } else if (_selectedView == 'events') {
             _showAddBottomSheet(type: 'event');
           } else {
-            // Show dialog to choose type
-            showDialog(
+            // Show bottom sheet to choose type
+            showModalBottomSheet(
               context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('What would you like to add?'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.calendar_today),
-                      title: const Text('Appointment'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _showAddBottomSheet(type: 'appointment');
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.event),
-                      title: const Text('Event'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _showAddBottomSheet(type: 'event');
-                      },
-                    ),
-                  ],
-                ),
+              isScrollControlled: true,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
+              builder: (context) {
+                return Container(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                    left: 16,
+                    right: 16,
+                    top: 16,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Add New',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: Colors.orange.withOpacity(0.3),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.calendar_today,
+                            color: Colors.orange,
+                          ),
+                        ),
+                        title: const Text('Appointment'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showAddBottomSheet(type: 'appointment');
+                        },
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: Colors.grey.withOpacity(0.3),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: AppColors.primaryLight.withOpacity(0.3),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.event,
+                            color: AppColors.primaryLight,
+                          ),
+                        ),
+                        title: const Text('Event'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showAddBottomSheet(type: 'event');
+                        },
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: Colors.grey.withOpacity(0.3),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                );
+              },
             );
           }
         },
@@ -958,6 +1452,180 @@ class _CalendarScreenState extends State<CalendarScreen>
         foregroundColor: Colors.white,
         child: const Icon(Icons.add),
       ),
+    );
+  }
+
+  Widget _buildMonthView() {
+    List<CalendarItem> monthItems = _getItemsForMonth();
+    
+    // Sort items by date and time
+    monthItems.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    
+    if (monthItems.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              _selectedView == 'appointment'
+                  ? Icons.calendar_today
+                  : _selectedView == 'event'
+                      ? Icons.event
+                      : Icons.calendar_month,
+              size: 64,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _selectedView == 'all'
+                  ? 'No appointments or events this month'
+                  : 'No ${_selectedView}s this month',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: monthItems.length,
+      itemBuilder: (context, index) {
+        final item = monthItems[index];
+        Color eventTypeColor = item.type == 'appointment' 
+            ? Colors.orange 
+            : item.type == 'global_event' 
+                ? Colors.purple 
+                : AppColors.primaryLight;
+        
+        return Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: eventTypeColor.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          elevation: 1,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => _showItemDetails(item),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: eventTypeColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: eventTypeColor.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Icon(
+                      item.type == 'appointment'
+                          ? Icons.calendar_today
+                          : item.type == 'global_event'
+                              ? Icons.public
+                              : _getEventIcon(item.title),
+                      color: eventTypeColor,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item.title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: eventTypeColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: eventTypeColor.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Text(
+                                DateFormat('MMM dd').format(item.dateTime),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: eventTypeColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          DateFormat('h:mm a').format(item.dateTime),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        if (item.location != null && item.location!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.location_on,
+                                  size: 14,
+                                  color: Colors.grey.shade600,
+                                ),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    item.location!,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right,
+                    color: Colors.grey,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

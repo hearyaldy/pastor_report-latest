@@ -564,6 +564,20 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
       ));
     }
 
+    // Global Events - Admin, SuperAdmin, MissionAdmin, Director, Officer
+    if (user.canManageMissions() ||
+        user.userRole == UserRole.missionAdmin ||
+        user.userRole == UserRole.director ||
+        user.userRole == UserRole.officer) {
+      tools.add(_buildManagementCard(
+        'Global Events',
+        'Manage global events',
+        Icons.event,
+        Colors.purple,
+        () => Navigator.pushNamed(context, '/global-events'),
+      ));
+    }
+
     // Districts - Admin, SuperAdmin, MissionAdmin, DistrictPastor
     if (user.canManageMissions() ||
         user.userRole == UserRole.missionAdmin ||

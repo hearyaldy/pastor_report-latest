@@ -34,6 +34,7 @@ import 'package:pastor_report/screens/all_borang_b_reports_screen.dart';
 import 'package:pastor_report/screens/ministerial_secretary_dashboard.dart';
 import 'package:pastor_report/screens/my_ministry_screen.dart';
 import 'package:pastor_report/screens/staff_management_screen.dart';
+import 'package:pastor_report/screens/global_events_management_screen.dart';
 import 'package:pastor_report/screens/about_screen.dart';
 import 'package:pastor_report/services/todo_storage_service.dart';
 import 'package:pastor_report/services/appointment_storage_service.dart';
@@ -141,6 +142,7 @@ class PastorReportApp extends StatelessWidget {
                   const MinisterialSecretaryDashboard(),
               '/my-ministry': (context) => const MyMinistryScreen(),
               '/staff-management': (context) => const StaffManagementScreen(),
+              '/global-events': (context) => const GlobalEventsManagementScreen(),
               AppConstants.routeAbout: (context) => const AboutScreen(),
             },
             onGenerateRoute: (settings) {

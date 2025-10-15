@@ -48,7 +48,8 @@ Future<void> main() async {
     // Display all regions
     print('=== All Regions ===');
     regionsByName.forEach((name, docs) {
-      print('\n$name (${docs.length} ${docs.length == 1 ? "entry" : "entries"}):');
+      print(
+          '\n$name (${docs.length} ${docs.length == 1 ? "entry" : "entries"}):');
       for (var doc in docs) {
         final data = doc.data() as Map<String, dynamic>;
         final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
@@ -82,8 +83,13 @@ Future<void> main() async {
 
       // Sort by creation date (most recent first)
       docs.sort((a, b) {
-        final aTime = (a.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final bTime = (b.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final aTime = (a.data()['createdAt'] as Timestamp?)?.toDate() ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        final bData = b.data();
+        final bTime =
+            (bData != null ? (bData['createdAt'] as Timestamp?) : null)
+                    ?.toDate() ??
+                DateTime.fromMillisecondsSinceEpoch(0);
         return bTime.compareTo(aTime); // Descending (newest first)
       });
 
@@ -94,7 +100,8 @@ Future<void> main() async {
       final keepData = toKeep.data() as Map<String, dynamic>;
       final keepCreatedAt = (keepData['createdAt'] as Timestamp?)?.toDate();
 
-      print('  ✓ KEEP:   ${toKeep.id} (Created: ${keepCreatedAt ?? "Unknown"})');
+      print(
+          '  ✓ KEEP:   ${toKeep.id} (Created: ${keepCreatedAt ?? "Unknown"})');
 
       for (var doc in toDelete) {
         final data = doc.data() as Map<String, dynamic>;
@@ -110,17 +117,20 @@ Future<void> main() async {
     print('Total regions: ${querySnapshot.docs.length}');
     print('Unique region names: ${regionsByName.length}');
     print('Regions to remove: ${toRemove.length}');
-    print('Regions after cleanup: ${querySnapshot.docs.length - toRemove.length}');
+    print(
+        'Regions after cleanup: ${querySnapshot.docs.length - toRemove.length}');
 
     // Ask for confirmation
-    print('\n⚠️  WARNING: This will delete ${toRemove.length} region(s) from the database!');
+    print(
+        '\n⚠️  WARNING: This will delete ${toRemove.length} region(s) from the database!');
     print('Do you want to proceed? (yes/no): ');
 
     // Note: This is a script, so we'll just show what would be deleted
     // You need to manually confirm by uncommenting the delete code below
 
     print('\n❌ Deletion not executed (safety feature)');
-    print('To actually delete the duplicates, uncomment the deletion code in the script.');
+    print(
+        'To actually delete the duplicates, uncomment the deletion code in the script.');
 
     // UNCOMMENT THE CODE BELOW TO ACTUALLY DELETE THE DUPLICATES
     /*
@@ -131,7 +141,6 @@ Future<void> main() async {
     }
     print('\n✅ Cleanup completed successfully!');
     */
-
   } catch (e) {
     print('Error during cleanup: $e');
   }
