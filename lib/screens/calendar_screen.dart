@@ -615,24 +615,42 @@ class _CalendarScreenState extends State<CalendarScreen>
 
     if (!confirmed) return;
 
-    if (item.type == 'appointment') {
-      await AppointmentStorageService.instance.deleteAppointment(item.id);
-    } else if (item.type == 'event') {
-      await EventService.instance.deleteLocalEvent(item.id);
-    } else if (item.type == 'global_event') {
-      // Note: Global events should typically only be managed by admins through the global events management screen
-      // But if we allow deletion from here, we would use:
-      // await GlobalEventService.instance.deleteEvent(item.id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Global events can only be deleted by administrators')),
-      );
-      return;
-    }
+    // Verify user ownership before deletion
+    try {
+      if (item.type == 'appointment') {
+        Appointment appointment = item.originalItem as Appointment;
+        // The AppointmentStorageService already handles user authentication checks
+        await AppointmentStorageService.instance.deleteAppointment(item.id);
+      } else if (item.type == 'event') {
+        Event event = item.originalItem as Event;
+        if (event.isGlobal) {
+          // Global events can only be deleted by administrators
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Global events can only be deleted by administrators')),
+          );
+          return;
+        }
+        // The EventService already handles user authentication checks
+        await EventService.instance.deleteLocalEvent(item.id);
+      } else if (item.type == 'global_event') {
+        // Global events should only be deletable by administrators
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Global events can only be deleted by administrators')),
+        );
+        return;
+      }
 
-    _loadCalendarItems();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${item.type.capitalize()} deleted')),
-    );
+      _loadCalendarItems();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${item.type.capitalize()} deleted')),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting ${item.type}: $e')),
+        );
+      }
+    }
   }
   
   // Show delete confirmation bottom sheet

@@ -35,6 +35,9 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
   late Animation<double> _rotateAnimation;
   late Animation<double> _scaleAnimation;
 
+  // Track expanded cards
+  final Set<String> _expandedReportIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -773,6 +776,8 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
   }
 
   Widget _buildReportCard(FinancialReport report) {
+    final isExpanded = _expandedReportIds.contains(report.id);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -788,23 +793,30 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
       ),
       child: Column(
         children: [
-          // Main card content
+          // Compact header - always visible
           Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
               ),
-              onTap: () => _editReport(report),
+              onTap: () {
+                setState(() {
+                  if (isExpanded) {
+                    _expandedReportIds.remove(report.id);
+                  } else {
+                    _expandedReportIds.add(report.id);
+                  }
+                });
+              },
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
                     // Icon based on status
                     Container(
-                      width: 50,
-                      height: 50,
+                      width: 44,
+                      height: 44,
                       decoration: BoxDecoration(
                         color: _getStatusColor(report.status)
                             .withValues(alpha: 0.1),
@@ -814,11 +826,11 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
                         child: Icon(
                           _getStatusIcon(report.status),
                           color: _getStatusColor(report.status),
-                          size: 24,
+                          size: 20,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -826,50 +838,39 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
                           Text(
                             DateFormat('MMMM yyyy').format(report.month),
                             style: const TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            'Updated: ${DateFormat('MMM d, yyyy').format(report.updatedAt ?? report.createdAt)}',
-                            style: TextStyle(
-                                fontSize: 13, color: Colors.grey.shade600),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Flexible(
-                                child: _buildMiniStat(
-                                    'Tithe', report.tithe, Colors.blue),
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: _buildMiniStat(
-                                    'Offer', report.offerings, Colors.green),
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: _buildMiniStat('Special',
-                                    report.specialOfferings, Colors.orange),
-                              ),
-                            ],
-                          ),
+                          if (_userChurch != null)
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.church_outlined,
+                                  size: 12,
+                                  color: Theme.of(context).textTheme.bodySmall?.color,
+                                ),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    _userChurch!.churchName,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context).textTheme.bodySmall?.color,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
                         ],
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          'RM ${report.totalFinancial.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryLight,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
@@ -881,11 +882,17 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
                           child: Text(
                             report.status.toUpperCase(),
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 9,
                               fontWeight: FontWeight.bold,
                               color: _getStatusColor(report.status),
                             ),
                           ),
+                        ),
+                        const SizedBox(height: 4),
+                        Icon(
+                          isExpanded ? Icons.expand_less : Icons.expand_more,
+                          size: 20,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
                         ),
                       ],
                     ),
@@ -894,81 +901,117 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
               ),
             ),
           ),
-          // Action buttons
-          Container(
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(color: Colors.grey.shade200),
+
+          // Expanded content - financial details
+          if (isExpanded) ...[
+            Divider(height: 1, color: Colors.grey.shade200),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Last updated
+                  Text(
+                    'Updated: ${DateFormat('MMM d, yyyy').format(report.updatedAt ?? report.createdAt)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Financial breakdown
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMiniStat(
+                            'Tithe', report.tithe, Colors.blue),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildMiniStat(
+                            'Offerings', report.offerings, Colors.green),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildMiniStat('Special',
+                            report.specialOfferings, Colors.orange),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Total amount
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Total Collection',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context).textTheme.bodySmall?.color,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'RM ${report.totalFinancial.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryLight,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Action buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _editReport(report),
+                          icon: const Icon(Icons.edit_outlined, size: 16),
+                          label: const Text('EDIT'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primaryLight,
+                            side: BorderSide(color: AppColors.primaryLight),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _deleteReport(report),
+                          icon: const Icon(Icons.delete_outline, size: 16),
+                          label: const Text('DELETE'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red.shade400,
+                            side: BorderSide(color: Colors.red.shade300),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(16),
-                      ),
-                      onTap: () => _editReport(report),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.edit_outlined,
-                                size: 18, color: AppColors.primaryLight),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Edit',
-                              style: TextStyle(
-                                color: AppColors.primaryLight,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  height: 40,
-                  color: Colors.grey.shade200,
-                ),
-                Expanded(
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: const BorderRadius.only(
-                        bottomRight: Radius.circular(16),
-                      ),
-                      onTap: () => _deleteReport(report),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.delete_outline,
-                                size: 18, color: Colors.red.shade400),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Delete',
-                              style: TextStyle(
-                                color: Colors.red.shade400,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          ],
         ],
       ),
     );

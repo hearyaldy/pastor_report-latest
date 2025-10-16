@@ -189,12 +189,22 @@ class _FinancialReportFormState extends State<FinancialReportForm> {
 
       // Save to Firestore
       try {
+        debugPrint('💾 Saving financial report:');
+        debugPrint('   Report ID: ${updatedReport.id}');
+        debugPrint('   Status: ${updatedReport.status}');
+        debugPrint('   Tithe: ${updatedReport.tithe}');
+        debugPrint('   Offerings: ${updatedReport.offerings}');
+        debugPrint('   Submitted At: ${updatedReport.submittedAt}');
+
         if (widget.isNewReport) {
           await FinancialReportService().createReport(updatedReport);
+          debugPrint('✅ New report created successfully');
         } else {
           await FinancialReportService().updateReport(updatedReport);
+          debugPrint('✅ Report updated successfully');
         }
       } catch (e) {
+        debugPrint('❌ Financial report submission error: $e');
         print('Financial report submission error: $e');
         rethrow; // Rethrow to be caught by outer catch
       }

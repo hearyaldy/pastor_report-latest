@@ -376,18 +376,43 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
     final staff = await _staffService.getStaffByMission(missionId);
     _totalStaff = staff.length;
 
-    // Count reported churches
+    // Count reported churches from BOTH Treasurer and Borang B reports
     int reportedChurches = 0;
-    for (var district in _allDistricts) {
-      try {
-        final count = await _financialService.countChurchesWithReports(
-          district.id,
-          _selectedMonth,
-        );
-        reportedChurches += count;
-      } catch (e) {
-        debugPrint('⚠️ Could not count reports: $e');
+    try {
+      // Get all treasurer reports for this mission
+      final treasurerReports = await _financialService.getReportsByMonth(
+        _selectedMonth,
+        missionId: missionId,
+      );
+
+      // Get all Borang B reports for this mission
+      final borangBReports = await _borangBService.getReportsByMissionAndMonth(
+        missionId,
+        _selectedMonth.year,
+        _selectedMonth.month,
+      );
+
+      // Count unique churches that have EITHER type of report
+      final Set<String> churchesWithReports = {};
+
+      for (var report in treasurerReports) {
+        if (report.churchId.isNotEmpty) {
+          churchesWithReports.add(report.churchId);
+        }
       }
+
+      for (var report in borangBReports) {
+        if (report.churchId != null && report.churchId!.isNotEmpty) {
+          churchesWithReports.add(report.churchId!);
+        }
+      }
+
+      reportedChurches = churchesWithReports.length;
+      debugPrint('📊 Churches with Treasurer reports: ${treasurerReports.where((r) => r.churchId.isNotEmpty).length}');
+      debugPrint('📊 Churches with Borang B reports: ${borangBReports.where((r) => r.churchId != null && r.churchId!.isNotEmpty).length}');
+      debugPrint('📊 Total unique churches with reports: $reportedChurches');
+    } catch (e) {
+      debugPrint('⚠️ Could not count reports: $e');
     }
     _churchesWithReports = reportedChurches;
 
@@ -413,10 +438,28 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       final treasurerReports = results[2] as List<FinancialReport>;
       final borangBReports = results[3] as List<BorangBData>;
 
-      debugPrint('✅ Treasurer Financial data loaded: $_financialData');
-      debugPrint('✅ Borang B Financial data loaded: $_borangBFinancialData');
+      debugPrint('✅ MISSION Level - Treasurer Financial data loaded:');
+      debugPrint('   Tithe: RM ${(_financialData['tithe'] ?? 0.0).toStringAsFixed(2)}');
+      debugPrint('   Offerings: RM ${(_financialData['offerings'] ?? 0.0).toStringAsFixed(2)}');
+      debugPrint('   Special Offerings: RM ${(_financialData['specialOfferings'] ?? 0.0).toStringAsFixed(2)}');
+      debugPrint('   Total: RM ${(_financialData['total'] ?? 0.0).toStringAsFixed(2)}');
+      debugPrint('✅ MISSION Level - Borang B Financial data loaded:');
+      debugPrint('   Tithe: RM ${(_borangBFinancialData['tithe'] ?? 0.0).toStringAsFixed(2)}');
+      debugPrint('   Offerings: RM ${(_borangBFinancialData['offerings'] ?? 0.0).toStringAsFixed(2)}');
+      debugPrint('   Total: RM ${(_borangBFinancialData['total'] ?? 0.0).toStringAsFixed(2)}');
       debugPrint('📊 Treasurer reports count: ${treasurerReports.length}');
       debugPrint('📊 Borang B reports raw count: ${borangBReports.length}');
+
+      // Show sample treasurer reports to check missionId
+      if (treasurerReports.isNotEmpty) {
+        debugPrint('📋 Sample Treasurer Reports (first 3):');
+        for (var report in treasurerReports.take(3)) {
+          debugPrint('   - Church: ${report.churchId}, MissionID: ${report.missionId}, '
+              'Tithe: ${report.tithe}, Offerings: ${report.offerings}');
+        }
+      } else {
+        debugPrint('⚠️ No treasurer reports found for this mission!');
+      }
 
       _totalBorangBReports = borangBReports.length;
       debugPrint('📋 Total Borang B reports set to: $_totalBorangBReports');
@@ -464,121 +507,198 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
     _churchesWithOnlyBorangB = 0;
     _churchesWithDiscrepancies = 0;
 
-    // Create maps for quick lookup
-    final treasurerByChurch = <String, FinancialReport>{};
+    debugPrint('🔍 Starting DISTRICT-LEVEL Discrepancy Analysis...');
+    debugPrint('   - Total districts: ${_allDistricts.length}');
+    debugPrint('   - Total churches: ${_allChurches.length}');
+    debugPrint('   - Treasurer reports (church-level): ${treasurerReports.length}');
+    debugPrint('   - Borang B reports (district-level): ${borangBReports.length}');
+
+    // Group treasurer reports by districtId and aggregate
+    final Map<String, Map<String, double>> treasurerByDistrict = {};
+    final Map<String, int> churchCountByDistrict = {};
+    final Map<String, Set<String>> reportedChurchIdsByDistrict = {};
+
     for (var report in treasurerReports) {
-      treasurerByChurch[report.churchId] = report;
+      // Find the district for this church
+      final church = _allChurches.firstWhere(
+        (c) => c.id == report.churchId,
+        orElse: () => _allChurches.first, // fallback
+      );
+
+      if (church.districtId == null || church.districtId!.isEmpty) {
+        debugPrint('   ⚠️ Church ${church.churchName} has no districtId');
+        continue;
+      }
+
+      final districtId = church.districtId!;
+
+      if (!treasurerByDistrict.containsKey(districtId)) {
+        treasurerByDistrict[districtId] = {'tithe': 0.0, 'offerings': 0.0};
+        churchCountByDistrict[districtId] = 0;
+        reportedChurchIdsByDistrict[districtId] = {};
+      }
+
+      treasurerByDistrict[districtId]!['tithe'] =
+          (treasurerByDistrict[districtId]!['tithe'] ?? 0.0) + report.tithe;
+      treasurerByDistrict[districtId]!['offerings'] =
+          (treasurerByDistrict[districtId]!['offerings'] ?? 0.0) + report.offerings;
+      churchCountByDistrict[districtId] = (churchCountByDistrict[districtId] ?? 0) + 1;
+      reportedChurchIdsByDistrict[districtId]!.add(church.id);
+
+      debugPrint('   📝 Added Treasurer report for district $districtId (church: ${church.churchName})');
     }
 
-    final borangBByChurch = <String, dynamic>{};
+    // Create Borang B lookup by districtId
+    final Map<String, dynamic> borangBByDistrict = {};
     for (var report in borangBReports) {
-      if (report.churchId != null) {
-        borangBByChurch[report.churchId!] = report;
+      if (report.districtId != null && report.districtId!.isNotEmpty) {
+        borangBByDistrict[report.districtId!] = report;
+        debugPrint('   📋 Borang B report for district: ${report.districtId}');
       }
     }
 
-    // Analyze each church
-    for (var church in _allChurches) {
-      final treasurerReport = treasurerByChurch[church.id];
-      final borangBReport = borangBByChurch[church.id];
+    // Define thresholds
+    const double percentageThreshold = 1.0; // 1% difference threshold
+    const double minAmountForPercentage = 10.0; // Use percentage only above $10
 
-      if (treasurerReport != null && borangBReport != null) {
+    // Analyze each district
+    for (var district in _allDistricts) {
+      final treasurerData = treasurerByDistrict[district.id];
+      final borangBReport = borangBByDistrict[district.id];
+
+      // Get churches in this district
+      final churchesInDistrict = _allChurches.where((c) => c.districtId == district.id).toList();
+      final totalChurchesInDistrict = churchesInDistrict.length;
+      final churchesWithTreasurerReports = churchCountByDistrict[district.id] ?? 0;
+      final missingTreasurerReports = totalChurchesInDistrict - churchesWithTreasurerReports;
+
+      // Get list of churches that didn't submit treasurer reports
+      final reportedIds = reportedChurchIdsByDistrict[district.id] ?? {};
+      final churchesNotReported = churchesInDistrict
+          .where((c) => !reportedIds.contains(c.id))
+          .toList();
+
+      if (treasurerData != null && borangBReport != null) {
         // Both reports exist
-        _churchesWithBothReports++;
+        _churchesWithBothReports += churchesWithTreasurerReports;
 
-        final treasurerTotal =
-            treasurerReport.tithe + treasurerReport.offerings;
+        final treasurerTithe = treasurerData['tithe'] ?? 0.0;
+        final treasurerOfferings = treasurerData['offerings'] ?? 0.0;
+        final treasurerTotal = treasurerTithe + treasurerOfferings;
+
         final borangBTotal = borangBReport.tithe + borangBReport.offerings;
-        final difference = (treasurerTotal - borangBTotal).abs();
-        final hasDiscrepancy = difference > 0.01; // More than 1 cent difference
+        final totalDifference = (treasurerTotal - borangBTotal).abs();
 
-        if (hasDiscrepancy) {
+        // Check individual field differences
+        final titheDifference = (treasurerTithe - borangBReport.tithe).abs();
+        final offeringsDifference = (treasurerOfferings - borangBReport.offerings).abs();
+
+        // Calculate percentage based on the LARGER value for accuracy
+        final largerTotal = treasurerTotal > borangBTotal ? treasurerTotal : borangBTotal;
+        final discrepancyPercent = largerTotal > 0
+            ? (totalDifference / largerTotal * 100)
+            : 0.0;
+
+        // Determine if there's a discrepancy
+        bool hasDiscrepancy;
+        if (largerTotal >= minAmountForPercentage) {
+          hasDiscrepancy = discrepancyPercent > percentageThreshold;
+        } else {
+          hasDiscrepancy = totalDifference > 0.01; // 1 cent for small amounts
+        }
+
+        // Also check if individual fields don't match (even if totals match)
+        final individualFieldMismatch = (titheDifference > 0.01 || offeringsDifference > 0.01)
+            && totalDifference <= 0.01;
+
+        // Check if missing reports could be causing the discrepancy
+        final hasMissingReports = missingTreasurerReports > 0;
+
+        if (hasDiscrepancy || individualFieldMismatch) {
           _churchesWithDiscrepancies++;
         }
 
-        final discrepancyPercent = borangBTotal > 0
-            ? ((treasurerTotal - borangBTotal) / borangBTotal * 100).abs()
-            : 0.0;
+        debugPrint('   🔍 District ${district.name}: Treasurer=\$${treasurerTotal.toStringAsFixed(2)} ($churchesWithTreasurerReports/$totalChurchesInDistrict churches), '
+            'Borang B=\$${borangBTotal.toStringAsFixed(2)}, '
+            'Diff=\$${totalDifference.toStringAsFixed(2)} (${discrepancyPercent.toStringAsFixed(2)}%)');
 
+        if (hasMissingReports) {
+          debugPrint('   ⚠️ WARNING: $missingTreasurerReports church${missingTreasurerReports > 1 ? 'es' : ''} in this district did NOT submit treasurer reports!');
+        }
+
+        // Add one entry per district (not per church)
         _churchDiscrepancies.add({
-          'church': church,
-          'district': _allDistricts.firstWhere(
-            (d) => d.id == church.districtId,
-            orElse: () => District(
-              id: '',
-              name: 'Unknown',
-              code: '',
-              regionId: '',
-              missionId: '',
-              createdBy: '',
-              createdAt: DateTime.now(),
-            ),
-          ),
+          'district': district,
+          'totalChurchesInDistrict': totalChurchesInDistrict,
+          'churchesWithTreasurerReports': churchesWithTreasurerReports,
+          'missingTreasurerReports': missingTreasurerReports,
+          'churchesInDistrict': churchesInDistrict,
+          'churchesNotReported': churchesNotReported,
           'hasTreasurer': true,
           'hasBorangB': true,
-          'treasurerTithe': treasurerReport.tithe,
-          'treasurerOfferings': treasurerReport.offerings,
+          'treasurerTithe': treasurerTithe,
+          'treasurerOfferings': treasurerOfferings,
           'treasurerTotal': treasurerTotal,
           'borangBTithe': borangBReport.tithe,
           'borangBOfferings': borangBReport.offerings,
           'borangBTotal': borangBTotal,
-          'difference': difference,
+          'difference': totalDifference,
+          'titheDifference': titheDifference,
+          'offeringsDifference': offeringsDifference,
           'discrepancyPercent': discrepancyPercent,
-          'hasDiscrepancy': hasDiscrepancy,
-          'status': hasDiscrepancy ? 'discrepancy' : 'match',
+          'hasDiscrepancy': hasDiscrepancy || individualFieldMismatch,
+          'hasMissingReports': hasMissingReports,
+          'status': (hasDiscrepancy || individualFieldMismatch)
+              ? (individualFieldMismatch ? 'field_mismatch' : 'discrepancy')
+              : 'match',
         });
-      } else if (treasurerReport != null) {
-        // Only treasurer report
-        _churchesWithOnlyTreasurer++;
-        final treasurerTotal =
-            treasurerReport.tithe + treasurerReport.offerings;
+      } else if (treasurerData != null) {
+        // Only treasurer reports (no Borang B for this district)
+        _churchesWithOnlyTreasurer += churchesWithTreasurerReports;
+
+        final treasurerTithe = treasurerData['tithe'] ?? 0.0;
+        final treasurerOfferings = treasurerData['offerings'] ?? 0.0;
+        final treasurerTotal = treasurerTithe + treasurerOfferings;
+
+        debugPrint('   ⚠️ District ${district.name}: Only Treasurer reports from $churchesWithTreasurerReports/$totalChurchesInDistrict churches (\$${treasurerTotal.toStringAsFixed(2)})');
 
         _churchDiscrepancies.add({
-          'church': church,
-          'district': _allDistricts.firstWhere(
-            (d) => d.id == church.districtId,
-            orElse: () => District(
-              id: '',
-              name: 'Unknown',
-              code: '',
-              regionId: '',
-              missionId: '',
-              createdBy: '',
-              createdAt: DateTime.now(),
-            ),
-          ),
+          'district': district,
+          'totalChurchesInDistrict': totalChurchesInDistrict,
+          'churchesWithTreasurerReports': churchesWithTreasurerReports,
+          'missingTreasurerReports': missingTreasurerReports,
+          'churchesInDistrict': churchesInDistrict,
+          'churchesNotReported': churchesNotReported,
           'hasTreasurer': true,
           'hasBorangB': false,
-          'treasurerTithe': treasurerReport.tithe,
-          'treasurerOfferings': treasurerReport.offerings,
+          'treasurerTithe': treasurerTithe,
+          'treasurerOfferings': treasurerOfferings,
           'treasurerTotal': treasurerTotal,
           'borangBTithe': 0.0,
           'borangBOfferings': 0.0,
           'borangBTotal': 0.0,
           'difference': treasurerTotal,
-          'discrepancyPercent': 100.0,
+          'titheDifference': treasurerTithe,
+          'offeringsDifference': treasurerOfferings,
+          'discrepancyPercent': 0.0,
           'hasDiscrepancy': true,
+          'hasMissingReports': missingTreasurerReports > 0,
           'status': 'missing_borangb',
         });
       } else if (borangBReport != null) {
-        // Only Borang B report
+        // Only Borang B report (no treasurer reports from churches in this district)
         _churchesWithOnlyBorangB++;
         final borangBTotal = borangBReport.tithe + borangBReport.offerings;
 
+        debugPrint('   ⚠️ District ${district.name}: Only Borang B report (\$${borangBTotal.toStringAsFixed(2)}), 0/$totalChurchesInDistrict churches submitted treasurer reports');
+
         _churchDiscrepancies.add({
-          'church': church,
-          'district': _allDistricts.firstWhere(
-            (d) => d.id == church.districtId,
-            orElse: () => District(
-              id: '',
-              name: 'Unknown',
-              code: '',
-              regionId: '',
-              missionId: '',
-              createdBy: '',
-              createdAt: DateTime.now(),
-            ),
-          ),
+          'district': district,
+          'totalChurchesInDistrict': totalChurchesInDistrict,
+          'churchesWithTreasurerReports': 0,
+          'missingTreasurerReports': totalChurchesInDistrict,
+          'churchesInDistrict': churchesInDistrict,
+          'churchesNotReported': churchesNotReported,
           'hasTreasurer': false,
           'hasBorangB': true,
           'treasurerTithe': 0.0,
@@ -588,23 +708,44 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
           'borangBOfferings': borangBReport.offerings,
           'borangBTotal': borangBTotal,
           'difference': borangBTotal,
-          'discrepancyPercent': 100.0,
+          'titheDifference': borangBReport.tithe,
+          'offeringsDifference': borangBReport.offerings,
+          'discrepancyPercent': 0.0,
           'hasDiscrepancy': true,
+          'hasMissingReports': true,
           'status': 'missing_treasurer',
         });
       }
     }
 
-    // Sort by discrepancy percentage (highest first)
-    _churchDiscrepancies.sort((a, b) => (b['discrepancyPercent'] as double)
-        .compareTo(a['discrepancyPercent'] as double));
+    // Sort by status priority first (discrepancies first), then by difference amount
+    _churchDiscrepancies.sort((a, b) {
+      // Priority order: discrepancy > field_mismatch > missing reports > match
+      final statusPriority = {
+        'discrepancy': 4,
+        'field_mismatch': 3,
+        'missing_borangb': 2,
+        'missing_treasurer': 1,
+        'match': 0,
+      };
+
+      final aPriority = statusPriority[a['status']] ?? 0;
+      final bPriority = statusPriority[b['status']] ?? 0;
+
+      if (aPriority != bPriority) {
+        return bPriority.compareTo(aPriority);
+      }
+
+      // Within same priority, sort by difference amount
+      return (b['difference'] as double).compareTo(a['difference'] as double);
+    });
 
     debugPrint('📊 Discrepancy Analysis Complete:');
-    debugPrint('   - Churches with both reports: $_churchesWithBothReports');
-    debugPrint(
-        '   - Churches with only treasurer: $_churchesWithOnlyTreasurer');
-    debugPrint('   - Churches with only Borang B: $_churchesWithOnlyBorangB');
-    debugPrint('   - Churches with discrepancies: $_churchesWithDiscrepancies');
+    debugPrint('   - Districts with both reports: ${_churchDiscrepancies.where((d) => d['hasTreasurer'] == true && d['hasBorangB'] == true).length}');
+    debugPrint('   - Districts with only treasurer: ${_churchDiscrepancies.where((d) => d['status'] == 'missing_borangb').length}');
+    debugPrint('   - Districts with only Borang B: ${_churchDiscrepancies.where((d) => d['status'] == 'missing_treasurer').length}');
+    debugPrint('   - Districts with discrepancies: $_churchesWithDiscrepancies');
+    debugPrint('   - Total entries in discrepancy list: ${_churchDiscrepancies.length}');
   }
 
   Future<void> _loadDistrictLevelData() async {
@@ -625,13 +766,42 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
         churches.fold<int>(0, (sum, c) => sum + (c.memberCount ?? 0));
     _totalStaff = 0; // Districts don't track individual staff
 
-    // Count reported churches
+    // Count reported churches from BOTH Treasurer and Borang B reports
     try {
-      _churchesWithReports = await _financialService.countChurchesWithReports(
-        _selectedDistrictId!,
+      // Get all treasurer reports for this district
+      final treasurerReports = await _financialService.getReportsByMonth(
         _selectedMonth,
+        districtId: _selectedDistrictId!,
       );
+
+      // Get all Borang B reports for this district
+      final borangBReports = await _borangBService.getReportsByDistrictAndMonth(
+        _selectedDistrictId!,
+        _selectedMonth.year,
+        _selectedMonth.month,
+      );
+
+      // Count unique churches that have EITHER type of report
+      final Set<String> churchesWithReports = {};
+
+      for (var report in treasurerReports) {
+        if (report.churchId.isNotEmpty) {
+          churchesWithReports.add(report.churchId);
+        }
+      }
+
+      for (var report in borangBReports) {
+        if (report.churchId != null && report.churchId!.isNotEmpty) {
+          churchesWithReports.add(report.churchId!);
+        }
+      }
+
+      _churchesWithReports = churchesWithReports.length;
+      debugPrint('📊 District: Churches with Treasurer reports: ${treasurerReports.where((r) => r.churchId.isNotEmpty).length}');
+      debugPrint('📊 District: Churches with Borang B reports: ${borangBReports.where((r) => r.churchId != null && r.churchId!.isNotEmpty).length}');
+      debugPrint('📊 District: Total unique churches with reports: $_churchesWithReports');
     } catch (e) {
+      debugPrint('⚠️ Could not count reports: $e');
       _churchesWithReports = 0;
     }
 
@@ -651,6 +821,16 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
 
       _financialData = results[0];
       _borangBFinancialData = results[1];
+
+      debugPrint('✅ DISTRICT Level - Treasurer Financial data loaded:');
+      debugPrint('   Tithe: RM ${(_financialData['tithe'] ?? 0.0).toStringAsFixed(2)}');
+      debugPrint('   Offerings: RM ${(_financialData['offerings'] ?? 0.0).toStringAsFixed(2)}');
+      debugPrint('   Special Offerings: RM ${(_financialData['specialOfferings'] ?? 0.0).toStringAsFixed(2)}');
+      debugPrint('   Total: RM ${(_financialData['total'] ?? 0.0).toStringAsFixed(2)}');
+      debugPrint('✅ DISTRICT Level - Borang B Financial data loaded:');
+      debugPrint('   Tithe: RM ${(_borangBFinancialData['tithe'] ?? 0.0).toStringAsFixed(2)}');
+      debugPrint('   Offerings: RM ${(_borangBFinancialData['offerings'] ?? 0.0).toStringAsFixed(2)}');
+      debugPrint('   Total: RM ${(_borangBFinancialData['total'] ?? 0.0).toStringAsFixed(2)}');
 
       // Get Borang B report count for this district
       final reports = await _borangBService.getReportsByDistrictAndMonth(
@@ -702,6 +882,12 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
         'specialOfferings': report.specialOfferings,
         'total': report.totalFinancial,
       };
+
+      debugPrint('✅ CHURCH Level - Financial data loaded:');
+      debugPrint('   Tithe: RM ${report.tithe.toStringAsFixed(2)}');
+      debugPrint('   Offerings: RM ${report.offerings.toStringAsFixed(2)}');
+      debugPrint('   Special Offerings: RM ${report.specialOfferings.toStringAsFixed(2)}');
+      debugPrint('   Total: RM ${report.totalFinancial.toStringAsFixed(2)}');
     } else {
       _financialData = {
         'tithe': 0.0,
@@ -709,6 +895,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
         'specialOfferings': 0.0,
         'total': 0.0
       };
+      debugPrint('⚠️ CHURCH Level - No financial report found for this church');
     }
   }
 
@@ -3222,8 +3409,11 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                             const SizedBox(height: 12),
                         itemBuilder: (context, index) {
                           final item = _churchDiscrepancies[index];
-                          final church = item['church'] as Church;
                           final district = item['district'] as District;
+                          final totalChurches = item['totalChurchesInDistrict'] as int;
+                          final churchesReported = item['churchesWithTreasurerReports'] as int;
+                          final missingReports = item['missingTreasurerReports'] as int;
+                          final hasMissingReports = item['hasMissingReports'] as bool;
                           final status = item['status'] as String;
                           final hasTreasurer = item['hasTreasurer'] as bool;
                           final hasBorangB = item['hasBorangB'] as bool;
@@ -3246,6 +3436,11 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                               statusIcon = Icons.warning;
                               statusText =
                                   '${discrepancyPercent.toStringAsFixed(1)}% DIFF';
+                              break;
+                            case 'field_mismatch':
+                              statusColor = Colors.orange;
+                              statusIcon = Icons.warning;
+                              statusText = 'FIELD MISMATCH';
                               break;
                             case 'missing_borangb':
                               statusColor = Colors.red;
@@ -3274,20 +3469,38 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                             child: ExpansionTile(
                               leading: Icon(statusIcon, color: statusColor),
                               title: Text(
-                                church.churchName,
+                                district.name,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color:
                                       Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
-                              subtitle: Text(
-                                '${district.name} - $statusText',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: statusColor,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    statusText,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: statusColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    hasTreasurer
+                                        ? '$churchesReported/$totalChurches churches reported'
+                                        : '$totalChurches churches (no reports)',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: hasMissingReports
+                                          ? Colors.orange
+                                          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                      fontWeight: hasMissingReports ? FontWeight.w600 : FontWeight.normal,
+                                    ),
+                                  ),
+                                ],
                               ),
                               children: [
                                 Padding(
@@ -3419,7 +3632,95 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                                           ],
                                         ),
                                       ],
+                                      // Show missing reports warning
+                                      if (hasMissingReports && missingReports > 0) ...[
+                                        const Divider(height: 24),
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: Colors.orange.withValues(alpha: 0.1),
+                                            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Icon(Icons.warning_amber,
+                                                      color: Colors.orange.shade700,
+                                                      size: 20),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Text(
+                                                      'Missing Reports Detected',
+                                                      style: TextStyle(
+                                                        color: Colors.orange.shade900,
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 13,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                '$missingReports out of $totalChurches church${missingReports > 1 ? 'es' : ''} in this district did not submit treasurer reports.',
+                                                style: TextStyle(
+                                                  color: Colors.orange.shade800,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                'Churches that did NOT report:',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.orange.shade900,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              ...() {
+                                                // Get list of churches that didn't report
+                                                final missingChurches = item['churchesNotReported'] as List<Church>;
+
+                                                return missingChurches.map((church) => Padding(
+                                                  padding: const EdgeInsets.only(left: 8, top: 2),
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(Icons.church,
+                                                          size: 12,
+                                                          color: Colors.orange.shade700),
+                                                      const SizedBox(width: 4),
+                                                      Expanded(
+                                                        child: Text(
+                                                          church.churchName,
+                                                          style: TextStyle(
+                                                            fontSize: 11,
+                                                            color: Colors.orange.shade800,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )).toList();
+                                              }(),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                'This may explain the discrepancy between treasurer totals and Borang B.',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontStyle: FontStyle.italic,
+                                                  color: Colors.orange.shade700,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                       if (!hasTreasurer) ...[
+                                        const Divider(height: 24),
                                         Container(
                                           padding: const EdgeInsets.all(12),
                                           decoration: BoxDecoration(
@@ -3435,7 +3736,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                                               const SizedBox(width: 8),
                                               const Expanded(
                                                 child: Text(
-                                                  'Treasurer report not submitted',
+                                                  'No treasurer reports submitted from any church in this district',
                                                   style: TextStyle(
                                                       color: Colors.red),
                                                 ),
@@ -3526,8 +3827,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
 
       // Headers
       final headers = [
-        'Church Name',
         'District',
+        'Church Count',
         'Status',
         'Treasurer Tithe (RM)',
         'Treasurer Offerings (RM)',
@@ -3549,15 +3850,15 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       // Add data rows
       int rowIndex = 1;
       for (var item in _churchDiscrepancies) {
-        final church = item['church'] as Church;
         final district = item['district'] as District;
+        final churchCount = item['churchCount'] as int;
         final status = item['status'] as String;
         final hasTreasurer = item['hasTreasurer'] as bool;
         final hasBorangB = item['hasBorangB'] as bool;
 
         final row = [
-          church.churchName,
           district.name,
+          churchCount,
           _getStatusText(status),
           hasTreasurer ? (item['treasurerTithe'] as num).toDouble() : 0.0,
           hasTreasurer ? (item['treasurerOfferings'] as num).toDouble() : 0.0,

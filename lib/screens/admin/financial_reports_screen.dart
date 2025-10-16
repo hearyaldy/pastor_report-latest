@@ -59,6 +59,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
   String? _selectedChurchId;
   bool _isLoading = true;
   bool _isExporting = false;
+  final Set<String> _expandedReportIds = {};
 
   @override
   void initState() {
@@ -899,6 +900,8 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
   Widget _buildReportCard(FinancialReport report, int rank) {
     final churchName = _getChurchName(report.churchId);
     final districtName = _getDistrictName(report.districtId);
+    // Add state for expansion
+    final isExpanded = _expandedReportIds.contains(report.id);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -913,17 +916,25 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => _showReportDetails(report),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+      child: Column(
+        children: [
+          // Main card with expand/collapse functionality
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                setState(() {
+                  if (isExpanded) {
+                    _expandedReportIds.remove(report.id);
+                  } else {
+                    _expandedReportIds.add(report.id);
+                  }
+                });
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
                   children: [
                     // Rank Badge
                     Container(
@@ -983,22 +994,6 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Flexible(
-                                  child: _buildMiniStat(
-                                      'Tithe', report.tithe, Colors.blue)),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                  child: _buildMiniStat('Offerings',
-                                      report.offerings, Colors.green)),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                  child: _buildMiniStat('Special',
-                                      report.specialOfferings, Colors.orange)),
-                            ],
-                          ),
                         ],
                       ),
                     ),
@@ -1031,260 +1026,207 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
                             ),
                           ),
                         ),
-                        // Submitted by info
-                        const SizedBox(height: 8),
-                        FutureBuilder<String>(
-                          future: _getUserName(report.submittedBy),
-                          builder: (context, snapshot) {
-                            final userName = snapshot.data ?? 'Loading...';
-                            return SizedBox(
-                              width: 120,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.person_outline,
-                                        size: 12,
-                                        color: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.color
-                                            ?.withValues(alpha: 0.7),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Flexible(
-                                        child: Text(
-                                          'Submitted by',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            color: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.color,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  Text(
-                                    userName,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.color,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.end,
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
+                        const SizedBox(height: 4),
+                        Icon(
+                          isExpanded ? Icons.expand_less : Icons.expand_more,
+                          color: Colors.grey,
                         ),
-                        // Last edit info (compact)
-                        if (report.history.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            width: 120,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.history,
-                                      size: 12,
-                                      color: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.color
-                                          ?.withValues(alpha: 0.7),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Flexible(
-                                      child: Text(
-                                        report.history.last.action == 'created'
-                                            ? 'Created by'
-                                            : 'Edited by',
-                                        style: TextStyle(
-                                          fontSize: 9,
-                                          color: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.color,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Text(
-                                  report.history.last.editorName,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.color,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.end,
-                                ),
-                                Text(
-                                  DateFormat('dd MMM, HH:mm')
-                                      .format(report.history.last.editedAt),
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.color
-                                        ?.withValues(alpha: 0.7),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ],
                 ),
-                // Full edit history section (if more than 1 entry)
-                if (report.history.length > 1) ...[
+              ),
+            ),
+          ),
+          
+          // Expanded content - only shown when expanded
+          if (isExpanded) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(child: _buildMiniStat('Tithe', report.tithe, Colors.blue)),
+                      const SizedBox(width: 4),
+                      Flexible(child: _buildMiniStat('Offerings', report.offerings, Colors.green)),
+                      const SizedBox(width: 4),
+                      Flexible(child: _buildMiniStat('Special', report.specialOfferings, Colors.orange)),
+                    ],
+                  ),
                   const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Theme.of(context).dividerColor),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.timeline,
-                                size: 14,
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.color),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Edit History (${report.history.length} entries)',
+                  // Submitted by info
+                  Row(
+                    children: [
+                      Icon(Icons.person, size: 12, color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7)),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: FutureBuilder<String>(
+                          future: _getUserName(report.submittedBy),
+                          builder: (context, snapshot) {
+                            final userName = snapshot.data ?? 'Loading...';
+                            return Text(
+                              'Submitted by $userName',
                               style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.color,
+                                fontSize: 10,
+                                color: Theme.of(context).textTheme.bodySmall?.color,
                               ),
-                            ),
-                          ],
+                              overflow: TextOverflow.ellipsis,
+                            );
+                          },
                         ),
-                        const SizedBox(height: 8),
-                        ...report.history.reversed.take(3).map((entry) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  width: 6,
-                                  height: 6,
-                                  margin:
-                                      const EdgeInsets.only(top: 5, right: 8),
-                                  decoration: BoxDecoration(
-                                    color: entry.action == 'created'
-                                        ? Colors.green
-                                        : entry.action == 'approved'
-                                            ? Colors.blue
-                                            : Colors.orange,
-                                    shape: BoxShape.circle,
-                                  ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  // Last edit info
+                  if (report.history.isNotEmpty) ...[
+                    Row(
+                      children: [
+                        Icon(Icons.history, size: 12, color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7)),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            report.history.last.action == 'created'
+                                ? 'Created: ${DateFormat('dd MMM, HH:mm').format(report.history.last.editedAt)}'
+                                : 'Edited: ${DateFormat('dd MMM, HH:mm').format(report.history.last.editedAt)}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Theme.of(context).textTheme.bodySmall?.color,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  // Full edit history section (if more than 1 entry)
+                  if (report.history.length > 1) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Theme.of(context).dividerColor),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.timeline,
+                                  size: 14,
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.color),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Edit History (${report.history.length} entries)',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.color,
                                 ),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${entry.action == 'created' ? '✨ Created' : entry.action == 'approved' ? '✓ Approved' : '✏️ Updated'} by ${entry.editorName}',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w600,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface,
-                                        ),
-                                      ),
-                                      Text(
-                                        DateFormat('dd MMM yyyy, HH:mm')
-                                            .format(entry.editedAt),
-                                        style: TextStyle(
-                                          fontSize: 9,
-                                          color: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.color,
-                                        ),
-                                      ),
-                                      if (entry.changes != null &&
-                                          entry.changes!.isNotEmpty) ...[
-                                        const SizedBox(height: 2),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          ...report.history.reversed.take(3).map((entry) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    margin:
+                                        const EdgeInsets.only(top: 5, right: 8),
+                                    decoration: BoxDecoration(
+                                      color: entry.action == 'created'
+                                          ? Colors.green
+                                          : entry.action == 'approved'
+                                              ? Colors.blue
+                                              : Colors.orange,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
                                         Text(
-                                          'Changed: ${entry.changes!.keys.join(", ")}',
+                                          '${entry.action == 'created' ? '✨ Created' : entry.action == 'approved' ? '✓ Approved' : '✏️ Updated'} by ${entry.editorName}',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface,
+                                          ),
+                                        ),
+                                        Text(
+                                          DateFormat('dd MMM yyyy, HH:mm')
+                                              .format(entry.editedAt),
                                           style: TextStyle(
                                             fontSize: 9,
                                             color: Theme.of(context)
                                                 .textTheme
                                                 .bodySmall
                                                 ?.color,
-                                            fontStyle: FontStyle.italic,
                                           ),
                                         ),
+                                        if (entry.changes != null &&
+                                            entry.changes!.isNotEmpty) ...[
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Changed: ${entry.changes!.keys.join(", ")}',
+                                            style: TextStyle(
+                                              fontSize: 9,
+                                              color: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.color,
+                                              fontStyle: FontStyle.italic,
+                                            ),
+                                          ),
+                                        ],
                                       ],
-                                    ],
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
+                            );
+                          }),
+                          if (report.history.length > 3) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              '+ ${report.history.length - 3} more edits',
+                              style: TextStyle(
+                                fontSize: 9,
+                                color:
+                                    Theme.of(context).textTheme.bodySmall?.color,
+                                fontStyle: FontStyle.italic,
+                              ),
                             ),
-                          );
-                        }),
-                        if (report.history.length > 3) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            '+ ${report.history.length - 3} more edits',
-                            style: TextStyle(
-                              fontSize: 9,
-                              color:
-                                  Theme.of(context).textTheme.bodySmall?.color,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-        ),
+          ],
+        ],
       ),
     );
   }

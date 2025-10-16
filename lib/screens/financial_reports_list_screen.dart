@@ -40,6 +40,7 @@ class _FinancialReportsListScreenState
   bool _isLoading = true;
   String? _selectedChurchId;
   final DateTime _selectedMonth = DateTime.now();
+  final Set<String> _expandedReportIds = {}; // Track expanded cards
 
   @override
   void initState() {
@@ -348,105 +349,175 @@ class _FinancialReportsListScreenState
       ),
     );
 
+    final isExpanded = _expandedReportIds.contains(report.id);
+    final districtName = _getDistrictName(report.districtId);
+
     return Card(
       elevation: 2,
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
       ),
-      child: InkWell(
-        onTap: () => _editReport(report, church),
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header with church name and status
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        children: [
+          // Main card content - always visible
+          InkWell(
+            onTap: () {
+              setState(() {
+                if (isExpanded) {
+                  _expandedReportIds.remove(report.id);
+                } else {
+                  _expandedReportIds.add(report.id);
+                }
+              });
+            },
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
                 children: [
+                  // Left side - Church and District info
                   Expanded(
-                    child: Text(
-                      church.churchName,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  _buildStatusChip(report.status),
-                ],
-              ),
-
-              const SizedBox(height: 6),
-
-              // Financial summary
-              IntrinsicHeight(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildFinancialItem('Tithe', report.tithe),
-                    ),
-                    Expanded(
-                      child: _buildFinancialItem('Offerings', report.offerings),
-                    ),
-                    Expanded(
-                      child: _buildFinancialItem(
-                          'Special', report.specialOfferings),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 6),
-
-              // Total and date
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColorUtils.AppColors.primaryLight
-                            .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        'Total: \$${report.totalFinancial.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: AppColorUtils.AppColors.primaryLight,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          church.churchName,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.location_on_outlined,
+                              size: 12,
+                              color: Theme.of(context).textTheme.bodySmall?.color,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                districtName,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).textTheme.bodySmall?.color,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                      DateFormat('MMM dd, yyyy').format(report.submittedAt),
-                      style: TextStyle(
-                        fontSize: 9,
+                  const SizedBox(width: 8),
+                  // Right side - Status and expand icon
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _buildStatusChip(report.status),
+                      const SizedBox(height: 4),
+                      Icon(
+                        isExpanded ? Icons.expand_less : Icons.expand_more,
+                        size: 20,
                         color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.right,
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Expanded content - financial details
+          if (isExpanded) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Financial summary
+                  IntrinsicHeight(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildFinancialItem('Tithe', report.tithe),
+                        ),
+                        Expanded(
+                          child: _buildFinancialItem('Offerings', report.offerings),
+                        ),
+                        Expanded(
+                          child: _buildFinancialItem(
+                              'Special', report.specialOfferings),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Total and date
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColorUtils.AppColors.primaryLight
+                                .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'Total: RM ${report.totalFinancial.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: AppColorUtils.AppColors.primaryLight,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        DateFormat('MMM dd, yyyy').format(report.submittedAt),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Edit button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _editReport(report, church),
+                      icon: const Icon(Icons.edit, size: 16),
+                      label: const Text('EDIT REPORT'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColorUtils.AppColors.primaryLight,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
+            ),
+          ],
+        ],
       ),
     );
   }

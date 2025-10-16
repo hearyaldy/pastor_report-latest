@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pastor_report/models/financial_report_model.dart';
 
 class FinancialReportService {
@@ -21,11 +22,25 @@ class FinancialReportService {
       final reportWithId =
           report.id.isEmpty ? report.copyWith(id: reportId) : report;
 
+      final dataToSave = reportWithId.toMap();
+
+      debugPrint('➕ FinancialReportService.createReport:');
+      debugPrint('   Report ID: $reportId');
+      debugPrint('   Status: ${dataToSave['status']}');
+      debugPrint('   ChurchId: ${dataToSave['churchId']}');
+      debugPrint('   MissionId: ${dataToSave['missionId']}');
+      debugPrint('   DistrictId: ${dataToSave['districtId']}');
+      debugPrint('   Tithe: ${dataToSave['tithe']}');
+      debugPrint('   Offerings: ${dataToSave['offerings']}');
+
       await _firestore
           .collection(_collectionName)
           .doc(reportId)
-          .set(reportWithId.toMap());
+          .set(dataToSave);
+
+      debugPrint('✅ Report created successfully: $reportId');
     } catch (e) {
+      debugPrint('❌ Failed to create financial report: $e');
       throw Exception('Failed to create financial report: $e');
     }
   }
@@ -76,6 +91,10 @@ class FinancialReportService {
   Future<List<FinancialReport>> getReportsByChurch(String churchId,
       {String? districtId}) async {
     try {
+      debugPrint('🔍 FinancialReportService.getReportsByChurch:');
+      debugPrint('   ChurchId: $churchId');
+      debugPrint('   DistrictId filter: $districtId');
+
       var query = _firestore
           .collection(_collectionName)
           .where('churchId', isEqualTo: churchId);
@@ -87,10 +106,27 @@ class FinancialReportService {
       final querySnapshot =
           await query.orderBy('month', descending: true).get();
 
-      return querySnapshot.docs
+      debugPrint('   Found ${querySnapshot.docs.length} reports');
+
+      if (querySnapshot.docs.isNotEmpty) {
+        debugPrint('   📋 Sample reports (first 3):');
+        for (var doc in querySnapshot.docs.take(3)) {
+          final data = doc.data();
+          debugPrint('      - ID: ${doc.id}, Status: ${data['status']}, '
+              'MissionId: ${data['missionId']}, '
+              'Tithe: ${data['tithe']}, Offerings: ${data['offerings']}');
+        }
+      }
+
+      final reports = querySnapshot.docs
           .map((doc) => FinancialReport.fromSnapshot(doc))
           .toList();
+
+      debugPrint('   ✅ Loaded ${reports.length} reports successfully');
+
+      return reports;
     } catch (e) {
+      debugPrint('❌ Failed to get church reports: $e');
       throw Exception('Failed to get church reports: $e');
     }
   }
@@ -157,11 +193,35 @@ class FinancialReportService {
   Future<void> updateReport(FinancialReport report) async {
     try {
       final updatedReport = report.copyWith(updatedAt: DateTime.now());
+      final dataToUpdate = updatedReport.toMap();
+
+      debugPrint('🔄 FinancialReportService.updateReport:');
+      debugPrint('   Report ID: ${report.id}');
+      debugPrint('   Status being saved: ${dataToUpdate['status']}');
+      debugPrint('   Tithe: ${dataToUpdate['tithe']}');
+      debugPrint('   Offerings: ${dataToUpdate['offerings']}');
+      debugPrint('   MissionId: ${dataToUpdate['missionId']}');
+      debugPrint('   DistrictId: ${dataToUpdate['districtId']}');
+      debugPrint('   SubmittedAt: ${dataToUpdate['submittedAt']}');
+
       await _firestore
           .collection(_collectionName)
           .doc(report.id)
-          .update(updatedReport.toMap());
+          .update(dataToUpdate);
+
+      debugPrint('✅ Update successful for report ${report.id}');
+
+      // Verify the update by reading it back
+      final docSnapshot = await _firestore
+          .collection(_collectionName)
+          .doc(report.id)
+          .get();
+      if (docSnapshot.exists) {
+        final savedData = docSnapshot.data();
+        debugPrint('✅ Verification read - Status in Firestore: ${savedData?['status']}');
+      }
     } catch (e) {
+      debugPrint('❌ Failed to update financial report: $e');
       throw Exception('Failed to update financial report: $e');
     }
   }
@@ -190,7 +250,7 @@ class FinancialReportService {
           .where('month',
               isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
           .where('month', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
-          .where('status', isEqualTo: 'submitted')
+          // Removed status filter to include all reports (draft, submitted, etc.)
           .get();
 
       double totalTithe = 0.0;
@@ -224,8 +284,10 @@ class FinancialReportService {
       final startOfMonth = DateTime(month.year, month.month, 1);
       final endOfMonth = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
 
-      print(
-          '🔎 FinancialReportService: Querying for missionId="$missionId", month=$month');
+      debugPrint('🔎 FinancialReportService.getMissionAggregateByMonth:');
+      debugPrint('   MissionId: "$missionId"');
+      debugPrint('   Month: ${month.year}-${month.month}');
+      debugPrint('   Date range: $startOfMonth to $endOfMonth');
 
       final querySnapshot = await _firestore
           .collection(_collectionName)
@@ -233,11 +295,41 @@ class FinancialReportService {
           .where('month',
               isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
           .where('month', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
-          .where('status', isEqualTo: 'submitted')
+          // Removed status filter to include all reports (draft, submitted, etc.)
           .get();
 
-      print(
-          '🔎 FinancialReportService: Found ${querySnapshot.docs.length} reports');
+      debugPrint('   Found ${querySnapshot.docs.length} reports (all statuses)');
+
+      if (querySnapshot.docs.isEmpty) {
+        debugPrint('   ⚠️ No reports found! Checking for common issues:');
+
+        // Debug: Check if any reports exist without missionId filter
+        final allReportsSnapshot = await _firestore
+            .collection(_collectionName)
+            .where('month',
+                isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+            .where('month', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
+            .limit(5)
+            .get();
+
+        debugPrint('   Found ${allReportsSnapshot.docs.length} reports total (without missionId filter)');
+        if (allReportsSnapshot.docs.isNotEmpty) {
+          debugPrint('   Sample reports in this month:');
+          for (var doc in allReportsSnapshot.docs) {
+            final data = doc.data();
+            debugPrint('      - ID: ${doc.id}, MissionId: "${data['missionId']}", '
+                'ChurchId: ${data['churchId']}, Status: ${data['status']}');
+          }
+        }
+      } else {
+        debugPrint('   📋 Sample reports found (first 3):');
+        for (var doc in querySnapshot.docs.take(3)) {
+          final data = doc.data();
+          debugPrint('      - ID: ${doc.id}, MissionId: "${data['missionId']}", '
+              'ChurchId: ${data['churchId']}, Status: ${data['status']}, '
+              'Tithe: ${data['tithe']}, Offerings: ${data['offerings']}');
+        }
+      }
 
       double totalTithe = 0.0;
       double totalOfferings = 0.0;
@@ -250,6 +342,12 @@ class FinancialReportService {
         totalSpecialOfferings += report.specialOfferings;
       }
 
+      debugPrint('   💰 Calculated totals:');
+      debugPrint('      Tithe: RM ${totalTithe.toStringAsFixed(2)}');
+      debugPrint('      Offerings: RM ${totalOfferings.toStringAsFixed(2)}');
+      debugPrint('      Special: RM ${totalSpecialOfferings.toStringAsFixed(2)}');
+      debugPrint('      Total: RM ${(totalTithe + totalOfferings + totalSpecialOfferings).toStringAsFixed(2)}');
+
       return {
         'tithe': totalTithe,
         'offerings': totalOfferings,
@@ -257,6 +355,7 @@ class FinancialReportService {
         'total': totalTithe + totalOfferings + totalSpecialOfferings,
       };
     } catch (e) {
+      debugPrint('❌ Failed to aggregate mission data: $e');
       throw Exception('Failed to aggregate mission data: $e');
     }
   }
@@ -301,7 +400,7 @@ class FinancialReportService {
           .where('month',
               isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
           .where('month', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
-          .where('status', isEqualTo: 'submitted')
+          // Removed status filter to include all reports (draft, submitted, etc.)
           .get();
 
       return querySnapshot.docs.length;

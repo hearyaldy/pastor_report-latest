@@ -157,8 +157,22 @@ class BorangBFirestoreService {
         debugPrint('📋 Sample report data:');
         for (var doc in querySnapshot.docs.take(3)) {
           final data = doc.data();
-          debugPrint('  - ID: ${doc.id}, missionId: ${data['missionId']}, month: ${data['month']}, tithe: ${data['tithe']}, offerings: ${data['offerings']}');
+          debugPrint('  - ID: ${doc.id}, missionId: ${data['missionId']}, churchId: ${data['churchId']}, month: ${data['month']}, tithe: ${data['tithe']}, offerings: ${data['offerings']}');
         }
+
+        // Count reports with and without churchId
+        int withChurchId = 0;
+        int withoutChurchId = 0;
+        for (var doc in querySnapshot.docs) {
+          final data = doc.data();
+          if (data['churchId'] != null && (data['churchId'] as String).isNotEmpty) {
+            withChurchId++;
+          } else {
+            withoutChurchId++;
+          }
+        }
+        debugPrint('📊 Reports with churchId: $withChurchId');
+        debugPrint('📊 Reports without churchId: $withoutChurchId');
       }
 
       return querySnapshot.docs

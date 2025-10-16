@@ -10,6 +10,7 @@ class Appointment {
   final String? contactPhone;
   final bool isCompleted;
   final DateTime createdAt;
+  final String? userId; // User ID for personal appointments
 
   Appointment({
     required this.id,
@@ -21,6 +22,7 @@ class Appointment {
     this.contactPhone,
     this.isCompleted = false,
     required this.createdAt,
+    this.userId,
   });
 
   Map<String, dynamic> toJson() {
@@ -33,6 +35,7 @@ class Appointment {
       'contactPhone': contactPhone,
       'isCompleted': isCompleted,
       'createdAt': createdAt.toIso8601String(),
+      'userId': userId,
     };
     // Only include id if it's not empty
     if (id.isNotEmpty) {
@@ -60,6 +63,7 @@ class Appointment {
       contactPhone: json['contactPhone'] as String?,
       isCompleted: json['isCompleted'] as bool? ?? false,
       createdAt: parseDateTime(json['createdAt']),
+      userId: json['userId'] as String?,
     );
   }
 
@@ -73,6 +77,7 @@ class Appointment {
     String? contactPhone,
     bool? isCompleted,
     DateTime? createdAt,
+    String? userId,
   }) {
     return Appointment(
       id: id ?? this.id,
@@ -84,6 +89,7 @@ class Appointment {
       contactPhone: contactPhone ?? this.contactPhone,
       isCompleted: isCompleted ?? this.isCompleted,
       createdAt: createdAt ?? this.createdAt,
+      userId: userId ?? this.userId,
     );
   }
 

@@ -41,6 +41,7 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
   bool _sortAscending = false;
   bool _isLoading = true;
   final Set<String> _selectedReportIds = {};
+  final Set<String> _expandedReportIds = {};
   String _searchQuery = '';
 
   @override
@@ -553,6 +554,8 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
 
   Widget _buildReportCard(FinancialReport report) {
     final isSelected = _selectedReportIds.contains(report.id);
+    // Add state for expansion
+    final isExpanded = _expandedReportIds.contains(report.id);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -564,24 +567,23 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
           width: 2,
         ),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          setState(() {
-            if (isSelected) {
-              _selectedReportIds.remove(report.id);
-            } else {
-              _selectedReportIds.add(report.id);
-            }
-          });
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Row
-              Row(
+      child: Column(
+        children: [
+          // Main card with expand/collapse functionality
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              setState(() {
+                if (isExpanded) {
+                  _expandedReportIds.remove(report.id);
+                } else {
+                  _expandedReportIds.add(report.id);
+                }
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
                 children: [
                   Checkbox(
                     value: isSelected,
@@ -610,7 +612,7 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${_getDistrictName(report.districtId)} • ${_getRegionName(report.regionId)}',
+                          _getDistrictName(report.districtId),
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade600,
@@ -621,190 +623,212 @@ class _FinancialReportsAllTabState extends State<FinancialReportsAllTab> {
                       ],
                     ),
                   ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color:
-                          _getStatusColor(report.status).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _getStatusColor(report.status)
-                            .withValues(alpha: 0.5),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _getStatusIcon(report.status),
-                          size: 14,
-                          color: _getStatusColor(report.status),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          report.status.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: _getStatusColor(report.status),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const Divider(height: 16),
-              // Details Row
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildInfoChip(
-                      Icons.calendar_today,
-                      'Month',
-                      DateFormat('MMM yyyy').format(report.month),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildInfoChip(
-                      Icons.access_time,
-                      'Submitted',
-                      DateFormat('dd MMM').format(report.submittedAt),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              // History section (if more than 1 entry)
-              if (report.history.length > 1) ...[
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[200]!),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Row(
-                        children: [
-                          Icon(Icons.timeline,
-                              size: 12, color: Colors.grey[600]),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Edit History (${report.history.length} entries)',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey[700],
-                            ),
+                      Container(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color:
+                              _getStatusColor(report.status).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _getStatusColor(report.status)
+                                .withValues(alpha: 0.5),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      ...report.history.reversed.take(3).map((entry) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 5,
-                                height: 5,
-                                margin: const EdgeInsets.only(top: 4, right: 6),
-                                decoration: BoxDecoration(
-                                  color: entry.action == 'created'
-                                      ? Colors.green
-                                      : entry.action == 'approved'
-                                          ? Colors.blue
-                                          : Colors.orange,
-                                  shape: BoxShape.circle,
-                                ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _getStatusIcon(report.status),
+                              size: 14,
+                              color: _getStatusColor(report.status),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              report.status.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: _getStatusColor(report.status),
                               ),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${entry.action == 'created' ? '✨ Created' : entry.action == 'approved' ? '✓ Approved' : '✏️ Updated'} by ${entry.editorName}',
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.grey[800],
-                                      ),
-                                    ),
-                                    Text(
-                                      DateFormat('dd MMM yyyy, HH:mm')
-                                          .format(entry.editedAt),
-                                      style: TextStyle(
-                                        fontSize: 8,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                    if (entry.changes != null &&
-                                        entry.changes!.isNotEmpty) ...[
-                                      Text(
-                                        'Changed: ${entry.changes!.keys.join(", ")}',
-                                        style: TextStyle(
-                                          fontSize: 8,
-                                          color: Colors.grey[600],
-                                          fontStyle: FontStyle.italic,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Icon(
+                        isExpanded ? Icons.expand_less : Icons.expand_more,
+                        color: Colors.grey,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Expanded content - only shown when expanded
+          if (isExpanded) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Details Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildInfoChip(
+                          Icons.calendar_today,
+                          'Month',
+                          DateFormat('MMM yyyy').format(report.month),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildInfoChip(
+                          Icons.access_time,
+                          'Submitted',
+                          DateFormat('dd MMM').format(report.submittedAt),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // History section (if more than 1 entry)
+                  if (report.history.length > 1) ...[
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.timeline,
+                                  size: 12, color: Colors.grey[600]),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Edit History (${report.history.length} entries)',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[700],
                                 ),
                               ),
                             ],
                           ),
-                        );
-                      }),
-                      if (report.history.length > 3) ...[
-                        Text(
-                          '+ ${report.history.length - 3} more edits',
-                          style: TextStyle(
-                            fontSize: 8,
-                            color: Colors.grey[600],
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          ...report.history.reversed.take(3).map((entry) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: 5,
+                                    height: 5,
+                                    margin: const EdgeInsets.only(top: 4, right: 6),
+                                    decoration: BoxDecoration(
+                                      color: entry.action == 'created'
+                                          ? Colors.green
+                                          : entry.action == 'approved'
+                                              ? Colors.blue
+                                              : Colors.orange,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${entry.action == 'created' ? '✨ Created' : entry.action == 'approved' ? '✓ Approved' : '✏️ Updated'} by ${entry.editorName}',
+                                          style: TextStyle(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.grey[800],
+                                          ),
+                                        ),
+                                        Text(
+                                          DateFormat('dd MMM yyyy, HH:mm')
+                                              .format(entry.editedAt),
+                                          style: TextStyle(
+                                            fontSize: 8,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                        if (entry.changes != null &&
+                                            entry.changes!.isNotEmpty) ...[
+                                          Text(
+                                            'Changed: ${entry.changes!.keys.join(", ")}',
+                                            style: TextStyle(
+                                              fontSize: 8,
+                                              color: Colors.grey[600],
+                                              fontStyle: FontStyle.italic,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                          if (report.history.length > 3) ...[
+                            Text(
+                              '+ ${report.history.length - 3} more edits',
+                              style: TextStyle(
+                                fontSize: 8,
+                                color: Colors.grey[600],
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  // Action Buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => _showHistoryDialog(report),
+                        icon: const Icon(Icons.history, size: 16),
+                        label:
+                            const Text('History', style: TextStyle(fontSize: 12)),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton.icon(
+                        onPressed: () => _editReport(report),
+                        icon: const Icon(Icons.edit, size: 16),
+                        label: const Text('Edit', style: TextStyle(fontSize: 12)),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton.icon(
+                        onPressed: () => _deleteReport(report),
+                        icon: const Icon(Icons.delete, size: 16, color: Colors.red),
+                        label: const Text('Delete',
+                            style: TextStyle(fontSize: 12, color: Colors.red)),
+                      ),
                     ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-              // Action Buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton.icon(
-                    onPressed: () => _showHistoryDialog(report),
-                    icon: const Icon(Icons.history, size: 16),
-                    label:
-                        const Text('History', style: TextStyle(fontSize: 12)),
-                  ),
-                  const SizedBox(width: 8),
-                  TextButton.icon(
-                    onPressed: () => _editReport(report),
-                    icon: const Icon(Icons.edit, size: 16),
-                    label: const Text('Edit', style: TextStyle(fontSize: 12)),
-                  ),
-                  const SizedBox(width: 8),
-                  TextButton.icon(
-                    onPressed: () => _deleteReport(report),
-                    icon: const Icon(Icons.delete, size: 16, color: Colors.red),
-                    label: const Text('Delete',
-                        style: TextStyle(fontSize: 12, color: Colors.red)),
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
+            ),
+          ],
+        ],
       ),
     );
   }
