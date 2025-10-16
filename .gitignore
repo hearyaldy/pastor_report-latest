@@ -49,3 +49,29 @@ app.*.map.json
 *.jks
 *.keystore
 key.properties
+*-firebase-adminsdk-*.json
+
+# macOS specific
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Temporary files
+*.tmp
+*.temp
+*~
+.*.sw[a-z]
+
+# Node modules (for Firebase functions)
+node_modules/
+
+# Pods (iOS/macOS dependencies)
+**/Pods/
+Podfile.lock
+
+# Build outputs
+*.ipa
+*.apk
+*.aab

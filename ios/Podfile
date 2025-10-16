@@ -40,4 +40,19 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
   end
+
+  # Fix for gRPC modulemap path issue
+  # Create the grpc directory and symlink to fix module map error
+  grpc_dir = File.join(installer.sandbox.root, 'Headers', 'Private', 'grpc')
+  FileUtils.mkdir_p(grpc_dir) unless Dir.exist?(grpc_dir)
+
+  grpc_modulemap = File.join(grpc_dir, 'gRPC-Core.modulemap')
+  relative_path = File.join('..', '..', 'Target Support Files', 'gRPC-Core', 'gRPC-Core.modulemap')
+
+  # Remove existing symlink if it exists
+  File.delete(grpc_modulemap) if File.exist?(grpc_modulemap) || File.symlink?(grpc_modulemap)
+
+  # Create the symlink
+  File.symlink(relative_path, grpc_modulemap)
+  puts "✓ Created symlink for gRPC-Core.modulemap"
 end
