@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
@@ -10,6 +11,7 @@ import 'package:pastor_report/services/user_management_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/services/region_service.dart';
 import 'package:pastor_report/services/district_service.dart';
+import 'package:pastor_report/services/profile_picture_service.dart';
 import 'package:pastor_report/utils/theme.dart';
 import 'package:pastor_report/utils/constants.dart';
 
@@ -29,6 +31,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _selectedRole;
   String? _selectedRegion;
   String? _selectedDistrict;
+  String? _profilePicturePath;
 
   // Lists for dropdowns
   List<Mission> _missions = [];
@@ -43,6 +46,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadMissionsAndNames();
+    _loadProfilePicture();
+  }
+
+  // Load profile picture from local storage
+  Future<void> _loadProfilePicture() async {
+    final path = await ProfilePictureService.instance.getProfilePicturePath();
+    if (mounted) {
+      setState(() {
+        _profilePicturePath = path;
+      });
+    }
   }
 
   @override
@@ -394,6 +408,146 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // Show profile picture options
+  Future<void> _showProfilePictureOptions() async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Profile Picture',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: AppTheme.primary),
+              title: const Text('Take Photo'),
+              onTap: () => Navigator.pop(context, 'camera'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: AppTheme.primary),
+              title: const Text('Choose from Gallery'),
+              onTap: () => Navigator.pop(context, 'gallery'),
+            ),
+            if (_profilePicturePath != null)
+              ListTile(
+                leading: const Icon(Icons.delete, color: AppTheme.error),
+                title: const Text('Remove Photo'),
+                onTap: () => Navigator.pop(context, 'remove'),
+              ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      if (result == 'camera') {
+        await _takePhoto();
+      } else if (result == 'gallery') {
+        await _pickFromGallery();
+      } else if (result == 'remove') {
+        await _removeProfilePicture();
+      }
+    }
+  }
+
+  // Take photo with camera
+  Future<void> _takePhoto() async {
+    try {
+      final path = await ProfilePictureService.instance.takeProfilePicture();
+      if (path != null && mounted) {
+        setState(() {
+          _profilePicturePath = path;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile picture updated!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to take photo: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Pick from gallery
+  Future<void> _pickFromGallery() async {
+    try {
+      final path = await ProfilePictureService.instance.pickProfilePicture();
+      if (path != null && mounted) {
+        setState(() {
+          _profilePicturePath = path;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile picture updated!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to pick image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Remove profile picture
+  Future<void> _removeProfilePicture() async {
+    try {
+      await ProfilePictureService.instance.clearProfilePicture();
+      if (mounted) {
+        setState(() {
+          _profilePicturePath = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile picture removed'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to remove photo: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -449,22 +603,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     children: [
                       const SizedBox(height: 32),
-                      // Avatar
-                      CircleAvatar(
-                        radius: 60,
-                        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                        child: CircleAvatar(
-                          radius: 56,
-                          backgroundColor: AppTheme.accent,
-                          child: Text(
-                            user.displayName.substring(0, 1).toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 48,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).cardColor,
+                      // Avatar with edit button
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 60,
+                            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                            child: CircleAvatar(
+                              radius: 56,
+                              backgroundColor: AppTheme.accent,
+                              backgroundImage: _profilePicturePath != null
+                                  ? FileImage(File(_profilePicturePath!))
+                                  : null,
+                              child: _profilePicturePath == null
+                                  ? Text(
+                                      user.displayName.substring(0, 1).toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 48,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context).cardColor,
+                                      ),
+                                    )
+                                  : null,
                             ),
                           ),
-                        ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: _showProfilePictureOptions,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Theme.of(context).scaffoldBackgroundColor,
+                                    width: 3,
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.camera_alt,
+                                  color: Theme.of(context).cardColor,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       // Name

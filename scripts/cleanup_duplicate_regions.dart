@@ -40,7 +40,7 @@ Future<void> main() async {
     final regionsByName = <String, List<QueryDocumentSnapshot>>{};
 
     for (var doc in querySnapshot.docs) {
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data();
       final name = data['name'] as String;
       regionsByName.putIfAbsent(name, () => []).add(doc);
     }

@@ -7,7 +7,6 @@ import 'package:pastor_report/services/region_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/services/user_management_service.dart';
 import 'package:pastor_report/models/user_model.dart';
-import 'package:pastor_report/utils/constants.dart';
 import 'package:uuid/uuid.dart';
 
 class DistrictManagementScreen extends StatefulWidget {
@@ -268,8 +267,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
         decoration: BoxDecoration(
           color: colorScheme.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
-          border:
-              Border.all(color: colorScheme.primary.withOpacity(0.3)),
+          border: Border.all(color: colorScheme.primary.withOpacity(0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -793,7 +791,8 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                       value: 'edit',
                       child: Row(
                         children: [
-                          Icon(Icons.edit, size: 20, color: colorScheme.primary),
+                          Icon(Icons.edit,
+                              size: 20, color: colorScheme.primary),
                           const SizedBox(width: 8),
                           const Text('Edit'),
                         ],
@@ -803,7 +802,8 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete, size: 20, color: colorScheme.error),
+                          Icon(Icons.delete,
+                              size: 20, color: colorScheme.error),
                           const SizedBox(width: 8),
                           const Text('Delete'),
                         ],
@@ -958,7 +958,8 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                       if (regions.isEmpty) {
                         return Text(
                           'No regions available. Please create a region first.',
-                          style: TextStyle(color: Theme.of(context).colorScheme.error),
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.error),
                         );
                       }
 
@@ -1032,7 +1033,8 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text('District created successfully'),
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
                         ),
                       );
                     }
@@ -1176,7 +1178,8 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text('District updated successfully'),
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
                         ),
                       );
                     }

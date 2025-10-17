@@ -38,7 +38,7 @@ class _GlobalEventsManagementScreenState
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.user;
     print(
-        'User in build: ${user?.uid}, Role: ${user?.userRole}, Role name: ${user?.userRole?.name}');
+        'User in build: ${user?.uid}, Role: ${user?.userRole}, Role name: ${user?.userRole.name}');
     final canAddEvents = _canAddEvents(user);
     print('Can add events: $canAddEvents');
 
@@ -90,7 +90,7 @@ class _GlobalEventsManagementScreenState
   Widget _buildModernAppBar(UserModel? user) {
     print('Building Modern AppBar');
     print(
-        'User role in AppBar: ${user?.userRole}, Role name: ${user?.userRole?.name}');
+        'User role in AppBar: ${user?.userRole}, Role name: ${user?.userRole.name}');
     return SliverAppBar(
       expandedHeight: 160,
       floating: false,
@@ -157,9 +157,9 @@ class _GlobalEventsManagementScreenState
 
               if (confirmed == true) {
                 if (value == 'import_pdf') {
-                  await _importSpecialEventsFromPDF(user!);
+                  await _importSpecialEventsFromPDF(user);
                 } else {
-                  await _importSpecialEventsFromJSON(user!);
+                  await _importSpecialEventsFromJSON(user);
                 }
               }
             }
@@ -168,7 +168,7 @@ class _GlobalEventsManagementScreenState
           itemBuilder: (context) {
             print('Building popup menu items');
             print('User role: ${user?.userRole}');
-            print('User role name: ${user?.userRole?.name}');
+            print('User role name: ${user?.userRole.name}');
             print('UserRole.superAdmin: ${UserRole.superAdmin}');
             print('UserRole.superAdmin name: ${UserRole.superAdmin.name}');
             print('UserRole.admin: ${UserRole.admin}');

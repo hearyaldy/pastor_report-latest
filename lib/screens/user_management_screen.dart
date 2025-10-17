@@ -355,7 +355,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: roleColor.withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.3 : 0.2),
+                color: roleColor.withOpacity(
+                    Theme.of(context).brightness == Brightness.dark
+                        ? 0.3
+                        : 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -383,11 +386,15 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        border: Border.all(color: roleColor.withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.5 : 0.3), width: 1.5),
+        border: Border.all(
+            color: roleColor.withOpacity(
+                Theme.of(context).brightness == Brightness.dark ? 0.5 : 0.3),
+            width: 1.5),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: roleColor.withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.08),
+            color: roleColor.withOpacity(
+                Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.08),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -436,7 +443,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            roleColor.withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.6 : 0.8),
+                            roleColor.withOpacity(
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? 0.6
+                                    : 0.8),
                             roleColor,
                           ],
                         ),
@@ -468,7 +478,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             user.email,
                             style: TextStyle(
                               fontSize: 13,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -480,7 +492,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                               _buildChip(
                                 user.role ?? 'User',
                                 _getRoleIcon(user.userRole),
-                                _getRoleColor(user.userRole, brightness).withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.1),
+                                _getRoleColor(user.userRole, brightness)
+                                    .withOpacity(Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? 0.2
+                                        : 0.1),
                                 _getRoleColor(user.userRole, brightness),
                               ),
                               if (user.mission != null)
@@ -576,28 +592,48 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   Color _getRoleColor(UserRole role, Brightness brightness) {
     switch (role) {
       case UserRole.superAdmin:
-        return brightness == Brightness.dark ? Colors.deepPurple.shade200 : Colors.deepPurple.shade700;
+        return brightness == Brightness.dark
+            ? Colors.deepPurple.shade200
+            : Colors.deepPurple.shade700;
       case UserRole.admin:
-        return brightness == Brightness.dark ? Colors.red.shade200 : Colors.red.shade700;
+        return brightness == Brightness.dark
+            ? Colors.red.shade200
+            : Colors.red.shade700;
       case UserRole.missionAdmin:
-        return brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue.shade700;
+        return brightness == Brightness.dark
+            ? Colors.blue.shade200
+            : Colors.blue.shade700;
       case UserRole.ministerialSecretary:
-        return brightness == Brightness.dark ? Colors.teal.shade200 : Colors.teal.shade700;
+        return brightness == Brightness.dark
+            ? Colors.teal.shade200
+            : Colors.teal.shade700;
       case UserRole.officer:
-        return brightness == Brightness.dark ? Colors.cyan.shade200 : Colors.cyan.shade700;
+        return brightness == Brightness.dark
+            ? Colors.cyan.shade200
+            : Colors.cyan.shade700;
       case UserRole.director:
-        return brightness == Brightness.dark ? Colors.purple.shade200 : Colors.deepPurple.shade700;
+        return brightness == Brightness.dark
+            ? Colors.purple.shade200
+            : Colors.deepPurple.shade700;
       case UserRole.editor:
-        return brightness == Brightness.dark ? Colors.green.shade200 : Colors.green.shade700;
+        return brightness == Brightness.dark
+            ? Colors.green.shade200
+            : Colors.green.shade700;
       case UserRole.churchTreasurer:
-        return brightness == Brightness.dark ? Colors.amber.shade200 : Colors.amber.shade800;
+        return brightness == Brightness.dark
+            ? Colors.amber.shade200
+            : Colors.amber.shade800;
       case UserRole.districtPastor:
-        return brightness == Brightness.dark ? Colors.indigo.shade200 : Colors.indigo.shade700;
+        return brightness == Brightness.dark
+            ? Colors.indigo.shade200
+            : Colors.indigo.shade700;
       case UserRole.user:
-        return brightness == Brightness.dark ? AppColors.primaryLight : AppColors.primaryDark;
+        return brightness == Brightness.dark
+            ? AppColors.primaryLight
+            : AppColors.primaryDark;
     }
   }
-  
+
   // Legacy method for compatibility
   Color _getRoleColorLegacy(UserRole role) {
     switch (role) {
@@ -805,7 +841,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
+        Icon(icon,
+            size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -937,7 +974,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 onPressed: () => Navigator.pop(context),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  side: BorderSide(color: Theme.of(context).colorScheme.outline),
+                  side:
+                      BorderSide(color: Theme.of(context).colorScheme.outline),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -1036,12 +1074,15 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   ),
                   Text(
                     user.email,
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 13),
                   ),
                   Text(
                     user.role ?? 'User',
                     style: TextStyle(
-                      color: _getRoleColor(user.userRole, Theme.of(context).brightness),
+                      color: _getRoleColor(
+                          user.userRole, Theme.of(context).brightness),
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -1162,9 +1203,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? roleColor.withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.1)
+              ? roleColor.withOpacity(
+                  Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.1)
               : (brightness == Brightness.dark
-                  ? Theme.of(context).colorScheme.surfaceVariant
+                  ? Theme.of(context).colorScheme.surfaceContainerHighest
                   : Colors.grey.shade50),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
@@ -1181,7 +1223,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: roleColor.withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.1),
+                color: roleColor.withOpacity(
+                    Theme.of(context).brightness == Brightness.dark
+                        ? 0.2
+                        : 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(roleIcon, color: roleColor, size: 24),

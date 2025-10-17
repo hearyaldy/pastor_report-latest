@@ -32,7 +32,7 @@ android {
             enable true
             reset()
             include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
-            universalApk false
+            universalApk true  // Enable universal APK for easier testing
         }
     }
     

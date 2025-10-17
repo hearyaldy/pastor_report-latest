@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -19,6 +20,7 @@ import 'package:pastor_report/services/borang_b_firestore_service.dart';
 import 'package:pastor_report/services/church_service.dart';
 import 'package:pastor_report/services/staff_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
+import 'package:pastor_report/services/profile_picture_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/utils/theme_colors.dart';
 import 'package:uuid/uuid.dart';
@@ -46,6 +48,23 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   int _selectedTodoPriority = 1; // 0: Low, 1: Medium, 2: High
   DateTime _selectedActivityDate = DateTime.now();
   String _selectedActivityType = 'Other';
+  String? _profilePicturePath;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfilePicture();
+  }
+
+  // Load profile picture from local storage
+  Future<void> _loadProfilePicture() async {
+    final path = await ProfilePictureService.instance.getProfilePicturePath();
+    if (mounted) {
+      setState(() {
+        _profilePicturePath = path;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -78,6 +97,9 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.user;
     final isAuthenticated = authProvider.isAuthenticated;
+
+    // Reload profile picture every time dashboard is built
+    _loadProfilePicture();
 
     // Show welcome screen for non-authenticated users
     if (!isAuthenticated) {
@@ -232,16 +254,21 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
                           radius: 24,
                           backgroundColor:
                               Theme.of(context).scaffoldBackgroundColor,
-                          child: Text(
-                            user.displayName.isNotEmpty
-                                ? user.displayName[0].toUpperCase()
-                                : 'U',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: context.colors.primary,
-                            ),
-                          ),
+                          backgroundImage: _profilePicturePath != null
+                              ? FileImage(File(_profilePicturePath!))
+                              : null,
+                          child: _profilePicturePath == null
+                              ? Text(
+                                  user.displayName.isNotEmpty
+                                      ? user.displayName[0].toUpperCase()
+                                      : 'U',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: context.colors.primary,
+                                  ),
+                                )
+                              : null,
                         ),
                       ],
                     ),

@@ -6,14 +6,14 @@ import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/models/global_event_model.dart';
 import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/services/global_event_service.dart';
-import 'package:pastor_report/utils/theme_colors.dart';
 import 'package:pastor_report/utils/constants.dart';
 
 class SimpleGlobalEventsScreen extends StatefulWidget {
   const SimpleGlobalEventsScreen({super.key});
 
   @override
-  State<SimpleGlobalEventsScreen> createState() => _SimpleGlobalEventsScreenState();
+  State<SimpleGlobalEventsScreen> createState() =>
+      _SimpleGlobalEventsScreenState();
 }
 
 class _SimpleGlobalEventsScreenState extends State<SimpleGlobalEventsScreen> {
@@ -50,8 +50,7 @@ class _SimpleGlobalEventsScreenState extends State<SimpleGlobalEventsScreen> {
                 child: Column(
                   children: [
                     _buildSearchBar(),
-                    if (canAddEvents)
-                      const SizedBox(height: 16),
+                    if (canAddEvents) const SizedBox(height: 16),
                   ],
                 ),
               ),
@@ -128,9 +127,17 @@ class _SimpleGlobalEventsScreenState extends State<SimpleGlobalEventsScreen> {
         if (_searchQuery.isNotEmpty) {
           eventsList = eventsList
               .where((event) =>
-                  event.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                  (event.department?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
-                  (event.notes?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false))
+                  event.title
+                      .toLowerCase()
+                      .contains(_searchQuery.toLowerCase()) ||
+                  (event.department
+                          ?.toLowerCase()
+                          .contains(_searchQuery.toLowerCase()) ??
+                      false) ||
+                  (event.notes
+                          ?.toLowerCase()
+                          .contains(_searchQuery.toLowerCase()) ??
+                      false))
               .toList();
         }
 
@@ -147,7 +154,8 @@ class _SimpleGlobalEventsScreenState extends State<SimpleGlobalEventsScreen> {
                 return Column(
                   children: [
                     _buildEventCard(event, canEdit, user),
-                    if (index < eventsList.length - 1) const SizedBox(height: 12),
+                    if (index < eventsList.length - 1)
+                      const SizedBox(height: 12),
                   ],
                 );
               },
@@ -266,7 +274,7 @@ class _SimpleGlobalEventsScreenState extends State<SimpleGlobalEventsScreen> {
 
   Color _getEventColor(String? department) {
     if (department == null) return Colors.grey;
-    
+
     // Return specific colors based on department
     switch (department.toLowerCase()) {
       case 'ministerial':
@@ -369,8 +377,10 @@ class _SimpleGlobalEventsScreenState extends State<SimpleGlobalEventsScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            _detailItem(Icons.calendar_today, 'Date', '${event.dateTime.day}/${event.dateTime.month}/${event.dateTime.year}'),
-            _detailItem(Icons.schedule, 'Time', '${event.dateTime.hour.toString().padLeft(2, '0')}:${event.dateTime.minute.toString().padLeft(2, '0')}'),
+            _detailItem(Icons.calendar_today, 'Date',
+                '${event.dateTime.day}/${event.dateTime.month}/${event.dateTime.year}'),
+            _detailItem(Icons.schedule, 'Time',
+                '${event.dateTime.hour.toString().padLeft(2, '0')}:${event.dateTime.minute.toString().padLeft(2, '0')}'),
             if (event.department != null)
               _detailItem(Icons.category, 'Department', event.department!),
             if (event.notes != null && event.notes!.isNotEmpty)
@@ -421,13 +431,13 @@ class _SimpleGlobalEventsScreenState extends State<SimpleGlobalEventsScreen> {
 
   bool _canAddEvents(UserModel? user) {
     if (user == null) return false;
-    
+
     // Allow Super Admin, Admin, Mission Admin, Directors, and Officers to add events
     return user.userRole == UserRole.superAdmin ||
-           user.userRole == UserRole.admin ||
-           user.userRole == UserRole.missionAdmin ||
-           user.userRole == UserRole.director ||
-           user.userRole == UserRole.officer;
+        user.userRole == UserRole.admin ||
+        user.userRole == UserRole.missionAdmin ||
+        user.userRole == UserRole.director ||
+        user.userRole == UserRole.officer;
   }
 }
 
@@ -484,7 +494,9 @@ class _EventFormState extends State<_EventForm> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  widget.event == null ? 'Add Global Event' : 'Edit Global Event',
+                  widget.event == null
+                      ? 'Add Global Event'
+                      : 'Edit Global Event',
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -516,7 +528,9 @@ class _EventFormState extends State<_EventForm> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _selectedDepartment?.isEmpty == true ? null : _selectedDepartment,
+                  value: _selectedDepartment?.isEmpty == true
+                      ? null
+                      : _selectedDepartment,
                   decoration: const InputDecoration(
                     labelText: 'Department (Optional)',
                     border: OutlineInputBorder(),
@@ -526,12 +540,14 @@ class _EventFormState extends State<_EventForm> {
                       value: null,
                       child: Text('None'),
                     ),
-                    ...DepartmentData.departments.map((dept) => DropdownMenuItem(
-                          value: dept.name,
-                          child: Text(dept.name),
-                        )),
+                    ...DepartmentData.departments
+                        .map((dept) => DropdownMenuItem(
+                              value: dept.name,
+                              child: Text(dept.name),
+                            )),
                   ],
-                  onChanged: (value) => setState(() => _selectedDepartment = value),
+                  onChanged: (value) =>
+                      setState(() => _selectedDepartment = value),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -579,7 +595,8 @@ class _EventFormState extends State<_EventForm> {
     if (pickedDate != null) {
       final TimeOfDay? pickedTime = await showTimePicker(
         context: context,
-        initialTime: TimeOfDay.fromDateTime(_selectedDateTime ?? DateTime.now()),
+        initialTime:
+            TimeOfDay.fromDateTime(_selectedDateTime ?? DateTime.now()),
       );
 
       if (pickedTime != null) {
@@ -602,8 +619,12 @@ class _EventFormState extends State<_EventForm> {
         id: widget.event?.id ?? const Uuid().v4(),
         title: _titleController.text.trim(),
         dateTime: _selectedDateTime!,
-        department: _selectedDepartment?.isNotEmpty == true ? _selectedDepartment : null,
-        notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+        department: _selectedDepartment?.isNotEmpty == true
+            ? _selectedDepartment
+            : null,
+        notes: _notesController.text.trim().isNotEmpty
+            ? _notesController.text.trim()
+            : null,
         createdBy: widget.user.uid,
         createdAt: widget.event?.createdAt ?? DateTime.now(),
         updatedAt: DateTime.now(),

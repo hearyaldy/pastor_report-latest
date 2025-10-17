@@ -106,7 +106,8 @@ class _CalendarScreenState extends State<CalendarScreen>
     print('TabController initialized. Current index: ${_tabController.index}');
     _tabController.addListener(() {
       // Defensive check for valid index
-      print('TabController index changed to: ${_tabController.index}, Length: ${_tabController.length}');
+      print(
+          'TabController index changed to: ${_tabController.index}, Length: ${_tabController.length}');
       if (_tabController.index < 0 || _tabController.index >= 4) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && _tabController.index != 0) {
@@ -191,9 +192,10 @@ class _CalendarScreenState extends State<CalendarScreen>
     // Process global events
     print('Processing ${globalEvents.length} global events...');
     for (var globalEvent in globalEvents) {
-      print('Processing global event: ${globalEvent.title} on ${globalEvent.dateTime}');
-      final date = DateTime(
-          globalEvent.dateTime.year, globalEvent.dateTime.month, globalEvent.dateTime.day);
+      print(
+          'Processing global event: ${globalEvent.title} on ${globalEvent.dateTime}');
+      final date = DateTime(globalEvent.dateTime.year,
+          globalEvent.dateTime.month, globalEvent.dateTime.day);
 
       if (itemsMap[date] == null) {
         itemsMap[date] = [];
@@ -214,7 +216,7 @@ class _CalendarScreenState extends State<CalendarScreen>
     setState(() {
       _calendarItems = itemsMap;
       _selectedDayItems = _filterItemsByView(selectedDayItems);
-      
+
       // Update month view items if in month view
       if (_isMonthView) {
         _monthViewItems = _getItemsForMonth();
@@ -224,7 +226,7 @@ class _CalendarScreenState extends State<CalendarScreen>
 
   List<CalendarItem> _filterItemsByView(List<CalendarItem> items) {
     if (_selectedView == 'all') return items;
-    
+
     // Match view with item type
     String typeToMatch;
     switch (_selectedView) {
@@ -240,7 +242,7 @@ class _CalendarScreenState extends State<CalendarScreen>
       default:
         typeToMatch = _selectedView;
     }
-    
+
     return items.where((item) => item.type == typeToMatch).toList();
   }
 
@@ -255,7 +257,7 @@ class _CalendarScreenState extends State<CalendarScreen>
 
     setState(() {
       _selectedDayItems = _filterItemsByView(allItems);
-      
+
       // Update month view items if in month view
       if (_isMonthView) {
         _monthViewItems = _getItemsForMonth();
@@ -275,7 +277,7 @@ class _CalendarScreenState extends State<CalendarScreen>
 
     setState(() {
       _selectedDayItems = _filterItemsByView(allItems);
-      
+
       // Update month view items if in month view
       if (_isMonthView) {
         _monthViewItems = _getItemsForMonth();
@@ -298,9 +300,8 @@ class _CalendarScreenState extends State<CalendarScreen>
     _selectedDateTime = _selectedDay ?? DateTime.now();
     _selectedEndDateTime = null;
 
-    Color eventTypeColor = type == 'appointment' 
-        ? Colors.orange 
-        : AppColors.primaryLight;
+    Color eventTypeColor =
+        type == 'appointment' ? Colors.orange : AppColors.primaryLight;
 
     showModalBottomSheet(
       context: context,
@@ -343,8 +344,8 @@ class _CalendarScreenState extends State<CalendarScreen>
                           ),
                         ),
                         child: Icon(
-                          type == 'appointment' 
-                              ? Icons.calendar_today 
+                          type == 'appointment'
+                              ? Icons.calendar_today
                               : Icons.event,
                           color: eventTypeColor,
                           size: 20,
@@ -439,7 +440,8 @@ class _CalendarScreenState extends State<CalendarScreen>
                       if (date != null && context.mounted) {
                         final time = await showTimePicker(
                           context: context,
-                          initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+                          initialTime:
+                              TimeOfDay.fromDateTime(_selectedDateTime),
                         );
                         if (time != null) {
                           setState(() {
@@ -487,8 +489,8 @@ class _CalendarScreenState extends State<CalendarScreen>
                           context: context,
                           initialDate: _selectedEndDateTime ??
                               _selectedDateTime.add(const Duration(hours: 1)),
-                          firstDate:
-                              DateTime.now().subtract(const Duration(days: 365)),
+                          firstDate: DateTime.now()
+                              .subtract(const Duration(days: 365)),
                           lastDate:
                               DateTime.now().add(const Duration(days: 365 * 2)),
                         );
@@ -626,7 +628,9 @@ class _CalendarScreenState extends State<CalendarScreen>
         if (event.isGlobal) {
           // Global events can only be deleted by administrators
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Global events can only be deleted by administrators')),
+            const SnackBar(
+                content: Text(
+                    'Global events can only be deleted by administrators')),
           );
           return;
         }
@@ -635,7 +639,9 @@ class _CalendarScreenState extends State<CalendarScreen>
       } else if (item.type == 'global_event') {
         // Global events should only be deletable by administrators
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Global events can only be deleted by administrators')),
+          const SnackBar(
+              content:
+                  Text('Global events can only be deleted by administrators')),
         );
         return;
       }
@@ -652,13 +658,13 @@ class _CalendarScreenState extends State<CalendarScreen>
       }
     }
   }
-  
+
   // Show delete confirmation bottom sheet
   Future<bool> _showDeleteConfirmationBottomSheet(CalendarItem item) async {
-    Color eventTypeColor = item.type == 'appointment' 
-        ? Colors.orange 
-        : item.type == 'global_event' 
-            ? Colors.purple 
+    Color eventTypeColor = item.type == 'appointment'
+        ? Colors.orange
+        : item.type == 'global_event'
+            ? Colors.purple
             : AppColors.primaryLight;
 
     return showModalBottomSheet<bool>(
@@ -737,7 +743,7 @@ class _CalendarScreenState extends State<CalendarScreen>
               const SizedBox(height: 16),
               const Text(
                 'Are you sure you want to delete this item?',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   color: Colors.black87,
                 ),
@@ -797,12 +803,12 @@ class _CalendarScreenState extends State<CalendarScreen>
 
   // Show details of an item
   void _showItemDetails(CalendarItem item) {
-    Color eventTypeColor = item.type == 'appointment' 
-        ? Colors.orange 
-        : item.type == 'global_event' 
-            ? Colors.purple 
+    Color eventTypeColor = item.type == 'appointment'
+        ? Colors.orange
+        : item.type == 'global_event'
+            ? Colors.purple
             : AppColors.primaryLight;
-            
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -852,8 +858,8 @@ class _CalendarScreenState extends State<CalendarScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            item.type == 'global_event' 
-                                ? 'Global Event' 
+                            item.type == 'global_event'
+                                ? 'Global Event'
                                 : item.type.capitalize(),
                             style: TextStyle(
                               fontSize: 14,
@@ -909,7 +915,8 @@ class _CalendarScreenState extends State<CalendarScreen>
               Row(
                 children: [
                   Icon(Icons.access_time,
-                      size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(width: 4),
                   Text(
                     DateFormat('MMM dd, yyyy • h:mm a').format(item.dateTime),
@@ -926,7 +933,8 @@ class _CalendarScreenState extends State<CalendarScreen>
                 Row(
                   children: [
                     Icon(Icons.event_available,
-                        size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        size: 16,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(
                       'Ends: ${DateFormat('MMM dd, yyyy • h:mm a').format((item.originalItem as Event).endDate!)}',
@@ -943,7 +951,8 @@ class _CalendarScreenState extends State<CalendarScreen>
                 Row(
                   children: [
                     Icon(Icons.location_on,
-                        size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        size: 16,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
@@ -1018,7 +1027,8 @@ class _CalendarScreenState extends State<CalendarScreen>
                           (item.originalItem as Appointment).contactPhone!,
                           style: TextStyle(
                             fontSize: 14,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -1066,7 +1076,7 @@ class _CalendarScreenState extends State<CalendarScreen>
   List<CalendarItem> _getItemsForMonth() {
     // Filter items based on the selected tab view for the current month
     List<CalendarItem> monthItems = [];
-    
+
     // Get all items for the current month
     _calendarItems.forEach((date, items) {
       if (date.month == _focusedDay.month && date.year == _focusedDay.year) {
@@ -1075,7 +1085,7 @@ class _CalendarScreenState extends State<CalendarScreen>
         monthItems.addAll(filteredItems);
       }
     });
-    
+
     // Sort the final list
     monthItems.sort((a, b) => a.dateTime.compareTo(b.dateTime));
     return monthItems;
@@ -1103,7 +1113,8 @@ class _CalendarScreenState extends State<CalendarScreen>
                 _isMonthView = !_isMonthView;
               });
             },
-            tooltip: _isMonthView ? 'Switch to Day View' : 'Switch to Month View',
+            tooltip:
+                _isMonthView ? 'Switch to Day View' : 'Switch to Month View',
           ),
         ],
         bottom: TabBar(
@@ -1168,7 +1179,7 @@ class _CalendarScreenState extends State<CalendarScreen>
               children: [
                 _isMonthView
                     ? Text(
-                        '${DateFormat('MMMM yyyy').format(_focusedDay)}',
+                        DateFormat('MMMM yyyy').format(_focusedDay),
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
@@ -1231,12 +1242,12 @@ class _CalendarScreenState extends State<CalendarScreen>
                         itemCount: _selectedDayItems.length,
                         itemBuilder: (context, index) {
                           final item = _selectedDayItems[index];
-                          Color eventTypeColor = item.type == 'appointment' 
-                              ? Colors.orange 
-                              : item.type == 'global_event' 
-                                  ? Colors.purple 
+                          Color eventTypeColor = item.type == 'appointment'
+                              ? Colors.orange
+                              : item.type == 'global_event'
+                                  ? Colors.purple
                                   : AppColors.primaryLight;
-                          
+
                           return Card(
                             margin: const EdgeInsets.only(bottom: 8),
                             shape: RoundedRectangleBorder(
@@ -1262,7 +1273,8 @@ class _CalendarScreenState extends State<CalendarScreen>
                                         color: eventTypeColor.withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(10),
                                         border: Border.all(
-                                          color: eventTypeColor.withOpacity(0.3),
+                                          color:
+                                              eventTypeColor.withOpacity(0.3),
                                         ),
                                       ),
                                       child: Icon(
@@ -1278,7 +1290,8 @@ class _CalendarScreenState extends State<CalendarScreen>
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Row(
                                             children: [
@@ -1288,24 +1301,31 @@ class _CalendarScreenState extends State<CalendarScreen>
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.w600,
                                                     fontSize: 15,
-                                                    color: Theme.of(context).colorScheme.onSurface,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface,
                                                   ),
                                                 ),
                                               ),
                                               Container(
-                                                padding: const EdgeInsets.symmetric(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
                                                   horizontal: 8,
                                                   vertical: 4,
                                                 ),
                                                 decoration: BoxDecoration(
-                                                  color: eventTypeColor.withOpacity(0.1),
-                                                  borderRadius: BorderRadius.circular(12),
+                                                  color: eventTypeColor
+                                                      .withOpacity(0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
                                                   border: Border.all(
-                                                    color: eventTypeColor.withOpacity(0.3),
+                                                    color: eventTypeColor
+                                                        .withOpacity(0.3),
                                                   ),
                                                 ),
                                                 child: Text(
-                                                  DateFormat('h:mm a').format(item.dateTime),
+                                                  DateFormat('h:mm a')
+                                                      .format(item.dateTime),
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.w500,
@@ -1315,15 +1335,19 @@ class _CalendarScreenState extends State<CalendarScreen>
                                               ),
                                             ],
                                           ),
-                                          if (item.location != null && item.location!.isNotEmpty)
+                                          if (item.location != null &&
+                                              item.location!.isNotEmpty)
                                             Padding(
-                                              padding: const EdgeInsets.only(top: 6),
+                                              padding:
+                                                  const EdgeInsets.only(top: 6),
                                               child: Row(
                                                 children: [
                                                   Icon(
                                                     Icons.location_on,
                                                     size: 14,
-                                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
                                                   ),
                                                   const SizedBox(width: 4),
                                                   Expanded(
@@ -1331,10 +1355,13 @@ class _CalendarScreenState extends State<CalendarScreen>
                                                       item.location!,
                                                       style: TextStyle(
                                                         fontSize: 12,
-                                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .onSurfaceVariant,
                                                       ),
                                                       maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
                                                     ),
                                                   ),
                                                 ],
@@ -1345,7 +1372,9 @@ class _CalendarScreenState extends State<CalendarScreen>
                                     ),
                                     Icon(
                                       Icons.chevron_right,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
                                     ),
                                   ],
                                 ),
@@ -1475,10 +1504,10 @@ class _CalendarScreenState extends State<CalendarScreen>
 
   Widget _buildMonthView() {
     List<CalendarItem> monthItems = _getItemsForMonth();
-    
+
     // Sort items by date and time
     monthItems.sort((a, b) => a.dateTime.compareTo(b.dateTime));
-    
+
     if (monthItems.isEmpty) {
       return Center(
         child: Column(
@@ -1513,12 +1542,12 @@ class _CalendarScreenState extends State<CalendarScreen>
       itemCount: monthItems.length,
       itemBuilder: (context, index) {
         final item = monthItems[index];
-        Color eventTypeColor = item.type == 'appointment' 
-            ? Colors.orange 
-            : item.type == 'global_event' 
-                ? Colors.purple 
+        Color eventTypeColor = item.type == 'appointment'
+            ? Colors.orange
+            : item.type == 'global_event'
+                ? Colors.purple
                 : AppColors.primaryLight;
-        
+
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
           shape: RoundedRectangleBorder(
@@ -1570,7 +1599,8 @@ class _CalendarScreenState extends State<CalendarScreen>
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 15,
-                                  color: Theme.of(context).colorScheme.onSurface,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -1602,7 +1632,8 @@ class _CalendarScreenState extends State<CalendarScreen>
                           DateFormat('h:mm a').format(item.dateTime),
                           style: TextStyle(
                             fontSize: 12,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.w400,
                           ),
                         ),
@@ -1622,7 +1653,9 @@ class _CalendarScreenState extends State<CalendarScreen>
                                     item.location!,
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
