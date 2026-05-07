@@ -115,6 +115,17 @@ service cloud.firestore {
         (isMissionAdmin() && missionId == userMissionId());
     }
 
+    function isUserMissionValue(missionValue) {
+      return missionValue == userMissionId() ||
+        (exists(/databases/$(database)/documents/missions/$(userMissionId())) &&
+          get(/databases/$(database)/documents/missions/$(userMissionId())).data.name == missionValue);
+    }
+
+    function canManageMissionValue(missionValue) {
+      return isAdmin() ||
+        (isMissionAdmin() && isUserMissionValue(missionValue));
+    }
+
     function isDistrictScopedPastor(districtId) {
       return isDistrictPastor() && districtId == userDistrictId();
     }
@@ -149,8 +160,17 @@ service cloud.firestore {
 
     // Users collection
     match /users/{userId} {
-      // Anyone authenticated can read any user (for displaying user lists)
-      allow read: if isAuthenticated();
+      // Users can read their own profile. Privileged users can read user
+      // records for management/reporting views.
+      allow get: if isOwner(userId) ||
+                    isAdmin() ||
+                    isMissionAdmin() ||
+                    isMissionLevelReporter();
+
+      // User list/search exposes emails and assignments, so keep it to
+      // privileged management/reporting roles.
+      allow list: if isAuthenticated() &&
+                    (isAdmin() || isMissionAdmin() || isMissionLevelReporter());
 
       // Users can create their own document during registration, but cannot
       // bootstrap privileged roles or admin flags from a modified client.
@@ -225,11 +245,20 @@ service cloud.firestore {
 
     // Staff collection (centralized staff directory)
     match /staff/{staffId} {
-      // Staff directory is visible to signed-in organization users.
-      allow read: if isAuthenticated();
+      // Users can see staff/workers in their own mission. Admins can see all.
+      allow read: if isAuthenticated() &&
+                    (isAdmin() || isUserMissionValue(resource.data.mission));
 
       // Only administrators can manage staff records.
-      allow create, update, delete: if isAdmin() || isMissionAdmin();
+      allow create: if isAuthenticated() &&
+                      canManageMissionValue(request.resource.data.mission);
+
+      allow update: if isAuthenticated() &&
+                      canManageMissionValue(resource.data.mission) &&
+                      request.resource.data.mission == resource.data.mission;
+
+      allow delete: if isAuthenticated() &&
+                      canManageMissionValue(resource.data.mission);
     }
 
     // Regions collection (organizational structure)
@@ -487,30 +516,34 @@ service cloud.firestore {
     
     // Resources collection - mission-specific resources
     match /resources/{resourceId} {
-      // Allow mission members and admins to read resources from their mission
+      // Allow mission members and admins to read resources from their mission.
       allow read: if isAuthenticated() &&
-                    (isAdmin() || 
-                     isMissionAdmin() ||
-                     isMissionMember(get(/databases/$(database)/documents/missions/$(get(/databases/$(database)/documents/resources/$(resourceId)).data.missionId)).data.name));
+                    (isAdmin() ||
+                     resource.data.missionId == userMissionId());
       
-      // Allow mission members and admins to create resources for their mission
+      // Allow mission members and scoped admins to create resources only for
+      // their own mission, attributed to themselves.
       allow create: if isAuthenticated() &&
-                      (isAdmin() || 
-                       isMissionAdmin() ||
-                       isMissionMember(get(/databases/$(database)/documents/missions/$(request.resource.data.missionId)).data.name)) &&
+                      (isAdmin() ||
+                       request.resource.data.missionId == userMissionId()) &&
                        request.resource.data.userId == request.auth.uid;
       
-      // Allow resource creators, admins, and mission admins to update their resources
+      // Allow resource creators and scoped admins to update resources without
+      // moving them between missions or reassigning ownership.
       allow update: if isAuthenticated() &&
-                      (isAdmin() || 
-                       isMissionAdmin() ||
-                       isOwner(get(/databases/$(database)/documents/resources/$(resourceId)).data.userId));
+                      (isAdmin() ||
+                       (resource.data.missionId == userMissionId() &&
+                        resource.data.userId == request.auth.uid) ||
+                       isMissionScopedAdmin(resource.data.missionId)) &&
+                      request.resource.data.missionId == resource.data.missionId &&
+                      request.resource.data.userId == resource.data.userId;
       
-      // Allow resource creators, admins, and mission admins to delete their resources
+      // Allow resource creators and scoped admins to delete resources.
       allow delete: if isAuthenticated() &&
-                      (isAdmin() || 
-                       isMissionAdmin() ||
-                       isOwner(get(/databases/$(database)/documents/resources/$(resourceId)).data.userId));
+                      (isAdmin() ||
+                       (resource.data.missionId == userMissionId() &&
+                        resource.data.userId == request.auth.uid) ||
+                       isMissionScopedAdmin(resource.data.missionId));
     }
   }
 }
