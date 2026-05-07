@@ -3,6 +3,81 @@ const admin = require('firebase-admin');
 
 admin.initializeApp();
 
+const roleAliases = {
+  'Super Admin': 'superAdmin',
+  'Admin': 'admin',
+  'Mission Admin': 'missionAdmin',
+  'Ministerial Secretary': 'ministerialSecretary',
+  'Officer': 'officer',
+  'Director': 'director',
+  'Editor': 'editor',
+  'Church Treasurer': 'churchTreasurer',
+  'District Pastor': 'districtPastor',
+  'User': 'user',
+};
+
+const roleHierarchy = {
+  superAdmin: 100,
+  admin: 90,
+  missionAdmin: 80,
+  ministerialSecretary: 70,
+  officer: 60,
+  director: 50,
+  editor: 40,
+  churchTreasurer: 30,
+  districtPastor: 20,
+  user: 10,
+};
+
+function normalizeRole(userData) {
+  const role = userData.userRole || userData.role || 'user';
+  return roleAliases[role] || role;
+}
+
+function canDeleteUser(callerData, targetData) {
+  const callerRole = normalizeRole(callerData);
+  const targetRole = normalizeRole(targetData);
+  const callerLevel = roleHierarchy[callerRole] || 0;
+  const targetLevel = roleHierarchy[targetRole] || 0;
+
+  if (!['superAdmin', 'admin', 'missionAdmin'].includes(callerRole)) {
+    return false;
+  }
+
+  if (callerLevel <= targetLevel) {
+    return false;
+  }
+
+  if (callerRole === 'missionAdmin') {
+    return Boolean(callerData.mission) &&
+      callerData.mission === targetData.mission &&
+      !['superAdmin', 'admin', 'missionAdmin'].includes(targetRole);
+  }
+
+  return true;
+}
+
+async function deleteQueryInBatches(querySnapshot) {
+  const firestore = admin.firestore();
+  let batch = firestore.batch();
+  let operationCount = 0;
+
+  for (const doc of querySnapshot.docs) {
+    batch.delete(doc.ref);
+    operationCount++;
+
+    if (operationCount === 450) {
+      await batch.commit();
+      batch = firestore.batch();
+      operationCount = 0;
+    }
+  }
+
+  if (operationCount > 0) {
+    await batch.commit();
+  }
+}
+
 /**
  * Callable Cloud Function to delete a user completely
  * Deletes:
@@ -25,6 +100,13 @@ exports.deleteUserCompletely = onCall(async (request) => {
     throw new HttpsError('invalid-argument', 'User ID is required');
   }
 
+  if (uid === request.auth.uid) {
+    throw new HttpsError(
+      'permission-denied',
+      'You cannot delete your own account from the admin tool'
+    );
+  }
+
   try {
     // Get the caller's user document to check permissions
     const callerDoc = await admin
@@ -41,21 +123,6 @@ exports.deleteUserCompletely = onCall(async (request) => {
     }
 
     const callerData = callerDoc.data();
-    const callerRole = callerData.userRole || 'user';
-
-    // Define role hierarchy levels (same as in your Flutter app)
-    const roleHierarchy = {
-      'superAdmin': 100,
-      'admin': 90,
-      'missionAdmin': 80,
-      'ministerialSecretary': 70,
-      'officer': 60,
-      'director': 50,
-      'editor': 40,
-      'churchTreasurer': 30,
-      'districtPastor': 20,
-      'user': 10,
-    };
 
     // Get the target user's role
     const targetDoc = await admin
@@ -69,13 +136,8 @@ exports.deleteUserCompletely = onCall(async (request) => {
     }
 
     const targetData = targetDoc.data();
-    const targetRole = targetData.userRole || 'user';
 
-    // Check if caller has permission to delete this user
-    const callerLevel = roleHierarchy[callerRole] || 0;
-    const targetLevel = roleHierarchy[targetRole] || 0;
-
-    if (callerLevel <= targetLevel) {
+    if (!canDeleteUser(callerData, targetData)) {
       throw new HttpsError(
         'permission-denied',
         'You do not have permission to delete this user'
@@ -91,11 +153,7 @@ exports.deleteUserCompletely = onCall(async (request) => {
       .where('userId', '==', uid)
       .get();
 
-    const batch = admin.firestore().batch();
-    borangBReports.docs.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
-    await batch.commit();
+    await deleteQueryInBatches(borangBReports);
 
     console.log(`Deleted ${borangBReports.size} Borang B reports for user ${uid}`);
 
