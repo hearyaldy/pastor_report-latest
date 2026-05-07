@@ -110,6 +110,15 @@ service cloud.firestore {
       return isMinisterialSecretary() || isOfficer() || isDirector();
     }
 
+    function isMissionScopedAdmin(missionId) {
+      return isAdmin() ||
+        (isMissionAdmin() && missionId == userMissionId());
+    }
+
+    function isDistrictScopedPastor(districtId) {
+      return isDistrictPastor() && districtId == userDistrictId();
+    }
+
     function hasNoProtectedUserChanges() {
       return !request.resource.data.diff(resource.data).affectedKeys()
         .hasAny([
@@ -228,17 +237,16 @@ service cloud.firestore {
       // Allow anyone to read regions (needed for registration and onboarding)
       allow read: if true;
 
-      // Authenticated users can create regions during onboarding
-      // Admins and super admins can create regions (for migrations)
+      // Only admins and mission admins can manage organizational regions.
       allow create: if isAuthenticated() &&
-                       (isAdmin() || isSuperAdmin() || request.resource.data.createdBy == request.auth.uid);
+                       isMissionScopedAdmin(request.resource.data.missionId);
 
-      // Users can update regions they created, admins can update any
+      // Keep region ownership inside the caller's authorized mission.
       allow update: if isAuthenticated() &&
-                       (resource.data.createdBy == request.auth.uid || isAdmin() || isSuperAdmin());
+                       isMissionScopedAdmin(resource.data.missionId) &&
+                       request.resource.data.missionId == resource.data.missionId;
 
-      // Admins and mission admins can delete regions
-      allow delete: if isAdmin() || isMissionAdmin();
+      allow delete: if isMissionScopedAdmin(resource.data.missionId);
     }
 
     // Districts collection (organizational structure)
@@ -247,16 +255,16 @@ service cloud.firestore {
       // District pastors can read their own district
       allow read: if true || (isDistrictPastor() && resource.data.id == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.district);
 
-      // Authenticated users can create districts during onboarding
+      // Only admins and mission admins can manage organizational districts.
       allow create: if isAuthenticated() &&
-                       request.resource.data.createdBy == request.auth.uid;
+                       isMissionScopedAdmin(request.resource.data.missionId);
 
-      // Users can update districts they created, admins can update any
+      // Keep district ownership inside the caller's authorized mission.
       allow update: if isAuthenticated() &&
-                       (resource.data.createdBy == request.auth.uid || isAdmin() || (isDistrictPastor() && resource.data.id == get(/databases/$(database)/documents/churches/$(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.churchId)).data.districtId));
+                       isMissionScopedAdmin(resource.data.missionId) &&
+                       request.resource.data.missionId == resource.data.missionId;
 
-      // Admins and mission admins can delete districts
-      allow delete: if isAdmin() || isMissionAdmin();
+      allow delete: if isMissionScopedAdmin(resource.data.missionId);
     }
 
     // Churches collection
@@ -264,20 +272,23 @@ service cloud.firestore {
       // Allow authenticated users to read churches (needed for listings and assignments)
       allow read: if isAuthenticated();
 
-      // Authenticated users can create churches if they are admin, mission admin, district pastor, or creating a church for themselves
+      // Churches can be created by admins/mission admins in scope, or by a
+      // district pastor only inside their assigned district.
       allow create: if isAuthenticated() && (
-        isAdmin() ||
-        isMissionAdmin() ||
-        isDistrictPastor() ||
-        request.resource.data.userId == request.auth.uid
+        isMissionScopedAdmin(request.resource.data.missionId) ||
+        isDistrictScopedPastor(request.resource.data.districtId)
       );
 
-      // Users can update their own churches, admins, district pastors can update any church
-      allow update: if isAuthenticated() &&
-                       (resource.data.userId == request.auth.uid || isAdmin() || isDistrictPastor());
+      // Keep church reassignment inside authorized scope. District pastors
+      // cannot move churches out of their own district.
+      allow update: if isAuthenticated() && (
+        (isMissionScopedAdmin(resource.data.missionId) &&
+          request.resource.data.missionId == resource.data.missionId) ||
+        (isDistrictScopedPastor(resource.data.districtId) &&
+          request.resource.data.districtId == resource.data.districtId)
+      );
 
-      // Admins and mission admins can delete churches
-      allow delete: if isAdmin() || isMissionAdmin();
+      allow delete: if isMissionScopedAdmin(resource.data.missionId);
     }
 
     // Financial Reports collection
