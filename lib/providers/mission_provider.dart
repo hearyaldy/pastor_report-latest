@@ -17,6 +17,11 @@ class MissionProvider with ChangeNotifier {
   Mission? _selectedMission;
   List<Department> _departments = [];
 
+  // Cache for mission data to reduce database reads
+  static List<Mission>? _cachedMissions;
+  static DateTime? _lastMissionsLoadTime;
+  static const Duration _cacheDuration = Duration(minutes: 5);
+
   // Getters
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -43,11 +48,26 @@ class MissionProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Load all missions
-  Future<void> loadMissions() async {
+  // Load all missions with caching
+  Future<void> loadMissions({bool forceRefresh = false}) async {
+    // Check if we have valid cached data
+    if (!forceRefresh && 
+        _cachedMissions != null && 
+        _lastMissionsLoadTime != null &&
+        DateTime.now().difference(_lastMissionsLoadTime!) < _cacheDuration) {
+      _missions = _cachedMissions!;
+      notifyListeners();
+      return;
+    }
+
     _setLoading(true);
     try {
-      _missions = await _missionService.getAllMissions();
+      _missions = await _missionService.getAllMissions(forceRefresh: forceRefresh);
+      
+      // Update cache
+      _cachedMissions = _missions;
+      _lastMissionsLoadTime = DateTime.now();
+      
       notifyListeners();
     } catch (e) {
       _setError('Failed to load missions: $e');
@@ -154,7 +174,11 @@ class MissionProvider with ChangeNotifier {
     _setLoading(true);
     try {
       final missionId = await _missionService.addMission(mission);
-      await loadMissions();
+      
+      // Invalidate cache and reload
+      _invalidateMissionsCache();
+      await loadMissions(forceRefresh: true);
+      
       // Select the newly added mission
       await selectMission(id: missionId);
     } catch (e) {
@@ -168,7 +192,11 @@ class MissionProvider with ChangeNotifier {
     _setLoading(true);
     try {
       await _missionService.updateMission(mission);
-      await loadMissions();
+      
+      // Invalidate cache and reload
+      _invalidateMissionsCache();
+      await loadMissions(forceRefresh: true);
+      
       // Refresh the selected mission if it's the one being updated
       if (_selectedMission?.id == mission.id) {
         await selectMission(id: mission.id);
@@ -184,12 +212,16 @@ class MissionProvider with ChangeNotifier {
     _setLoading(true);
     try {
       await _missionService.deleteMission(missionId);
+      
+      // Invalidate cache and reload
+      _invalidateMissionsCache();
+      
       // Clear selection if the deleted mission was selected
       if (_selectedMission?.id == missionId) {
         _selectedMission = null;
         _departments = [];
       }
-      await loadMissions();
+      await loadMissions(forceRefresh: true);
       notifyListeners();
     } catch (e) {
       _setError('Failed to delete mission: $e');
@@ -210,7 +242,11 @@ class MissionProvider with ChangeNotifier {
     try {
       await _departmentService.migrateToMissionStructure();
       _departmentService.setUseMissionStructure(true);
-      await loadMissions();
+      
+      // Invalidate cache and reload
+      _invalidateMissionsCache();
+      await loadMissions(forceRefresh: true);
+      
       await loadDepartments();
     } catch (e) {
       _setError('Failed to migrate data: $e');
@@ -250,7 +286,11 @@ class MissionProvider with ChangeNotifier {
       }
 
       print('Reseed completed successfully, reloading data');
-      await loadMissions();
+      
+      // Invalidate cache and reload
+      _invalidateMissionsCache();
+      await loadMissions(forceRefresh: true);
+      
       await loadDepartments();
       print('Data reload completed');
     } catch (e) {
@@ -299,5 +339,19 @@ class MissionProvider with ChangeNotifier {
       _setError('Failed to delete department: $e');
     }
     _setLoading(false);
+  }
+
+  // Invalidate the missions cache
+  void _invalidateMissionsCache() {
+    _cachedMissions = null;
+    _lastMissionsLoadTime = null;
+    // Also clear service-level cache
+    _missionService.clearMissionsCache();
+  }
+
+  // Clear cache and force refresh
+  Future<void> clearCacheAndRefresh() async {
+    _invalidateMissionsCache();
+    await loadMissions(forceRefresh: true);
   }
 }

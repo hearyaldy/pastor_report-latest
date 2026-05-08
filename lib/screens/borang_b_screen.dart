@@ -8,7 +8,9 @@ import 'package:pastor_report/models/borang_b_model.dart';
 import 'package:pastor_report/services/borang_b_firestore_service.dart';
 import 'package:pastor_report/services/borang_b_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
+import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class BorangBScreen extends StatefulWidget {
   const BorangBScreen({super.key});
@@ -154,6 +156,40 @@ class _BorangBScreenState extends State<BorangBScreen> {
         const SnackBar(content: Text('User not authenticated')),
       );
       return;
+    }
+
+    // Block submission if profile is incomplete (district required for non-mission roles)
+    if (asSubmission) {
+      final isMissionLevel = user.userRole == UserRole.ministerialSecretary ||
+          user.userRole == UserRole.officer ||
+          user.userRole == UserRole.director ||
+          user.userRole == UserRole.missionAdmin ||
+          user.userRole == UserRole.editor ||
+          user.userRole == UserRole.admin ||
+          user.userRole == UserRole.superAdmin;
+
+      if (!isMissionLevel && (user.district == null || user.district!.isEmpty)) {
+        await showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            icon: const Icon(Icons.warning_amber_rounded,
+                color: Colors.orange, size: 48),
+            title: const Text('Profile Incomplete'),
+            content: const Text(
+              'Your profile is missing a district assignment.\n\n'
+              'Please complete your profile setup first. If your district is not available, '
+              'use the onboarding screen to request it from an admin.',
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
     }
 
     // If submitting, show confirmation dialog
@@ -367,140 +403,96 @@ class _BorangBScreenState extends State<BorangBScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Borang B - Monthly Report'),
-            if (_currentData != null) ...[
-              const SizedBox(height: 2),
-              Row(
+      body: WebWrapper(
+        child: NestedScrollView(
+          headerSliverBuilder: (context, _) => [
+            SliverAppBar(
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    _currentData!.status == ReportStatus.submitted
-                        ? Icons.check_circle
-                        : Icons.edit,
-                    size: 12,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onPrimary
-                        .withValues(alpha: 0.8),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    _currentData!.status == ReportStatus.submitted
-                        ? 'Submitted'
-                        : 'Draft',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onPrimary
-                          .withValues(alpha: 0.8),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.preview),
-            onPressed: _currentData == null ? null : _viewReport,
-            tooltip: 'View Report',
-          ),
-          if (_currentData?.status != ReportStatus.submitted)
-            IconButton(
-              icon: const Icon(Icons.send),
-              onPressed: () => _saveData(asSubmission: true),
-              tooltip: 'Submit Report',
-            ),
-          IconButton(
-            icon: const Icon(Icons.file_download),
-            onPressed: _isExporting ? null : _exportReport,
-            tooltip: 'Export to Excel',
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                _buildMonthSelector(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  const Text('Borang B - Monthly Report'),
+                  if (_currentData != null) ...[
+                    const SizedBox(height: 2),
+                    Row(
                       children: [
-                        _buildSection(
-                          'Church Membership Statistics',
-                          Icons.people,
-                          Theme.of(context).colorScheme.primary,
-                          _buildMembershipFields(),
+                        Icon(
+                          _currentData!.status == ReportStatus.submitted
+                              ? Icons.check_circle
+                              : Icons.edit,
+                          size: 12,
+                          color: colorScheme.onPrimary.withValues(alpha: 0.8),
                         ),
-                        const SizedBox(height: 16),
-                        _buildSection(
-                          'Baptisms & Professions',
-                          Icons.water_drop,
-                          Theme.of(context).colorScheme.primary,
-                          _buildBaptismsFields(),
+                        const SizedBox(width: 4),
+                        Text(
+                          _currentData!.status == ReportStatus.submitted
+                              ? 'Submitted'
+                              : 'Draft',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colorScheme.onPrimary.withValues(alpha: 0.8),
+                          ),
                         ),
-                        const SizedBox(height: 16),
-                        _buildSection(
-                          'Church Services',
-                          Icons.church,
-                          Theme.of(context).colorScheme.primary,
-                          _buildServicesFields(),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildSection(
-                          'Visitations',
-                          Icons.home,
-                          Theme.of(context).colorScheme.primary,
-                          _buildVisitationsFields(),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildSection(
-                          'Special Events',
-                          Icons.event,
-                          Theme.of(context).colorScheme.primary,
-                          _buildEventsFields(),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildSection(
-                          'Literature Distribution',
-                          Icons.book,
-                          Theme.of(context).colorScheme.primary,
-                          _buildLiteratureFields(),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildSection(
-                          'Tithes & Offerings (RM)',
-                          Icons.attach_money,
-                          Theme.of(context).colorScheme.primary,
-                          _buildFinancialFields(),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildSection(
-                          'Additional Information',
-                          Icons.notes,
-                          Theme.of(context).colorScheme.primary,
-                          _buildTextFields(),
-                        ),
-                        const SizedBox(height: 24),
-                        _buildSaveButton(),
-                        const SizedBox(height: 80),
                       ],
                     ),
+                  ],
+                ],
+              ),
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
+              pinned: true,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.preview),
+                  onPressed: _currentData == null ? null : _viewReport,
+                  tooltip: 'View Report',
+                ),
+                if (_currentData?.status != ReportStatus.submitted)
+                  IconButton(
+                    icon: const Icon(Icons.send),
+                    onPressed: () => _saveData(asSubmission: true),
+                    tooltip: 'Submit Report',
                   ),
+                IconButton(
+                  icon: const Icon(Icons.file_download),
+                  onPressed: _isExporting ? null : _exportReport,
+                  tooltip: 'Export to Excel',
                 ),
               ],
             ),
+            SliverToBoxAdapter(child: _buildMonthSelector()),
+          ],
+          body: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSection('Church Membership Statistics', Icons.people, colorScheme.primary, _buildMembershipFields()),
+                      const SizedBox(height: 16),
+                      _buildSection('Baptisms & Professions', Icons.water_drop, colorScheme.primary, _buildBaptismsFields()),
+                      const SizedBox(height: 16),
+                      _buildSection('Church Services', Icons.church, colorScheme.primary, _buildServicesFields()),
+                      const SizedBox(height: 16),
+                      _buildSection('Visitations', Icons.home, colorScheme.primary, _buildVisitationsFields()),
+                      const SizedBox(height: 16),
+                      _buildSection('Special Events', Icons.event, colorScheme.primary, _buildEventsFields()),
+                      const SizedBox(height: 16),
+                      _buildSection('Literature Distribution', Icons.book, colorScheme.primary, _buildLiteratureFields()),
+                      const SizedBox(height: 16),
+                      _buildSection('Tithes & Offerings (RM)', Icons.attach_money, colorScheme.primary, _buildFinancialFields()),
+                      const SizedBox(height: 16),
+                      _buildSection('Additional Information', Icons.notes, colorScheme.primary, _buildTextFields()),
+                      const SizedBox(height: 24),
+                      _buildSaveButton(),
+                      const SizedBox(height: 80),
+                    ],
+                  ),
+                ),
+        ),
+      ),
     );
   }
 

@@ -21,19 +21,29 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   bool _showDebugInfo = false;
 
-  List<Widget> get _screens {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final isAdmin =
-        authProvider.isAuthenticated && (authProvider.user?.isAdmin ?? false);
-    final isChurchTreasurer = authProvider.isAuthenticated &&
-        (authProvider.user?.userRole == UserRole.churchTreasurer);
+  bool _hasSpecialTab(UserModel? user) {
+    if (user == null) return false;
+    return user.isAdmin ||
+        user.userRole == UserRole.missionAdmin ||
+        user.userRole == UserRole.districtPastor ||
+        user.userRole == UserRole.churchTreasurer;
+  }
 
-    // Always create a list with fixed positions, but use empty containers for hidden tabs
-    return [
-      // 0: Dashboard (always visible)
+  bool _hasMissionTab(UserModel? user) {
+    if (user == null) return true;
+    // Church Treasurers (non-admin) skip My Mission
+    return !(user.userRole == UserRole.churchTreasurer && !user.isAdmin);
+  }
+
+  List<Widget> _buildScreens(AuthProvider authProvider) {
+    final user = authProvider.user;
+    final isAdmin = user?.isAdmin ?? false;
+    final isChurchTreasurer = user?.userRole == UserRole.churchTreasurer;
+
+    final screens = <Widget>[
+      // 0: Dashboard
       Stack(
         children: [
-          // Church Treasurers see Treasurer Dashboard as home, others see regular dashboard
           isChurchTreasurer && !isAdmin
               ? const TreasurerDashboard()
               : const ImprovedDashboardScreen(),
@@ -41,25 +51,24 @@ class _MainScreenState extends State<MainScreen> {
             _buildDebugOverlay(authProvider),
         ],
       ),
-      // 1: My Mission (hidden for non-admin church treasurers)
-      isChurchTreasurer && !isAdmin
-          ? Container() // Empty placeholder for church treasurers
-          : Stack(
-              children: [
-                const MyMissionScreen(),
-                if (_showDebugInfo && authProvider.isAuthenticated)
-                  _buildDebugOverlay(authProvider),
-              ],
-            ),
-      // 2: Profile (always visible)
+      // 1: My Mission (skipped for non-admin treasurers)
+      if (_hasMissionTab(user))
+        Stack(
+          children: [
+            const MyMissionScreen(),
+            if (_showDebugInfo && authProvider.isAuthenticated)
+              _buildDebugOverlay(authProvider),
+          ],
+        ),
+      // 2: Profile
       const ProfileScreen(),
-      // 3: Admin Dashboard (visible for admins and district pastors) or Treasurer Dashboard (visible for treasurers)
-      (isAdmin || authProvider.user?.userRole == UserRole.districtPastor)
-          ? const ImprovedAdminDashboard()
-          : isChurchTreasurer
-              ? const TreasurerDashboard()
-              : Container(), // Empty placeholder for regular users
+      // 3: Admin / Treasury (only for eligible roles)
+      if (_hasSpecialTab(user))
+        (isAdmin || user?.userRole == UserRole.districtPastor)
+            ? const ImprovedAdminDashboard()
+            : const TreasurerDashboard(),
     ];
+    return screens;
   }
 
   Widget _buildDebugOverlay(AuthProvider authProvider) {
@@ -127,43 +136,19 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onTabTapped(int index) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final isAdmin =
-        authProvider.isAuthenticated && (authProvider.user?.isAdmin ?? false);
-    final isChurchTreasurer = authProvider.isAuthenticated &&
-        (authProvider.user?.userRole == UserRole.churchTreasurer);
+    final screens = _buildScreens(authProvider);
 
-    // Check if trying to access profile without login
-    if (index == 2) {
-      if (!authProvider.isAuthenticated) {
-        _showLoginPrompt();
-        return;
-      }
-    }
+    // Guard against out-of-range taps (can happen during role changes)
+    if (index >= screens.length) return;
 
-    // Skip My Mission tab for church treasurers who are not admins
-    if (index == 1 && isChurchTreasurer && !isAdmin) {
-      // Don't update the index, essentially ignoring the tap
+    // Profile tab requires login
+    final profileIndex = _hasMissionTab(authProvider.user) ? 2 : 1;
+    if (index == profileIndex && !authProvider.isAuthenticated) {
+      _showLoginPrompt();
       return;
     }
 
-    // Check if trying to access admin/treasury tab
-    if (index == 3) {
-      if (!authProvider.isAuthenticated) {
-        _showLoginPrompt();
-        return;
-      }
-
-      // Only allow access if user is admin, church treasurer, or district pastor
-      if (!isAdmin &&
-          !isChurchTreasurer &&
-          authProvider.user?.userRole != UserRole.districtPastor) {
-        return;
-      }
-    }
-
-    setState(() {
-      _currentIndex = index;
-    });
+    setState(() => _currentIndex = index);
   }
 
   Future<void> _showLoginPrompt() async {
@@ -218,112 +203,124 @@ class _MainScreenState extends State<MainScreen> {
           });
         }
       },
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth > 1024) {
-            // Desktop layout with sidebar navigation
-            return Row(
-              children: [
-                SizedBox(
-                  width: 250, // Fixed width for navigation rail
-                  child: NavigationRail(
-                    selectedIndex: _currentIndex,
-                    onDestinationSelected: _onTabTapped,
-                    labelType: NavigationRailLabelType.all,
-                    destinations: [
-                      const NavigationRailDestination(
-                        icon: Icon(Icons.dashboard_outlined),
-                        selectedIcon: Icon(Icons.dashboard),
-                        label: Text('Dashboard'),
-                      ),
-                      NavigationRailDestination(
-                        icon: const Icon(Icons.business_outlined),
-                        selectedIcon: const Icon(Icons.business),
-                        label: const Text('My Mission'),
-                      ),
-                      const NavigationRailDestination(
-                        icon: Icon(Icons.person_outline),
-                        selectedIcon: Icon(Icons.person),
-                        label: Text('Profile'),
-                      ),
-                      NavigationRailDestination(
-                        icon: Provider.of<AuthProvider>(context).user?.userRole ==
-                                UserRole.churchTreasurer
-                            ? const Icon(Icons.account_balance_wallet_outlined)
-                            : const Icon(Icons.admin_panel_settings_outlined),
-                        selectedIcon: Provider.of<AuthProvider>(context).user?.userRole ==
-                                UserRole.churchTreasurer
-                            ? const Icon(Icons.account_balance_wallet)
-                            : const Icon(Icons.admin_panel_settings),
-                        label: Text(
-                          Provider.of<AuthProvider>(context).user?.userRole ==
-                                  UserRole.churchTreasurer
-                              ? 'Treasury'
-                              : 'Admin',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const VerticalDivider(width: 1),
-                Expanded(
-                  child: IndexedStack(
-                    index: _currentIndex,
-                    children: _screens,
-                  ),
-                ),
-              ],
-            );
-          } else {
-            // Mobile layout with bottom navigation
-            return Scaffold(
-              body: IndexedStack(
-                index: _currentIndex,
-                children: _screens,
+      child: Consumer<AuthProvider>(
+        builder: (context, authProvider, _) {
+          final user = authProvider.user;
+          final screens = _buildScreens(authProvider);
+          final safeIndex = _currentIndex.clamp(0, screens.length - 1);
+
+          // Nav items — built dynamically to match screens list
+          const dashboardItem = BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard_outlined),
+            activeIcon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          );
+          const missionItem = BottomNavigationBarItem(
+            icon: Icon(Icons.business_outlined),
+            activeIcon: Icon(Icons.business),
+            label: 'My Mission',
+          );
+          const profileItem = BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
+          );
+          final specialItem = _hasSpecialTab(user)
+              ? BottomNavigationBarItem(
+                  icon: user?.userRole == UserRole.churchTreasurer
+                      ? const Icon(Icons.account_balance_wallet_outlined)
+                      : const Icon(Icons.admin_panel_settings_outlined),
+                  activeIcon: user?.userRole == UserRole.churchTreasurer
+                      ? const Icon(Icons.account_balance_wallet)
+                      : const Icon(Icons.admin_panel_settings),
+                  label: user?.userRole == UserRole.churchTreasurer
+                      ? 'Treasury'
+                      : 'Admin',
+                )
+              : null;
+
+          final navItems = [
+            dashboardItem,
+            if (_hasMissionTab(user)) missionItem,
+            profileItem,
+            if (specialItem != null) specialItem,
+          ];
+
+          // Rail destinations mirror nav items
+          final railDestinations = [
+            const NavigationRailDestination(
+              icon: Icon(Icons.dashboard_outlined),
+              selectedIcon: Icon(Icons.dashboard),
+              label: Text('Dashboard'),
+            ),
+            if (_hasMissionTab(user))
+              const NavigationRailDestination(
+                icon: Icon(Icons.business_outlined),
+                selectedIcon: Icon(Icons.business),
+                label: Text('My Mission'),
               ),
-              bottomNavigationBar: BottomNavigationBar(
-                currentIndex: _currentIndex,
-                onTap: _onTabTapped,
-                type: BottomNavigationBarType.fixed,
-                selectedItemColor: AppTheme.primary,
-                unselectedItemColor: AppTheme.textSecondary,
-                selectedFontSize: 12,
-                unselectedFontSize: 12,
-                items: [
-                  const BottomNavigationBarItem(
-                    icon: Icon(Icons.dashboard_outlined),
-                    activeIcon: Icon(Icons.dashboard),
-                    label: 'Dashboard',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(Icons.business_outlined),
-                    activeIcon: const Icon(Icons.business),
-                    label: 'My Mission',
-                    // This item will still be shown but tapping it won't do anything for church treasurers
-                  ),
-                  const BottomNavigationBarItem(
-                    icon: Icon(Icons.person_outline),
-                    activeIcon: Icon(Icons.person),
-                    label: 'Profile',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Provider.of<AuthProvider>(context).user?.userRole ==
-                            UserRole.churchTreasurer
-                        ? const Icon(Icons.account_balance_wallet_outlined)
-                        : const Icon(Icons.admin_panel_settings_outlined),
-                    activeIcon: Provider.of<AuthProvider>(context).user?.userRole ==
-                            UserRole.churchTreasurer
-                        ? const Icon(Icons.account_balance_wallet)
-                        : const Icon(Icons.admin_panel_settings),
-                    label: Provider.of<AuthProvider>(context).user?.userRole ==
-                            UserRole.churchTreasurer
-                        ? 'Treasury'
-                        : 'Admin',
-                  ),
-                ],
+            const NavigationRailDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: Text('Profile'),
+            ),
+            if (_hasSpecialTab(user))
+              NavigationRailDestination(
+                icon: user?.userRole == UserRole.churchTreasurer
+                    ? const Icon(Icons.account_balance_wallet_outlined)
+                    : const Icon(Icons.admin_panel_settings_outlined),
+                selectedIcon: user?.userRole == UserRole.churchTreasurer
+                    ? const Icon(Icons.account_balance_wallet)
+                    : const Icon(Icons.admin_panel_settings),
+                label: Text(user?.userRole == UserRole.churchTreasurer
+                    ? 'Treasury'
+                    : 'Admin'),
               ),
-            );
-          }
+          ];
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth > 1024) {
+                return Row(
+                  children: [
+                    SizedBox(
+                      width: 250,
+                      child: NavigationRail(
+                        selectedIndex: safeIndex,
+                        onDestinationSelected: _onTabTapped,
+                        labelType: NavigationRailLabelType.all,
+                        destinations: railDestinations,
+                      ),
+                    ),
+                    const VerticalDivider(width: 1),
+                    Expanded(
+                      child: IndexedStack(
+                        index: safeIndex,
+                        children: screens,
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                return Scaffold(
+                  body: IndexedStack(
+                    index: safeIndex,
+                    children: screens,
+                  ),
+                  bottomNavigationBar: BottomNavigationBar(
+                    currentIndex: safeIndex,
+                    onTap: _onTabTapped,
+                    type: BottomNavigationBarType.fixed,
+                    selectedItemColor: AppTheme.primary,
+                    unselectedItemColor: AppTheme.textSecondary,
+                    selectedFontSize: 12,
+                    unselectedFontSize: 12,
+                    items: navItems,
+                  ),
+                );
+              }
+            },
+          );
         },
       ),
     );

@@ -11,6 +11,7 @@ import 'package:pastor_report/services/auth_service.dart';
 import 'package:pastor_report/services/region_service.dart';
 import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/services/church_service.dart';
+import 'package:pastor_report/services/location_request_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/utils/theme.dart';
 
@@ -25,8 +26,10 @@ class ComprehensiveOnboardingScreen extends StatefulWidget {
 class _ComprehensiveOnboardingScreenState
     extends State<ComprehensiveOnboardingScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _regionNameController = TextEditingController();
-  final _districtNameController = TextEditingController();
+  final _regionRequestNameController = TextEditingController();
+  final _regionRequestNoteController = TextEditingController();
+  final _districtRequestNameController = TextEditingController();
+  final _districtRequestNoteController = TextEditingController();
   final _churchNameController = TextEditingController();
   final _churchAddressController = TextEditingController();
 
@@ -108,8 +111,10 @@ class _ComprehensiveOnboardingScreenState
 
   @override
   void dispose() {
-    _regionNameController.dispose();
-    _districtNameController.dispose();
+    _regionRequestNameController.dispose();
+    _regionRequestNoteController.dispose();
+    _districtRequestNameController.dispose();
+    _districtRequestNoteController.dispose();
     _churchNameController.dispose();
     _churchAddressController.dispose();
     super.dispose();
@@ -182,98 +187,95 @@ class _ComprehensiveOnboardingScreenState
     }
   }
 
-  Future<void> _createRegion() async {
-    if (_regionNameController.text.trim().isEmpty) {
+  Future<void> _requestRegion() async {
+    final name = _regionRequestNameController.text.trim();
+    if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter region name')),
+        const SnackBar(content: Text('Please enter the region name')),
       );
       return;
     }
 
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final user = authProvider.user;
+      final user = Provider.of<AuthProvider>(context, listen: false).user;
+      if (user?.mission == null) throw 'Mission not set';
 
-      if (user?.mission == null) {
-        throw 'Mission not set for user';
-      }
-
-      // Generate a unique ID
-      final regionId = _firestore.collection('regions').doc().id;
-
-      final region = Region(
-        id: regionId,
-        name: _regionNameController.text.trim(),
-        code: _regionNameController.text.trim().toUpperCase().substring(0, 3),
+      await LocationRequestService.instance.requestRegion(
+        name: name,
         missionId: user!.mission!,
-        createdAt: DateTime.now(),
-        createdBy: user.uid,
+        requestedBy: user.uid,
+        requestedByName: user.displayName,
+        note: _regionRequestNoteController.text.trim(),
       );
 
-      await _regionService.createRegion(region);
-      _regionNameController.clear();
-      await _loadRegions();
+      _regionRequestNameController.clear();
+      _regionRequestNoteController.clear();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Region created successfully')),
+          const SnackBar(
+            content: Text(
+                'Request sent! Tap Refresh once the admin has approved it.'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error creating region: $e'),
-            backgroundColor: Colors.red,
-          ),
+              content: Text('Failed to send request: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
   }
 
-  Future<void> _createDistrict() async {
-    if (_districtNameController.text.trim().isEmpty ||
-        _selectedRegionId == null) {
+  Future<void> _requestDistrict() async {
+    final name = _districtRequestNameController.text.trim();
+    if (name.isEmpty || _selectedRegionId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Please select region and enter district name')),
+            content: Text('Please select a region and enter the district name')),
       );
       return;
     }
 
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final user = authProvider.user;
+      final user = Provider.of<AuthProvider>(context, listen: false).user;
+      final matched =
+          _regions.where((r) => r.id == _selectedRegionId).toList();
+      final regionName =
+          matched.isNotEmpty ? matched.first.name : _selectedRegionId!;
 
-      // Generate a unique ID
-      final districtId = _firestore.collection('districts').doc().id;
-
-      final district = District(
-        id: districtId,
-        name: _districtNameController.text.trim(),
-        code: _districtNameController.text.trim().toUpperCase().substring(0, 3),
-        regionId: _selectedRegionId!,
+      await LocationRequestService.instance.requestDistrict(
+        name: name,
         missionId: user?.mission ?? '',
-        createdAt: DateTime.now(),
-        createdBy: user?.uid ?? '',
+        regionId: _selectedRegionId!,
+        regionName: regionName,
+        requestedBy: user?.uid ?? '',
+        requestedByName: user?.displayName ?? '',
+        note: _districtRequestNoteController.text.trim(),
       );
 
-      await _districtService.createDistrict(district);
-      _districtNameController.clear();
-      await _loadDistricts(_selectedRegionId!);
+      _districtRequestNameController.clear();
+      _districtRequestNoteController.clear();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('District created successfully')),
+          const SnackBar(
+            content: Text(
+                'Request sent! Tap Refresh once the admin has approved it.'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error creating district: $e'),
-            backgroundColor: Colors.red,
-          ),
+              content: Text('Failed to send request: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -894,31 +896,41 @@ class _ComprehensiveOnboardingScreenState
           const SizedBox(height: 20),
         ],
 
-        // Create New Region
+        // Refresh button
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: _loadRegions,
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Refresh list'),
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // Request from Admin
         Row(
           children: [
-            Icon(Icons.add_location_alt,
-                color: Colors.green.shade700, size: 20),
+            Icon(Icons.send, color: Colors.orange.shade700, size: 20),
             const SizedBox(width: 8),
             const Text(
-              'Create New Region',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+              'Request Region from Admin',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ],
         ),
+        const SizedBox(height: 4),
+        Text(
+          'Can\'t find your region? Submit a request and an admin will add it.',
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+        ),
         const SizedBox(height: 12),
         TextField(
-          controller: _regionNameController,
+          controller: _regionRequestNameController,
           decoration: InputDecoration(
             labelText: 'Region Name',
             hintText: 'e.g., North Region',
             prefixIcon: const Icon(Icons.map),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: Colors.grey.shade300, width: 2),
@@ -929,23 +941,34 @@ class _ComprehensiveOnboardingScreenState
             ),
           ),
         ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _regionRequestNoteController,
+          decoration: InputDecoration(
+            labelText: 'Note (optional)',
+            hintText: 'Any additional details for the admin',
+            prefixIcon: const Icon(Icons.note_outlined),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade300, width: 2),
+            ),
+          ),
+        ),
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
           height: 48,
           child: ElevatedButton.icon(
-            onPressed: _createRegion,
-            icon: const Icon(Icons.add_circle),
-            label: const Text(
-              'Create Region',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
+            onPressed: _requestRegion,
+            icon: const Icon(Icons.send),
+            label: const Text('Send Request',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green.shade600,
+              backgroundColor: Colors.orange.shade600,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+                  borderRadius: BorderRadius.circular(12)),
               elevation: 2,
             ),
           ),
@@ -991,7 +1014,7 @@ class _ComprehensiveOnboardingScreenState
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Region: ${_regions.where((r) => r.id == _selectedRegionId).firstOrNull?.name ?? 'None'}',
+                      'Region: ${_regions.any((r) => r.id == _selectedRegionId) ? _regions.firstWhere((r) => r.id == _selectedRegionId).name : 'None'}',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -1147,30 +1170,44 @@ class _ComprehensiveOnboardingScreenState
             const SizedBox(height: 20),
           ],
 
-          // Create New District
+          // Refresh button
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: _selectedRegionId != null
+                  ? () => _loadDistricts(_selectedRegionId!)
+                  : null,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Refresh list'),
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Request from Admin
           Row(
             children: [
-              Icon(Icons.add_business, color: Colors.green.shade700, size: 20),
+              Icon(Icons.send, color: Colors.orange.shade700, size: 20),
               const SizedBox(width: 8),
               const Text(
-                'Create New District',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+                'Request District from Admin',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ],
           ),
+          const SizedBox(height: 4),
+          Text(
+            'Can\'t find your district? Submit a request and an admin will add it.',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
           const SizedBox(height: 12),
           TextField(
-            controller: _districtNameController,
+            controller: _districtRequestNameController,
             decoration: InputDecoration(
               labelText: 'District Name',
               hintText: 'e.g., Kota Kinabalu District',
               prefixIcon: const Icon(Icons.location_city),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: Colors.grey.shade300, width: 2),
@@ -1181,23 +1218,36 @@ class _ComprehensiveOnboardingScreenState
               ),
             ),
           ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _districtRequestNoteController,
+            decoration: InputDecoration(
+              labelText: 'Note (optional)',
+              hintText: 'Any additional details for the admin',
+              prefixIcon: const Icon(Icons.note_outlined),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey.shade300, width: 2),
+              ),
+            ),
+          ),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             height: 48,
             child: ElevatedButton.icon(
-              onPressed: _createDistrict,
-              icon: const Icon(Icons.add_circle),
-              label: const Text(
-                'Create District',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
+              onPressed: _requestDistrict,
+              icon: const Icon(Icons.send),
+              label: const Text('Send Request',
+                  style:
+                      TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade600,
+                backgroundColor: Colors.orange.shade600,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                    borderRadius: BorderRadius.circular(12)),
                 elevation: 2,
               ),
             ),
@@ -1407,7 +1457,7 @@ class _ComprehensiveOnboardingScreenState
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Region: ${_regions.where((r) => r.id == _selectedRegionId).firstOrNull?.name ?? 'None'}',
+                        'Region: ${_regions.any((r) => r.id == _selectedRegionId) ? _regions.firstWhere((r) => r.id == _selectedRegionId).name : 'None'}',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -1423,7 +1473,7 @@ class _ComprehensiveOnboardingScreenState
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'District: ${_districts.where((d) => d.id == _selectedDistrictId).firstOrNull?.name ?? 'None'}',
+                        'District: ${_districts.any((d) => d.id == _selectedDistrictId) ? _districts.firstWhere((d) => d.id == _selectedDistrictId).name : 'None'}',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,

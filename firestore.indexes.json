@@ -1,71 +1,15 @@
 {
   "indexes": [
     {
-      "collectionGroup": "staff",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "mission",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "name",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "regions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "missionId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "name",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "regions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "mission",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "name",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "districts",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "missionId",
+          "fieldPath": "code",
           "order": "ASCENDING"
         },
-        {
-          "fieldPath": "name",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "districts",
-      "queryScope": "COLLECTION",
-      "fields": [
         {
           "fieldPath": "regionId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "name",
           "order": "ASCENDING"
         }
       ]
@@ -75,7 +19,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "districtId",
+          "fieldPath": "regionId",
           "order": "ASCENDING"
         },
         {
@@ -85,11 +29,67 @@
       ]
     },
     {
-      "collectionGroup": "financial_reports",
+      "collectionGroup": "churches",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "churchId",
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "departments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "mission",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "name",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "departments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "isActive",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "name",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "resources",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "missionId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "uploadedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "borang_b_reports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "missionId",
           "order": "ASCENDING"
         },
         {
@@ -99,11 +99,11 @@
       ]
     },
     {
-      "collectionGroup": "financial_reports",
+      "collectionGroup": "borang_b_reports",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "churchId",
+          "fieldPath": "userId",
           "order": "ASCENDING"
         },
         {
@@ -113,11 +113,25 @@
       ]
     },
     {
-      "collectionGroup": "financial_reports",
+      "collectionGroup": "borang_b_reports",
       "queryScope": "COLLECTION",
       "fields": [
         {
           "fieldPath": "districtId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "month",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "borang_b_reports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
           "order": "ASCENDING"
         },
         {
@@ -136,7 +150,11 @@
         },
         {
           "fieldPath": "month",
-          "order": "DESCENDING"
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
         }
       ]
     },
@@ -145,7 +163,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "districtId",
+          "fieldPath": "missionId",
           "order": "ASCENDING"
         },
         {
@@ -167,139 +185,43 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "status",
+          "fieldPath": "submittedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "financial_reports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "districtId",
           "order": "ASCENDING"
         },
         {
           "fieldPath": "month",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "activities",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
         },
         {
-          "fieldPath": "date",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "todos",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isCompleted",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "priority",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
+          "fieldPath": "status",
           "order": "ASCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "todos",
+      "collectionGroup": "financial_reports",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "userId",
+          "fieldPath": "districtId",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "isCompleted",
+          "fieldPath": "status",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "completedAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "appointments",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "dateTime",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "appointments",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "dateTime",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "appointments",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "dateTime",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isCompleted",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "todos",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "events",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startDate",
+          "fieldPath": "month",
           "order": "ASCENDING"
         }
       ]

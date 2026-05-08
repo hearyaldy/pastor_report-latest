@@ -243,6 +243,12 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Email domain allowlist — must be readable before account creation (unauthenticated)
+    match /settings/emailDomains {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Staff collection (centralized staff directory)
     match /staff/{staffId} {
       // Users can see staff/workers in their own mission. Admins can see all.
@@ -255,7 +261,7 @@ service cloud.firestore {
 
       allow update: if isAuthenticated() &&
                       canManageMissionValue(resource.data.mission) &&
-                      request.resource.data.mission == resource.data.mission;
+                      canManageMissionValue(request.resource.data.mission);
 
       allow delete: if isAuthenticated() &&
                       canManageMissionValue(resource.data.mission);
@@ -544,6 +550,17 @@ service cloud.firestore {
                        (resource.data.missionId == userMissionId() &&
                         resource.data.userId == request.auth.uid) ||
                        isMissionScopedAdmin(resource.data.missionId));
+    }
+
+    // Location requests — users request regions/districts during onboarding
+    match /locationRequests/{requestId} {
+      // Any authenticated user can create a request for their own mission
+      allow create: if isAuthenticated() &&
+                       request.resource.data.requestedBy == request.auth.uid;
+      // Any authenticated user can read requests (for the admin panel stream)
+      allow read: if isAuthenticated();
+      // Only admins can approve or reject (update status)
+      allow update, delete: if isAdmin() || isMissionAdmin();
     }
   }
 }

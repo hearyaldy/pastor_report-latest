@@ -1,4 +1,4 @@
-// lib/providers/auth_provider.dart
+import 'dart:async'; // Import for StreamSubscription
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pastor_report/models/user_model.dart';
@@ -13,6 +13,9 @@ class AuthProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   bool _rememberMe = false;
+  
+  // Keep track of the auth state subscription to dispose it properly
+  StreamSubscription<User?>? _authStateSubscription;
 
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
@@ -29,9 +32,9 @@ class AuthProvider with ChangeNotifier {
   Future<void> _initializeAuth() async {
     _setLoading(true);
 
-    // Listen to auth state changes
-    _authService.authStateChanges.listen((User? firebaseUser) async {
-      if (firebaseUser != null) {
+    // Listen to auth state changes and keep track of the subscription
+    _authStateSubscription = _authService.authStateChanges.listen((User? firebaseUser) async {
+      if (firebaseUser != null && firebaseUser.emailVerified) {
         await _loadUserData(firebaseUser.uid);
       } else {
         _user = null;
@@ -42,6 +45,14 @@ class AuthProvider with ChangeNotifier {
     // Check for saved credentials
     await _loadRememberMePreference();
     _setLoading(false);
+  }
+
+  // Dispose of resources to prevent memory leaks
+  @override
+  void dispose() {
+    // Cancel the auth state subscription to prevent memory leaks
+    _authStateSubscription?.cancel();
+    super.dispose();
   }
 
   // Load user data from Firestore
@@ -78,7 +89,8 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Register
+  // Register — creates account, sends verification email, then signs out.
+  // Returns true on success; the user must verify email before logging in.
   Future<bool> register({
     required String email,
     required String password,
@@ -94,7 +106,7 @@ class AuthProvider with ChangeNotifier {
     _clearError();
 
     try {
-      _user = await _authService.registerWithEmailPassword(
+      await _authService.registerWithEmailPassword(
         email: email,
         password: password,
         displayName: displayName,
@@ -105,9 +117,24 @@ class AuthProvider with ChangeNotifier {
         role: role,
         churchId: churchId,
       );
-
+      // _user intentionally stays null — user is signed out until they verify
       _setLoading(false);
-      return _user != null;
+      return true;
+    } catch (e) {
+      _setError(e.toString());
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  // Resend verification email using the user's credentials
+  Future<bool> resendVerificationEmail(String email, String password) async {
+    _setLoading(true);
+    _clearError();
+    try {
+      await _authService.resendVerificationEmail(email, password);
+      _setLoading(false);
+      return true;
     } catch (e) {
       _setError(e.toString());
       _setLoading(false);

@@ -14,6 +14,7 @@ import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/services/profile_picture_service.dart';
 import 'package:pastor_report/utils/theme.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -554,9 +555,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         title: const Text('Profile'),
       ),
-      body: Consumer<AuthProvider>(
-        builder: (context, authProvider, child) {
-          final user = authProvider.user;
+      body: WebWrapper(
+        child: Consumer<AuthProvider>(
+          builder: (context, authProvider, child) {
+            final user = authProvider.user;
 
           if (user == null) {
             return Center(
@@ -934,7 +936,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const SizedBox(height: 16),
                               DropdownButtonFormField<String>(
-                                value: _selectedMission,
+                                initialValue: _selectedMission,
                                 decoration: const InputDecoration(
                                   labelText: 'Mission',
                                   border: OutlineInputBorder(),
@@ -957,7 +959,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const SizedBox(height: 16),
                               DropdownButtonFormField<String>(
-                                value: _selectedRegion,
+                                initialValue: _selectedRegion,
                                 decoration: const InputDecoration(
                                   labelText: 'Region',
                                   border: OutlineInputBorder(),
@@ -982,7 +984,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const SizedBox(height: 16),
                               DropdownButtonFormField<String>(
-                                value: _selectedDistrict,
+                                initialValue: _selectedDistrict,
                                 decoration: const InputDecoration(
                                   labelText: 'District',
                                   border: OutlineInputBorder(),
@@ -1016,7 +1018,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   final availableRoles = snapshot.data!;
 
                                   return DropdownButtonFormField<String>(
-                                    value: _selectedRole,
+                                    initialValue: _selectedRole,
                                     decoration: const InputDecoration(
                                       labelText: 'Role',
                                       border: OutlineInputBorder(),
@@ -1139,6 +1141,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       subtitle: Text(user.role!),
                     ),
                   ),
+
+                // Profile Setup
+                const SizedBox(height: 16),
+                _buildSectionHeader(context, 'Profile Setup'),
+                _buildListTile(
+                  context,
+                  icon: Icons.manage_accounts_outlined,
+                  title: user.onboardingCompleted
+                      ? 'Update Region, District & Role'
+                      : 'Complete Profile Setup',
+                  trailing: !user.onboardingCompleted
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Incomplete',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.orange.shade800,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        )
+                      : null,
+                  onTap: () => Navigator.pushNamed(
+                      context, AppConstants.routeOnboarding),
+                ),
 
                 // Admin Management Section (only for admins)
                 if (user.canManageMissions()) ...[
@@ -1297,6 +1330,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           );
         },
+        ),
       ),
     );
   }

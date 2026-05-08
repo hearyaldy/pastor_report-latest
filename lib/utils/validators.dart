@@ -1,4 +1,6 @@
 // lib/utils/validators.dart
+import 'package:pastor_report/utils/constants.dart';
+
 class Validators {
   static String? validateEmail(String? value) {
     if (value == null || value.isEmpty) {
@@ -8,6 +10,24 @@ class Validators {
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!emailRegex.hasMatch(value)) {
       return 'Please enter a valid email address';
+    }
+
+    return null;
+  }
+
+  static String? validateOrganizationEmail(String? value) {
+    final emailError = validateEmail(value);
+    if (emailError != null) {
+      return emailError;
+    }
+
+    final email = value!.trim().toLowerCase();
+    final isAllowedDomain = AppConstants.allowedRegistrationEmailDomains.any(
+      (domain) => email.endsWith('@${domain.toLowerCase()}'),
+    );
+
+    if (!isAllowedDomain) {
+      return 'Please use an organization email address';
     }
 
     return null;

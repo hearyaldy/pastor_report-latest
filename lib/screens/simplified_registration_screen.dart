@@ -8,6 +8,7 @@ import 'package:pastor_report/utils/validators.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/utils/theme.dart';
 import 'package:pastor_report/widgets/custom_text_field.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class SimplifiedRegistrationScreen extends StatefulWidget {
   const SimplifiedRegistrationScreen({super.key});
@@ -56,7 +57,6 @@ class _SimplifiedRegistrationScreenState
         _selectedMission = null;
       });
     } catch (e) {
-      print('Error loading missions: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to load missions: $e')),
@@ -68,29 +68,12 @@ class _SimplifiedRegistrationScreenState
   }
 
   Future<void> _register() async {
-    if (!_formKey.currentState!.validate() || _selectedMission == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please fill all required fields correctly')),
-      );
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-      // Get the selected mission details for debugging
-      final selectedMissionObj = _missions.firstWhere(
-        (m) => m.id == _selectedMission,
-        orElse: () => _missions.first,
-      );
-
-      print('🔍 Registration Debug:');
-      print('Selected Mission ID: $_selectedMission');
-      print('Selected Mission Name: ${selectedMissionObj.name}');
-      print('Available missions: ${_missions.map((m) => '${m.name} (${m.id})').join(', ')}');
 
       // Register with minimal info - only name, email, password, and mission
       await authProvider.register(
@@ -103,19 +86,35 @@ class _SimplifiedRegistrationScreenState
 
       if (!mounted) return;
 
-      // Show a message about the next steps
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:
-              Text('Account created successfully! Complete your profile now.'),
-          backgroundColor: Colors.green,
+      // Show email verification dialog — user is signed out, must verify first
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(Icons.mark_email_unread_outlined,
+              size: 48, color: Colors.green),
+          title: const Text('Verify your email'),
+          content: Text(
+            'A verification link has been sent to:\n\n${_emailController.text.trim()}\n\n'
+            'Please click the link in that email before logging in.\n\n'
+            'If you do not see it, check your junk or spam mail folder.',
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Go to Login'),
+            ),
+          ],
         ),
       );
 
-      // Navigate to onboarding screen to complete profile
-      Navigator.pushReplacementNamed(
+      if (!mounted) return;
+      // Return to login screen
+      Navigator.pushNamedAndRemoveUntil(
         context,
-        AppConstants.routeOnboarding,
+        AppConstants.routeWelcome,
+        (route) => false,
       );
     } catch (e) {
       setState(() => _isLoading = false);
@@ -123,7 +122,9 @@ class _SimplifiedRegistrationScreenState
       if (!mounted) return;
 
       String errorMessage = 'Registration failed';
-      if (e.toString().contains('email-already-in-use')) {
+      if (e.toString().contains('organization email')) {
+        errorMessage = 'Please use your organization email address to register';
+      } else if (e.toString().contains('email-already-in-use')) {
         errorMessage = 'This email is already in use by another account';
       } else if (e.toString().contains('weak-password')) {
         errorMessage = 'Password should be at least 6 characters';
@@ -145,7 +146,7 @@ class _SimplifiedRegistrationScreenState
     final screenHeight = MediaQuery.of(context).size.height;
     
     return Scaffold(
-      body: _isLoading && _missions.isEmpty
+      body: WebWrapper(child: _isLoading && _missions.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : Container(
               decoration: BoxDecoration(
@@ -228,10 +229,33 @@ class _SimplifiedRegistrationScreenState
                                 ),
                                 const SizedBox(height: 8),
                                 const Text(
-                                  'Create your account to get started. You\'ll complete your profile in the next step.',
+                                  'Use your organization email address. A verification link will be sent — you must verify before logging in.',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.shade50,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.amber.shade300),
+                                  ),
+                                  child: const Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(Icons.info_outline, size: 16, color: Colors.amber),
+                                      SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Only organization email addresses are accepted for registration. '
+                                          'If you do not receive the verification email, please check your junk or spam mail folder.',
+                                          style: TextStyle(fontSize: 12, color: Colors.black87, height: 1.4),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 const SizedBox(height: 32),
@@ -319,7 +343,7 @@ class _SimplifiedRegistrationScreenState
                                       Expanded(
                                         child: DropdownButtonHideUnderline(
                                           child: DropdownButtonFormField<String>(
-                                            value: _selectedMission,
+                                            initialValue: _selectedMission,
                                             decoration: const InputDecoration(
                                               labelText: 'Select Mission',
                                               border: InputBorder.none,
@@ -409,7 +433,7 @@ class _SimplifiedRegistrationScreenState
                   ),
                 ),
               ),
-            ),
+            )),
     );
   }
 }

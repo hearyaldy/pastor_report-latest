@@ -20,6 +20,8 @@ import 'package:pastor_report/screens/user_management_screen.dart';
 import 'package:pastor_report/screens/staff_management_screen.dart';
 import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/models/mission_model.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
+import 'package:pastor_report/screens/admin_utilities_screen.dart';
 
 class ImprovedAdminDashboard extends StatefulWidget {
   const ImprovedAdminDashboard({super.key});
@@ -42,9 +44,13 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
   int _totalRegions = 0;
   bool _isLoading = true;
 
-  // Static flag to prevent duplicate church data loading across screens
+  // Static flags to prevent duplicate data loading across screens
   static bool _churchDataLoaded = false;
   static DateTime? _lastChurchDataLoad;
+
+  // Cache for dashboard statistics to avoid redundant API calls
+  static Map<String, dynamic> _statsCache = {};
+  static DateTime? _lastStatsCacheTime;
 
   @override
   void initState() {
@@ -56,13 +62,38 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
     setState(() => _isLoading = true);
 
     try {
-      await Future.wait([
-        _loadUserStats(),
-        _loadDepartmentStats(),
-        _loadChurchStats(),
-        _loadDistrictStats(),
-        _loadRegionStats(),
-      ]);
+      // Check if stats were cached recently (within 60 seconds) to prevent excessive API calls
+      if (_lastStatsCacheTime != null) {
+        final timeSinceLastLoad =
+            DateTime.now().difference(_lastStatsCacheTime!);
+        if (timeSinceLastLoad.inSeconds < 60) {
+          // Use cached values
+          _totalUsers = _statsCache['users'] ?? 0;
+          _totalDepartments = _statsCache['departments'] ?? 0;
+          _totalChurches = _statsCache['churches'] ?? 0;
+          _totalDistricts = _statsCache['districts'] ?? 0;
+          _totalRegions = _statsCache['regions'] ?? 0;
+          setState(() => _isLoading = false);
+          return;
+        }
+      }
+
+      // Load data sequentially to prevent overwhelming Firestore with concurrent queries
+      await _loadUserStats();
+      await _loadDepartmentStats();
+      await _loadChurchStats();
+      await _loadDistrictStats();
+      await _loadRegionStats();
+
+      // Cache the results
+      _statsCache = {
+        'users': _totalUsers,
+        'departments': _totalDepartments,
+        'churches': _totalChurches,
+        'districts': _totalDistricts,
+        'regions': _totalRegions,
+      };
+      _lastStatsCacheTime = DateTime.now();
     } catch (e) {
       debugPrint('Error loading admin dashboard data: $e');
     } finally {
@@ -74,7 +105,9 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
 
   Future<void> _loadUserStats() async {
     try {
-      final users = await _userService.getUsers();
+      // Use a limit for better performance since we just need the count
+      final users = await _userService.getUsers(
+          limit: 1000); // Reasonable limit for count
       _totalUsers = users.length;
     } catch (e) {
       debugPrint('Error loading user stats: $e');
@@ -113,41 +146,20 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
       final userMission = user?.mission;
 
       if (userMission != null && userMission.isNotEmpty) {
-        // For district pastors, count all churches in their mission
-        if (user?.userRole == UserRole.districtPastor) {
-          final churches =
-              await _churchService.getChurchesByMission(userMission);
-          _totalChurches = churches.length;
-          debugPrint(
-              '📊 Loaded ${churches.length} churches for district pastor in mission: $userMission');
-        } else {
-          // Get churches for the specific mission by getting all districts first
-          final districts =
-              await _districtService.getDistrictsByMission(userMission);
-          int totalChurches = 0;
-          for (var district in districts) {
-            final churches =
-                await _churchService.getChurchesByDistrict(district.id);
-            totalChurches += churches.length;
-          }
-          _totalChurches = totalChurches;
-          debugPrint(
-              '📊 Loaded $totalChurches churches for mission: $userMission');
-        }
-
-        // Mark data as loaded
-        _churchDataLoaded = true;
-        _lastChurchDataLoad = DateTime.now();
+        // Use count method instead of loading all documents to improve performance
+        final count = await _churchService.getChurchCountByMission(userMission);
+        _totalChurches = count;
+        debugPrint('📊 Loaded $count churches for mission: $userMission');
       } else {
-        // Super admin - get all churches
-        final churches = await _churchService.getAllChurches();
-        _totalChurches = churches.length;
-        debugPrint('📊 Loaded ${churches.length} churches (all missions)');
-
-        // Mark data as loaded
-        _churchDataLoaded = true;
-        _lastChurchDataLoad = DateTime.now();
+        // Super admin - get all churches count
+        final count = await _churchService.getChurchCountByMission('all');
+        _totalChurches = count;
+        debugPrint('📊 Loaded $count churches (all missions)');
       }
+
+      // Mark data as loaded
+      _churchDataLoaded = true;
+      _lastChurchDataLoad = DateTime.now();
     } catch (e) {
       debugPrint('Error loading church stats: $e');
     }
@@ -160,23 +172,13 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
       final userMission = user?.mission;
 
       if (userMission != null && userMission.isNotEmpty) {
-        // For district pastors, count all districts in their mission
-        if (user?.userRole == UserRole.districtPastor) {
-          final districts =
-              await _districtService.getDistrictsByMission(userMission);
-          _totalDistricts = districts.length;
-          debugPrint(
-              '📊 District pastor sees ${districts.length} districts in mission: $userMission');
-        } else {
-          // Get districts for the specific mission
-          final districts =
-              await _districtService.getDistrictsByMission(userMission);
-          _totalDistricts = districts.length;
-          debugPrint(
-              '📊 Loaded ${districts.length} districts for mission: $userMission');
-        }
+        // Use count method instead of loading all documents to improve performance
+        final count =
+            await _districtService.getDistrictCountByMission(userMission);
+        _totalDistricts = count;
+        debugPrint('📊 Loaded $count districts for mission: $userMission');
       } else {
-        // Super admin - get all districts
+        // Super admin - get all districts count
         final districts = await _districtService.getAllDistricts();
         _totalDistricts = districts.length;
         debugPrint('📊 Loaded ${districts.length} districts (all missions)');
@@ -193,19 +195,10 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
       final userMission = user?.mission;
 
       if (userMission != null && userMission.isNotEmpty) {
-        // For district pastors, count all regions in their mission
-        if (user?.userRole == UserRole.districtPastor) {
-          final regions = await _regionService.getRegionsByMission(userMission);
-          _totalRegions = regions.length;
-          debugPrint(
-              '📊 District pastor sees ${regions.length} regions in mission: $userMission');
-        } else {
-          // Get regions for the specific mission
-          final regions = await _regionService.getRegionsByMission(userMission);
-          _totalRegions = regions.length;
-          debugPrint(
-              '📊 Loaded ${regions.length} regions for mission: $userMission');
-        }
+        // Use count method instead of loading all documents to improve performance
+        final count = await _regionService.getRegionCountByMission(userMission);
+        _totalRegions = count;
+        debugPrint('📊 Loaded $count regions for mission: $userMission');
       } else {
         // Super admin - get all regions
         final regions = await _regionService.getAllRegions();
@@ -224,16 +217,18 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: RefreshIndicator(
-        onRefresh: _loadDashboardData,
-        child: CustomScrollView(
-          slivers: [
-            _buildModernAppBar(user),
-            _buildQuickStats(),
-            _buildManagementGrid(),
-            _buildRecentActivitySection(),
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
-          ],
+      body: WebWrapper(
+        child: RefreshIndicator(
+          onRefresh: _loadDashboardData,
+          child: CustomScrollView(
+            slivers: [
+              _buildModernAppBar(user),
+              _buildQuickStats(),
+              _buildManagementGrid(),
+              _buildRecentActivitySection(),
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
+          ),
         ),
       ),
       floatingActionButton: _buildQuickActionFAB(),
@@ -361,7 +356,9 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
           children: [
             Row(
               children: [
-                Icon(Icons.insights, color: Theme.of(context).textTheme.bodyMedium?.color, size: 20),
+                Icon(Icons.insights,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'System Overview',
@@ -628,6 +625,37 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
       ));
     }
 
+    // Email Domains - Admin, SuperAdmin only
+    if (user.canManageUsers()) {
+      tools.add(_buildManagementCard(
+        'Email Domains',
+        'Allowed registration domains',
+        Icons.domain,
+        Colors.indigo,
+        () => showDialog(
+          context: context,
+          builder: (_) => const EmailDomainDialog(),
+        ),
+      ));
+    }
+
+    // Location Requests - Admin, SuperAdmin, MissionAdmin
+    if (user.canManageUsers() || user.userRole == UserRole.missionAdmin) {
+      tools.add(_buildManagementCard(
+        'Location Requests',
+        'Approve region/district requests',
+        Icons.map_outlined,
+        Colors.orange,
+        () => showDialog(
+          context: context,
+          builder: (_) => LocationRequestsDialog(
+            missionId: user.mission ?? '',
+            adminUid: user.uid,
+          ),
+        ),
+      ));
+    }
+
     return tools;
   }
 
@@ -649,7 +677,9 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
           children: [
             Row(
               children: [
-                Icon(Icons.settings, color: Theme.of(context).textTheme.bodyMedium?.color, size: 20),
+                Icon(Icons.settings,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Management Tools',
@@ -752,7 +782,9 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
           children: [
             Row(
               children: [
-                Icon(Icons.history, color: Theme.of(context).textTheme.bodyMedium?.color, size: 20),
+                Icon(Icons.history,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Recent Activity',
@@ -796,11 +828,18 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.inbox, color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7)),
+                        Icon(Icons.inbox,
+                            color: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.color
+                                ?.withValues(alpha: 0.7)),
                         const SizedBox(width: 8),
                         Text(
                           'No recent activity',
-                          style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
+                          style: TextStyle(
+                              color:
+                                  Theme.of(context).textTheme.bodySmall?.color),
                         ),
                       ],
                     ),
@@ -989,7 +1028,11 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
             time,
             style: TextStyle(
               fontSize: 11,
-              color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+              color: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.color
+                  ?.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -1128,7 +1171,7 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
         MaterialPageRoute(
           builder: (context) => RegionManagementScreen(
             missionId: user.mission!,
-            missionName: user.mission!, // TODO: Could get actual mission name
+            missionName: MissionService().getMissionNameById(user.mission),
           ),
         ),
       );

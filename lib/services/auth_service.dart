@@ -2,6 +2,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pastor_report/models/user_model.dart';
+import 'package:pastor_report/services/email_domain_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -24,13 +25,40 @@ class AuthService {
 
       User? user = result.user;
       if (user != null) {
+        // Reload to get the latest emailVerified flag from Firebase
+        await user.reload();
+        final refreshed = _auth.currentUser;
+        if (refreshed == null || !refreshed.emailVerified) {
+          await _auth.signOut();
+          throw 'email-not-verified';
+        }
         return await getUserData(user.uid);
       }
       return null;
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
-      throw 'An unexpected error occurred';
+      // Re-throw our own string errors unchanged
+      rethrow;
+    }
+  }
+
+  // Resend verification email — signs in, sends email, then signs back out
+  Future<void> resendVerificationEmail(String email, String password) async {
+    try {
+      final result = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      final user = result.user;
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+      }
+      await _auth.signOut();
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    } catch (e) {
+      rethrow;
     }
   }
 
@@ -47,8 +75,18 @@ class AuthService {
     String? churchId,
   }) async {
     try {
+      final normalizedEmail = email.trim().toLowerCase();
+      final allowedDomains = await EmailDomainService.instance.getDomains();
+      final isAllowedDomain = allowedDomains.any(
+        (domain) => normalizedEmail.endsWith('@${domain.toLowerCase()}'),
+      );
+
+      if (!isAllowedDomain) {
+        throw 'Please use an organization email address';
+      }
+
       UserCredential result = await _auth.createUserWithEmailAndPassword(
-        email: email,
+        email: normalizedEmail,
         password: password,
       );
 
@@ -62,7 +100,7 @@ class AuthService {
         // Create user document in Firestore
         UserModel userModel = UserModel(
           uid: user.uid,
-          email: email,
+          email: normalizedEmail,
           displayName: displayName,
           userRole: userRole,
           mission: mission,
@@ -80,13 +118,19 @@ class AuthService {
         // Update display name in Firebase Auth
         await user.updateDisplayName(displayName);
 
+        // Send email verification — user must verify before logging in
+        await user.sendEmailVerification();
+
+        // Sign out immediately so the app stays on the login screen
+        await _auth.signOut();
+
         return userModel;
       }
       return null;
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
-      throw 'An unexpected error occurred';
+      rethrow;
     }
   }
 

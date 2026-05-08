@@ -52,13 +52,12 @@ class _SplashScreenState extends State<SplashScreen>
     if (authProvider.isAuthenticated && authProvider.user != null) {
       final user = authProvider.user!;
 
-      // If user has no mission, show onboarding
-      if (user.mission == null || user.mission!.isEmpty) {
+      // Route to onboarding if not yet completed
+      if (!user.onboardingCompleted) {
         Navigator.pushReplacementNamed(context, AppConstants.routeOnboarding);
         return;
       }
 
-      // User is authenticated and has mission, go to home
       Navigator.pushReplacementNamed(context, AppConstants.routeHome);
     } else {
       // User is not authenticated, show welcome screen

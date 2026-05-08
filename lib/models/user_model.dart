@@ -102,6 +102,7 @@ class UserModel {
       roleTitle; // Stores the specific role title (e.g. District Pastor, Mission Officer)
   final String? churchId; // For church treasurers - assigned church ID
   final bool isPremium;
+  final bool onboardingCompleted;
 
   UserModel({
     required this.uid,
@@ -114,6 +115,7 @@ class UserModel {
     this.roleTitle,
     this.churchId,
     this.isPremium = false,
+    this.onboardingCompleted = false,
   });
 
   // Backward compatibility getters
@@ -174,6 +176,7 @@ class UserModel {
       roleTitle: map['roleTitle'],
       churchId: map['churchId'],
       isPremium: map['isPremium'] ?? false,
+      onboardingCompleted: map['onboardingCompleted'] ?? false,
     );
   }
 
@@ -194,6 +197,7 @@ class UserModel {
       'churchId': churchId,
       'role': role,
       'isPremium': isPremium,
+      'onboardingCompleted': onboardingCompleted,
     };
   }
 
@@ -232,6 +236,7 @@ class UserModel {
     String? roleTitle,
     String? churchId,
     bool? isPremium,
+    bool? onboardingCompleted,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -244,6 +249,7 @@ class UserModel {
       roleTitle: roleTitle ?? this.roleTitle,
       churchId: churchId ?? this.churchId,
       isPremium: isPremium ?? this.isPremium,
+      onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
     );
   }
 }

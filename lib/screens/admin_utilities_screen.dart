@@ -17,6 +17,10 @@ import 'package:pastor_report/utils/fix_staff_names.dart';
 import 'package:pastor_report/utils/data_import_util.dart';
 import 'package:pastor_report/utils/update_staff_regions_districts_util.dart';
 import 'package:pastor_report/utils/staff_data_fixer.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
+import 'package:pastor_report/services/email_domain_service.dart';
+import 'package:pastor_report/services/location_request_service.dart';
+import 'package:pastor_report/models/location_request_model.dart';
 
 class AdminUtilitiesScreen extends StatelessWidget {
   const AdminUtilitiesScreen({super.key});
@@ -27,7 +31,7 @@ class AdminUtilitiesScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Admin Utilities'),
       ),
-      body: Consumer<MissionProvider>(
+      body: WebWrapper(child: Consumer<MissionProvider>(
         builder: (context, missionProvider, child) {
           return ListView(
             padding: const EdgeInsets.all(16.0),
@@ -1807,10 +1811,41 @@ class AdminUtilitiesScreen extends StatelessWidget {
                   }
                 },
               ),
+              const _SectionHeader(title: 'Registration Settings'),
+              _ActionCard(
+                title: 'Allowed Email Domains',
+                description:
+                    'Manage which email domains are permitted to register an account.',
+                icon: Icons.domain,
+                color: Colors.indigo,
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (_) => const EmailDomainDialog(),
+                ),
+              ),
+              const _SectionHeader(title: 'Location Requests'),
+              _ActionCard(
+                title: 'Pending Region / District Requests',
+                description:
+                    'Review and approve region or district requests submitted by users during onboarding.',
+                icon: Icons.map_outlined,
+                color: Colors.orange,
+                onTap: () {
+                  final user =
+                      Provider.of<AuthProvider>(context, listen: false).user;
+                  showDialog(
+                    context: context,
+                    builder: (_) => LocationRequestsDialog(
+                      missionId: user?.mission ?? '',
+                      adminUid: user?.uid ?? '',
+                    ),
+                  );
+                },
+              ),
             ],
           );
         },
-      ),
+      )),
     );
   }
 
@@ -1954,6 +1989,334 @@ class _ActionCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class EmailDomainDialog extends StatefulWidget {
+  const EmailDomainDialog({super.key});
+
+  @override
+  State<EmailDomainDialog> createState() => _EmailDomainDialogState();
+}
+
+class _EmailDomainDialogState extends State<EmailDomainDialog> {
+  final _controller = TextEditingController();
+  bool _adding = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _add() async {
+    setState(() { _error = null; _adding = true; });
+    try {
+      await EmailDomainService.instance.addDomain(_controller.text);
+      _controller.clear();
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _adding = false);
+    }
+  }
+
+  Future<void> _restoreDefaults() async {
+    try {
+      await EmailDomainService.instance.restoreDefaults();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Default domains restored.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _remove(String domain) async {
+    try {
+      await EmailDomainService.instance.removeDomain(domain);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Row(
+        children: [
+          Icon(Icons.domain, color: Colors.indigo),
+          SizedBox(width: 8),
+          Text('Allowed Email Domains'),
+        ],
+      ),
+      content: SizedBox(
+        width: 400,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Only emails from these domains can register an account.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _restoreDefaults,
+                  icon: const Icon(Icons.restore, size: 16),
+                  label: const Text('Restore defaults'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.indigo,
+                    textStyle: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Live domain list
+            StreamBuilder<List<String>>(
+              stream: EmailDomainService.instance.streamDomains(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final domains = snapshot.data!;
+                if (domains.isEmpty) {
+                  return const Text('No domains configured.',
+                      style: TextStyle(color: Colors.grey));
+                }
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: domains.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, i) {
+                    final domain = domains[i];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      leading: const Icon(Icons.check_circle_outline,
+                          color: Colors.green, size: 20),
+                      title: Text(domain,
+                          style: const TextStyle(fontFamily: 'monospace')),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete_outline,
+                            color: Colors.red, size: 20),
+                        tooltip: 'Remove domain',
+                        onPressed: () => _remove(domain),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 8),
+
+            // Add new domain row
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    decoration: InputDecoration(
+                      labelText: 'Add domain',
+                      hintText: 'e.g. example.org',
+                      errorText: _error,
+                      isDense: true,
+                      border: const OutlineInputBorder(),
+                    ),
+                    onSubmitted: (_) => _add(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _adding
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : IconButton.filled(
+                        icon: const Icon(Icons.add),
+                        tooltip: 'Add domain',
+                        onPressed: _add,
+                      ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Close'),
+        ),
+      ],
+    );
+  }
+}
+
+class LocationRequestsDialog extends StatelessWidget {
+  final String missionId;
+  final String adminUid;
+
+  const LocationRequestsDialog({
+    super.key,
+    required this.missionId,
+    required this.adminUid,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Row(
+        children: [
+          Icon(Icons.map_outlined, color: Colors.orange),
+          SizedBox(width: 8),
+          Text('Location Requests'),
+        ],
+      ),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: StreamBuilder<List<LocationRequest>>(
+          stream: LocationRequestService.instance
+              .streamPendingByMission(missionId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final requests = snapshot.data ?? [];
+            if (requests.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: Text('No pending requests')),
+              );
+            }
+            return ListView.separated(
+              shrinkWrap: true,
+              itemCount: requests.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final req = requests[index];
+                final isDistrict =
+                    req.type == LocationRequestType.district;
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor:
+                        isDistrict ? Colors.blue.shade100 : Colors.green.shade100,
+                    child: Icon(
+                      isDistrict ? Icons.apartment : Icons.map,
+                      size: 18,
+                      color: isDistrict
+                          ? Colors.blue.shade700
+                          : Colors.green.shade700,
+                    ),
+                  ),
+                  title: Text(req.name,
+                      style:
+                          const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                          '${isDistrict ? 'District' : 'Region'} · ${req.requestedByName}'),
+                      if (isDistrict && req.regionName != null)
+                        Text('Under: ${req.regionName}',
+                            style: const TextStyle(fontSize: 12)),
+                      if (req.note != null && req.note!.isNotEmpty)
+                        Text('Note: ${req.note}',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600)),
+                    ],
+                  ),
+                  isThreeLine: true,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Approve',
+                        icon: const Icon(Icons.check_circle,
+                            color: Colors.green),
+                        onPressed: () async {
+                          try {
+                            await LocationRequestService.instance
+                                .approve(req, adminUid);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      '${req.name} approved and created.'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                      IconButton(
+                        tooltip: 'Reject',
+                        icon: const Icon(Icons.cancel, color: Colors.red),
+                        onPressed: () async {
+                          await LocationRequestService.instance
+                              .reject(req.id, adminUid);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content: Text('${req.name} rejected.')),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Close'),
+        ),
+      ],
     );
   }
 }

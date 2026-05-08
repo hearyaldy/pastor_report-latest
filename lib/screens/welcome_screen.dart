@@ -56,19 +56,55 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     if (!mounted) return;
 
     if (success) {
-      // Check if this screen was pushed (can pop) or is the root (need to replace)
+      final user = authProvider.user;
+      final destination = (user != null && !user.onboardingCompleted)
+          ? AppConstants.routeOnboarding
+          : AppConstants.routeHome;
       if (Navigator.canPop(context)) {
         Navigator.pop(context, true);
       } else {
-        Navigator.pushReplacementNamed(context, AppConstants.routeHome);
+        Navigator.pushReplacementNamed(context, destination);
       }
     } else {
       setState(() => _isLoading = false);
+      final error = authProvider.errorMessage ?? 'Login failed';
+      final isVerificationError = error.contains('email-not-verified');
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Login failed'),
+          content: Text(
+            isVerificationError
+                ? 'Please verify your email before logging in.'
+                : error,
+          ),
           backgroundColor: AppTheme.error,
           behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: isVerificationError ? 8 : 4),
+          action: isVerificationError
+              ? SnackBarAction(
+                  label: 'Resend',
+                  textColor: Colors.white,
+                  onPressed: () async {
+                    final ap =
+                        Provider.of<AuthProvider>(context, listen: false);
+                    final sent = await ap.resendVerificationEmail(
+                      _emailController.text.trim(),
+                      _passwordController.text.trim(),
+                    );
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(sent
+                            ? 'Verification email resent!'
+                            : ap.errorMessage ?? 'Failed to resend'),
+                        backgroundColor:
+                            sent ? AppTheme.success : AppTheme.error,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                )
+              : null,
         ),
       );
     }
@@ -137,18 +173,46 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWide = screenWidth > 600;
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+            padding: EdgeInsets.symmetric(
+              horizontal: isWide ? 24.0 : 24.0,
+              vertical: isWide ? 48.0 : 24.0,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: isWide
+                  ? Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(40.0),
+                        child: _buildForm(theme, colorScheme),
+                      ),
+                    )
+                  : _buildForm(theme, colorScheme),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildForm(ThemeData theme, ColorScheme colorScheme) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
                   Center(
                     child: Container(
                       height: 100,
@@ -343,11 +407,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     style: theme.textTheme.bodySmall,
                     textAlign: TextAlign.center,
                   ),
-                ],
-              ),
-            ),
-          ),
-        ),
+        ],
       ),
     );
   }

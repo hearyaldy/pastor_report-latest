@@ -39,6 +39,13 @@ class AppConstants {
   static const String keyUserEmail = 'user_email';
   static const String keyThemeMode = 'theme_mode';
 
+  // Registration Email Domains
+  static const List<String> allowedRegistrationEmailDomains = [
+    'nsmadventist.org',
+    'hopetv.asia',
+    'adventistsabah.org',
+  ];
+
   // Mission Options - Use IDs consistently
   // NOTE: This is for reference only - actual data should be loaded from Firestore
   // Each mission has both the string ID format (e.g. 'sabah-mission') and

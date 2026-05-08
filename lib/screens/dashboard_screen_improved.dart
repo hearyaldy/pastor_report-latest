@@ -23,6 +23,7 @@ import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/services/profile_picture_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/utils/theme_colors.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/services.dart';
 
@@ -49,6 +50,22 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   DateTime _selectedActivityDate = DateTime.now();
   String _selectedActivityType = 'Other';
   String? _profilePicturePath;
+
+  // Cache for department data to prevent multiple API calls
+  static final Map<String, List<Department>> _departmentCache = {};
+  static final Map<String, DateTime> _departmentCacheTime = {};
+  static const Duration _cacheDuration = Duration(minutes: 5);
+
+  // Cache for other frequently accessed data
+  static final Map<String, Object> _generalCache = {};
+  static final Map<String, DateTime> _generalCacheTime = {};
+
+  // Cached futures to prevent recreation on rebuilds
+  Future<List<Todo>>? _cachedTodosFuture;
+  Future<List<dynamic>>? _cachedAppointmentsFuture;
+  DateTime? _lastTodosLoad;
+  DateTime? _lastAppointmentsLoad;
+  static const Duration _futureCacheDuration = Duration(minutes: 1);
 
   @override
   void initState() {
@@ -77,14 +94,29 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
     super.dispose();
   }
 
+  static const double _maxDashboardWidth = 1100.0;
+
+  Widget _constrainContent(Widget child) {
+    final width = MediaQuery.of(context).size.width;
+    if (width <= 900) return child;
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: _maxDashboardWidth),
+        child: child,
+      ),
+    );
+  }
+
   Stream<List<Department>> _getDepartmentsStream(String missionIdOrName) {
     // Accept either mission ID or mission name
-    print('Dashboard: Fetching departments for mission: $missionIdOrName');
+    // Only log when actually needed for debugging
+    // print('Dashboard: Fetching departments for mission: $missionIdOrName');
 
     // Special case handling for known problematic IDs
     if (missionIdOrName == '4LFC9isp22H7Og1FHBm6') {
-      print(
-          'Dashboard: Using special handling for known ID: $missionIdOrName -> Sabah Mission');
+      // Only log when actually needed for debugging
+      // print(
+      //     'Dashboard: Using special handling for known ID: $missionIdOrName -> Sabah Mission');
       // For this specific ID, we know it should be "Sabah Mission"
     }
 
@@ -98,9 +130,6 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
     final user = authProvider.user;
     final isAuthenticated = authProvider.isAuthenticated;
 
-    // Reload profile picture every time dashboard is built
-    _loadProfilePicture();
-
     // Show welcome screen for non-authenticated users
     if (!isAuthenticated) {
       return _buildWelcomeScreen();
@@ -108,18 +137,63 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: CustomScrollView(
+      body: WebWrapper(
+        maxWidth: _maxDashboardWidth,
+        child: CustomScrollView(
         slivers: [
           // Modern App Bar with gradient
           _buildModernAppBar(user),
 
           // Search Bar Section
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: _buildSearchBar(),
+            child: _constrainContent(
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: _buildSearchBar(),
+              ),
             ),
           ),
+
+          // Onboarding incomplete banner
+          if (user != null && !user.onboardingCompleted)
+            SliverToBoxAdapter(
+              child: _constrainContent(
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                  child: Card(
+                    color: Colors.orange.shade50,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: Colors.orange.shade300),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded,
+                              color: Colors.orange.shade700),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'Your profile setup is incomplete.',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pushNamed(
+                                context, AppConstants.routeOnboarding),
+                            style: TextButton.styleFrom(
+                                foregroundColor: Colors.orange.shade800),
+                            child: const Text('Complete Setup'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
 
           // Quick Stats Overview
           _buildQuickStats(user),
@@ -140,6 +214,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
       ),
+    ),
     );
   }
 
@@ -374,7 +449,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
 
   Widget _buildQuickStats(UserModel? user) {
     return SliverToBoxAdapter(
-      child: Padding(
+      child: _constrainContent(Padding(
         padding: const EdgeInsets.all(16),
         child: FutureBuilder<Map<String, int>>(
           future: _getQuickStats(user),
@@ -463,7 +538,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
             );
           },
         ),
-      ),
+      )),
     );
   }
 
@@ -510,7 +585,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   // Quick Actions Section (Combined Activity + Todo)
   Widget _buildQuickActionsSection(UserModel? user) {
     return SliverToBoxAdapter(
-      child: Column(
+      child: _constrainContent(Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -688,7 +763,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
             ),
           ),
         ],
-      ),
+      )),
     );
   }
 
@@ -1175,7 +1250,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
 
   Widget _buildUpcomingSection() {
     return SliverToBoxAdapter(
-      child: Column(
+      child: _constrainContent(Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
@@ -1200,7 +1275,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           ),
           _buildUpcomingCards(),
         ],
-      ),
+      )),
     );
   }
 
@@ -1247,11 +1322,61 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   }
 
   Widget _buildTodosCard() {
+    // Use cached future to prevent recreation on rebuild
+    final now = DateTime.now();
+    if (_cachedTodosFuture == null || 
+        _lastTodosLoad == null || 
+        now.difference(_lastTodosLoad!) > _futureCacheDuration) {
+      _cachedTodosFuture = TodoStorageService.instance.getTodos();
+      _lastTodosLoad = now;
+    }
+
     return FutureBuilder<List<Todo>>(
-      future: TodoStorageService.instance.getTodos(),
+      future: _cachedTodosFuture,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.blue[400]!,
+                  Colors.blue[600]!,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.blue.withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      'Loading todos...',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
         }
 
         final incompleteTodos =
@@ -1365,14 +1490,64 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
   }
 
   Widget _buildAppointmentsCard() {
-    return FutureBuilder<List<dynamic>>(
-      future: Future.wait([
+    // Use cached future to prevent recreation on rebuild
+    final now = DateTime.now();
+    if (_cachedAppointmentsFuture == null || 
+        _lastAppointmentsLoad == null || 
+        now.difference(_lastAppointmentsLoad!) > _futureCacheDuration) {
+      _cachedAppointmentsFuture = Future.wait([
         AppointmentStorageService.instance.getAppointments(),
         EventService.instance.getLocalEvents(),
-      ]),
+      ]);
+      _lastAppointmentsLoad = now;
+    }
+
+    return FutureBuilder<List<dynamic>>(
+      future: _cachedAppointmentsFuture,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.orange[400]!,
+                  Colors.orange[600]!,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.orange.withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      'Loading events...',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
         }
 
         final appointments = snapshot.data![0] as List<Appointment>;
@@ -1779,7 +1954,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         : 'All Missions';
 
     return SliverToBoxAdapter(
-      child: Column(
+      child: _constrainContent(Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Modern header with gradient background
@@ -1880,7 +2055,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           ),
           _buildDepartmentsGrid(user),
         ],
-      ),
+      )),
     );
   }
 
@@ -1893,13 +2068,15 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
     String missionName =
         MissionService().getMissionNameById(missionIdOrDefault);
 
-    print(
-        'Loading departments for mission: $missionName (ID: $missionIdOrDefault)');
+    // Only log when actually loading, not on every rebuild
+    // print(
+    //     'Loading departments for mission: $missionName (ID: $missionIdOrDefault)');
 
     return StreamBuilder<List<Department>>(
       stream: _getDepartmentsStream(missionIdOrDefault),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting && 
+            (!snapshot.hasData || snapshot.data!.isEmpty)) {
           return const Padding(
             padding: EdgeInsets.all(32),
             child: Center(child: CircularProgressIndicator()),
@@ -2110,7 +2287,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
 
   Widget _buildRecentActivitiesSection() {
     return SliverToBoxAdapter(
-      child: Column(
+      child: _constrainContent(Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
@@ -2135,7 +2312,7 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
           ),
           _buildActivitiesList(),
         ],
-      ),
+      )),
     );
   }
 
@@ -2146,7 +2323,19 @@ class _ImprovedDashboardScreenState extends State<ImprovedDashboardScreen> {
         if (!snapshot.hasData) {
           return const Padding(
             padding: EdgeInsets.all(32),
-            child: Center(child: CircularProgressIndicator()),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 12),
+                  Text(
+                    'Loading activities...',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
           );
         }
 
