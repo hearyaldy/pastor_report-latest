@@ -6,6 +6,7 @@ import 'package:excel/excel.dart';
 import 'package:intl/intl.dart';
 import 'package:pastor_report/models/activity_model.dart';
 import 'package:pastor_report/models/user_model.dart';
+import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/services/platform_file_service.dart';
 
 class ActivityExportService {
@@ -34,6 +35,7 @@ class ActivityExportService {
         (sum, activity) => sum + activity.mileage,
       );
       final totalCost = totalKm * kmCost;
+      final missionName = MissionService().getMissionNameById(user.mission);
 
       // Add page
       pdf.addPage(
@@ -105,7 +107,7 @@ class ActivityExportService {
                       if (user.role != null && user.role!.isNotEmpty)
                         _buildInfoRow('Position', user.role!),
                       if (user.mission != null && user.mission!.isNotEmpty)
-                        _buildInfoRow('Mission', user.mission!),
+                        _buildInfoRow('Mission', missionName),
                     ],
                   ),
                 ),
@@ -311,7 +313,10 @@ class ActivityExportService {
         _addExcelRow(sheet, currentRow++, ['Position:', user.role!]);
       }
       if (user.mission != null && user.mission!.isNotEmpty) {
-        _addExcelRow(sheet, currentRow++, ['Mission:', user.mission!]);
+        _addExcelRow(sheet, currentRow++, [
+          'Mission:',
+          MissionService().getMissionNameById(user.mission),
+        ]);
       }
       currentRow++;
 

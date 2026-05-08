@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pastor_report/models/region_model.dart';
 
 class RegionService {
@@ -44,7 +45,7 @@ class RegionService {
   // Get all regions for a mission (using either ID or name)
   Future<List<Region>> getRegionsByMission(String missionId) async {
     try {
-      print('RegionService: Querying regions with missionId=$missionId');
+      debugPrint('RegionService: Querying regions with missionId=$missionId');
 
       // Try querying by missionId field first
       var querySnapshot = await _firestore
@@ -53,26 +54,26 @@ class RegionService {
           .orderBy('name')
           .get();
 
-      print(
+      debugPrint(
           'RegionService: Found ${querySnapshot.docs.length} regions by missionId');
 
       // If no results, try querying by 'mission' field (backward compatibility)
       if (querySnapshot.docs.isEmpty) {
-        print(
+        debugPrint(
             'RegionService: No results by missionId, trying mission field...');
         querySnapshot = await _firestore
             .collection(_collectionName)
             .where('mission', isEqualTo: missionId)
             .orderBy('name')
             .get();
-        print(
+        debugPrint(
             'RegionService: Found ${querySnapshot.docs.length} regions by mission field');
       }
 
       // If we still have no results, try getting all regions and filtering manually
       // This is a workaround for cases where missionId might be stored as the mission name
       if (querySnapshot.docs.isEmpty) {
-        print(
+        debugPrint(
             'RegionService: Still no results, trying to get all regions and filter manually');
 
         final allRegionsSnapshot =
@@ -87,7 +88,7 @@ class RegionService {
 
         if (missionsSnapshot.docs.isNotEmpty) {
           final missionName = missionsSnapshot.docs.first.get('name');
-          print(
+          debugPrint(
               'RegionService: Found mission name: $missionName for ID: $missionId');
 
           // Filter manually by mission name
@@ -99,7 +100,7 @@ class RegionService {
                     missionName.toString().toLowerCase();
           }).toList();
 
-          print(
+          debugPrint(
               'RegionService: Found ${filteredDocs.length} regions by mission name');
 
           // If we found regions, return them
@@ -110,19 +111,50 @@ class RegionService {
       }
 
       for (var doc in querySnapshot.docs) {
-        print('  Region doc: ${doc.id} - ${doc.data()}');
+        debugPrint('  Region doc: ${doc.id} - ${doc.data()}');
       }
 
       return querySnapshot.docs.map((doc) => Region.fromSnapshot(doc)).toList();
     } catch (e) {
-      print('RegionService ERROR: $e');
+      debugPrint('RegionService ERROR: $e');
       throw Exception('Failed to get regions: $e');
+    }
+  }
+
+  // Get count of regions for a mission - more efficient than loading all data
+  Future<int> getRegionCountByMission(String missionId) async {
+    try {
+      debugPrint('RegionService: Counting regions with missionId=$missionId');
+
+      // Try querying by missionId field first
+      var querySnapshot = await _firestore
+          .collection(_collectionName)
+          .where('missionId', isEqualTo: missionId)
+          .count()
+          .get();
+
+      // If no results, try querying by 'mission' field (backward compatibility)
+      if (querySnapshot.count == 0) {
+        debugPrint('RegionService: No results by missionId, trying mission field...');
+        querySnapshot = await _firestore
+            .collection(_collectionName)
+            .where('mission', isEqualTo: missionId)
+            .count()
+            .get();
+      }
+
+      final count = querySnapshot.count ?? 0;
+      debugPrint('RegionService: Counted $count regions');
+      return count;
+    } catch (e) {
+      debugPrint('RegionService ERROR during count: $e');
+      throw Exception('Failed to count regions: $e');
     }
   }
 
   // Stream all regions for a mission (real-time updates)
   Stream<List<Region>> streamRegionsByMission(String missionId) {
-    print('RegionService: Streaming regions with missionId=$missionId');
+    debugPrint('RegionService: Streaming regions with missionId=$missionId');
 
     // First try the direct missionId query
     return _firestore
@@ -131,19 +163,19 @@ class RegionService {
         .orderBy('name')
         .snapshots()
         .asyncMap((snapshot) async {
-      print(
+      debugPrint(
           'RegionService: Stream found ${snapshot.docs.length} regions by missionId');
 
       // If no results, try the mission field for backward compatibility
       if (snapshot.docs.isEmpty) {
-        print('RegionService: Stream trying mission field...');
+        debugPrint('RegionService: Stream trying mission field...');
         final missionSnapshot = await _firestore
             .collection(_collectionName)
             .where('mission', isEqualTo: missionId)
             .orderBy('name')
             .get();
 
-        print(
+        debugPrint(
             'RegionService: Stream found ${missionSnapshot.docs.length} regions by mission field');
 
         if (missionSnapshot.docs.isNotEmpty) {
@@ -162,7 +194,7 @@ class RegionService {
 
           if (missionsSnapshot.docs.isNotEmpty) {
             final missionName = missionsSnapshot.docs.first.get('name');
-            print(
+            debugPrint(
                 'RegionService: Stream found mission name: $missionName for ID: $missionId');
 
             final allRegionsSnapshot = await _firestore
@@ -182,19 +214,19 @@ class RegionService {
                 .map((doc) => Region.fromSnapshot(doc))
                 .toList();
 
-            print(
+            debugPrint(
                 'RegionService: Stream found ${filteredRegions.length} regions by mission name');
             return filteredRegions;
           }
         } catch (e) {
-          print('RegionService: Stream error during mission name lookup: $e');
+          debugPrint('RegionService: Stream error during mission name lookup: $e');
         }
       }
 
       final regions =
           snapshot.docs.map((doc) => Region.fromSnapshot(doc)).toList();
       for (var region in regions) {
-        print(
+        debugPrint(
             '  Stream Region: ${region.id} - ${region.name} (mission: ${region.missionId})');
       }
       return regions;
@@ -299,11 +331,11 @@ class RegionService {
       }
 
       // If still not found, return the ID as a last resort
-      print(
+      debugPrint(
           'RegionService: Could not find region name for ID $regionId, returning ID');
       return regionId;
     } catch (e) {
-      print('RegionService: Error getting region name for ID $regionId: $e');
+      debugPrint('RegionService: Error getting region name for ID $regionId: $e');
       return "Unknown Region";
     }
   }
@@ -317,7 +349,7 @@ class RegionService {
 
     // Check cache first
     if (_regionNameCache.containsKey(regionId)) {
-      print(
+      debugPrint(
           'RegionService: Using cached region name: ${_regionNameCache[regionId]} for ID: $regionId');
       return _regionNameCache[regionId]!;
     }
@@ -326,7 +358,7 @@ class RegionService {
       // Step 1: Try direct lookup by ID
       final region = await getRegionById(regionId);
       if (region != null) {
-        print('RegionService: Found region by direct lookup: ${region.name}');
+        debugPrint('RegionService: Found region by direct lookup: ${region.name}');
         _regionNameCache[regionId] = region.name; // Cache result
         return region.name;
       }
@@ -335,7 +367,7 @@ class RegionService {
       final allRegions = await getAllRegions();
       for (final r in allRegions) {
         if (r.id == regionId) {
-          print('RegionService: Found region in all regions: ${r.name}');
+          debugPrint('RegionService: Found region in all regions: ${r.name}');
           _regionNameCache[regionId] = r.name; // Cache result
           return r.name;
         }
@@ -343,12 +375,12 @@ class RegionService {
 
       // Step 3: If missionId is provided, try to find regions for this mission
       if (missionId != null && missionId.isNotEmpty) {
-        print('RegionService: Trying to find region by mission: $missionId');
+        debugPrint('RegionService: Trying to find region by mission: $missionId');
 
         List<Region> missionRegions;
         if (_missionRegionsCache.containsKey(missionId)) {
           missionRegions = _missionRegionsCache[missionId]!;
-          print(
+          debugPrint(
               'RegionService: Using cached mission regions (${missionRegions.length}) for mission: $missionId');
         } else {
           missionRegions = await getRegionsByMission(missionId);
@@ -358,7 +390,7 @@ class RegionService {
         if (missionRegions.isNotEmpty) {
           // If mission has only one region, use that as a fallback
           if (missionRegions.length == 1) {
-            print(
+            debugPrint(
                 'RegionService: Using mission\'s sole region: ${missionRegions[0].name}');
             _regionNameCache[regionId] = missionRegions[0].name; // Cache result
             return missionRegions[0].name;
@@ -370,7 +402,7 @@ class RegionService {
                 r.id.contains(regionId) ||
                 regionId.contains(r.id) ||
                 r.name.toLowerCase().contains(regionId.toLowerCase())) {
-              print('RegionService: Found similar region: ${r.name}');
+              debugPrint('RegionService: Found similar region: ${r.name}');
               _regionNameCache[regionId] = r.name; // Cache result
               return r.name;
             }
@@ -382,7 +414,7 @@ class RegionService {
       _regionNameCache[regionId] = regionId; // Cache the fallback
       return regionId;
     } catch (e) {
-      print('RegionService: Error resolving region name: $e');
+      debugPrint('RegionService: Error resolving region name: $e');
       return regionId;
     }
   }
@@ -397,7 +429,7 @@ class RegionService {
   Future<void> deleteRegionsByIds(List<String> regionIds) async {
     for (var regionId in regionIds) {
       await deleteRegion(regionId);
-      print('Deleted region: $regionId');
+      debugPrint('Deleted region: $regionId');
     }
   }
 
@@ -409,7 +441,7 @@ class RegionService {
       if (region != null) {
         final updated = region.copyWith(missionId: newMissionId);
         await updateRegion(updated);
-        print('Reassigned region ${region.name} to mission $newMissionId');
+        debugPrint('Reassigned region ${region.name} to mission $newMissionId');
       }
     }
   }
@@ -420,13 +452,13 @@ class RegionService {
     required String sabahMissionId,
   }) async {
     try {
-      print('RegionService: Starting NSM region fix...');
-      print('  North Sabah Mission ID: $northSabahMissionId');
-      print('  Sabah Mission ID: $sabahMissionId');
+      debugPrint('RegionService: Starting NSM region fix...');
+      debugPrint('  North Sabah Mission ID: $northSabahMissionId');
+      debugPrint('  Sabah Mission ID: $sabahMissionId');
 
       // Get all regions currently under North Sabah Mission
       final nsmRegions = await getRegionsByMission(northSabahMissionId);
-      print('  Found ${nsmRegions.length} regions under NSM');
+      debugPrint('  Found ${nsmRegions.length} regions under NSM');
 
       // Regions that should stay with NSM (Region 1-4)
       final regionsToKeep = <String>[
@@ -443,11 +475,11 @@ class RegionService {
       for (var region in nsmRegions) {
         if (regionsToKeep.contains(region.id)) {
           toKeep.add(region);
-          print('  ✓ Keep: ${region.name} (${region.id})');
+          debugPrint('  ✓ Keep: ${region.name} (${region.id})');
         } else {
           // This is Region 5-12, should be reassigned to Sabah Mission
           toReassign.add(region);
-          print('  → Reassign: ${region.name} (${region.id})');
+          debugPrint('  → Reassign: ${region.name} (${region.id})');
         }
       }
 
@@ -486,9 +518,9 @@ class RegionService {
           }
 
           reassigned.add(region.name);
-          print('  ✓ Reassigned ${region.name} to Sabah Mission');
+          debugPrint('  ✓ Reassigned ${region.name} to Sabah Mission');
         } catch (e) {
-          print('  ✗ Error reassigning ${region.name}: $e');
+          debugPrint('  ✗ Error reassigning ${region.name}: $e');
         }
       }
 
@@ -505,7 +537,7 @@ class RegionService {
         },
       };
     } catch (e) {
-      print('RegionService: Error during migration: $e');
+      debugPrint('RegionService: Error during migration: $e');
       return {
         'success': false,
         'message': 'Error during migration: $e',
@@ -517,11 +549,11 @@ class RegionService {
   Future<Map<String, dynamic>> emergencyCleanupSabahDuplicates(
       String sabahMissionId) async {
     try {
-      print('RegionService: Emergency cleanup for Sabah Mission...');
+      debugPrint('RegionService: Emergency cleanup for Sabah Mission...');
 
       // Get all regions for Sabah Mission
       final sabahRegions = await getRegionsByMission(sabahMissionId);
-      print('  Found ${sabahRegions.length} regions');
+      debugPrint('  Found ${sabahRegions.length} regions');
 
       // Group by name to find duplicates
       final regionsByName = <String, List<Region>>{};
@@ -542,7 +574,7 @@ class RegionService {
           final toKeep = regions.first;
           final toDelete = regions.sublist(1);
 
-          print('  ${entry.key}: Keep ${toKeep.id}, Delete ${toDelete.length}');
+          debugPrint('  ${entry.key}: Keep ${toKeep.id}, Delete ${toDelete.length}');
 
           for (var region in toDelete) {
             try {
@@ -551,9 +583,9 @@ class RegionService {
                   .doc(region.id)
                   .delete();
               deleted.add('${region.name} (${region.id})');
-              print('    ✓ Deleted ${region.id}');
+              debugPrint('    ✓ Deleted ${region.id}');
             } catch (e) {
-              print('    ✗ Error deleting ${region.id}: $e');
+              debugPrint('    ✗ Error deleting ${region.id}: $e');
             }
           }
         }
@@ -568,7 +600,7 @@ class RegionService {
         'details': {'deleted': deleted},
       };
     } catch (e) {
-      print('RegionService: Error: $e');
+      debugPrint('RegionService: Error: $e');
       return {
         'success': false,
         'message': 'Error: $e',
@@ -580,7 +612,7 @@ class RegionService {
   // Keeps the most recent region and removes older duplicates
   Future<Map<String, dynamic>> cleanupDuplicateRegions(String missionId) async {
     try {
-      print('RegionService: Starting cleanup for mission $missionId');
+      debugPrint('RegionService: Starting cleanup for mission $missionId');
 
       // Get all regions for this mission
       final querySnapshot = await _firestore
@@ -588,7 +620,7 @@ class RegionService {
           .where('missionId', isEqualTo: missionId)
           .get();
 
-      print('RegionService: Found ${querySnapshot.docs.length} regions');
+      debugPrint('RegionService: Found ${querySnapshot.docs.length} regions');
 
       // Group regions by name
       final regionsByName = <String, List<QueryDocumentSnapshot>>{};
@@ -608,7 +640,7 @@ class RegionService {
       });
 
       if (duplicates.isEmpty) {
-        print('RegionService: No duplicates found');
+        debugPrint('RegionService: No duplicates found');
         return {
           'success': true,
           'message': 'No duplicates found',
@@ -617,14 +649,14 @@ class RegionService {
         };
       }
 
-      print('RegionService: Found ${duplicates.length} region names with duplicates');
+      debugPrint('RegionService: Found ${duplicates.length} region names with duplicates');
 
       // Identify which regions to remove
       final toRemove = <QueryDocumentSnapshot>[];
       final details = <String, dynamic>{};
 
       duplicates.forEach((name, docs) {
-        print('  Checking "$name" (${docs.length} duplicates)');
+        debugPrint('  Checking "$name" (${docs.length} duplicates)');
 
         // Sort by creation date (most recent first)
         docs.sort((a, b) {
@@ -649,11 +681,11 @@ class RegionService {
         toRemove.addAll(toDelete);
       });
 
-      print('RegionService: Will remove ${toRemove.length} duplicate regions');
+      debugPrint('RegionService: Will remove ${toRemove.length} duplicate regions');
 
       // Delete the duplicates
       for (var doc in toRemove) {
-        print('  Deleting: ${doc.id}');
+        debugPrint('  Deleting: ${doc.id}');
         await _firestore.collection(_collectionName).doc(doc.id).delete();
       }
 
@@ -668,7 +700,7 @@ class RegionService {
         'details': details,
       };
     } catch (e) {
-      print('RegionService: Error during cleanup: $e');
+      debugPrint('RegionService: Error during cleanup: $e');
       return {
         'success': false,
         'message': 'Error during cleanup: $e',

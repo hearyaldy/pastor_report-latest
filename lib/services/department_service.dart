@@ -1,4 +1,5 @@
 // lib/services/department_service.dart
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pastor_report/models/department_model.dart';
 import 'package:pastor_report/services/mission_service.dart';
@@ -92,12 +93,12 @@ class DepartmentService {
   Future<void> addDepartmentToMissionById(
       String missionId, Department department) async {
     try {
-      print(
+      debugPrint(
           'DepartmentService: Adding department ${department.name} directly to mission ID: $missionId');
       await _missionService.addDepartmentToMission(missionId, department);
-      print('DepartmentService: Department added successfully');
+      debugPrint('DepartmentService: Department added successfully');
     } catch (e) {
-      print('DepartmentService: Error adding department to mission: $e');
+      debugPrint('DepartmentService: Error adding department to mission: $e');
       throw 'Failed to add department to mission: $e';
     }
   }
@@ -105,32 +106,32 @@ class DepartmentService {
   // Add new department
   Future<void> addDepartment(Department department) async {
     try {
-      print(
+      debugPrint(
           'DepartmentService: Adding department ${department.name} with mission: ${department.mission}');
-      print(
+      debugPrint(
           'DepartmentService: Using mission structure: $_useNewMissionStructure');
 
       if (_useNewMissionStructure &&
           department.mission != null &&
           department.mission!.isNotEmpty) {
         // Find mission ID by name
-        print('DepartmentService: Looking for mission: ${department.mission}');
+        debugPrint('DepartmentService: Looking for mission: ${department.mission}');
         final mission =
             await _missionService.getMissionByName(department.mission!);
 
         if (mission != null) {
-          print('DepartmentService: Found mission with ID: ${mission.id}');
+          debugPrint('DepartmentService: Found mission with ID: ${mission.id}');
           await _missionService.addDepartmentToMission(mission.id, department);
-          print('DepartmentService: Department added successfully to mission');
+          debugPrint('DepartmentService: Department added successfully to mission');
           return;
         } else {
-          print(
+          debugPrint(
               'DepartmentService: Mission not found! Will fallback to legacy structure');
         }
       }
 
       // Fallback to legacy structure
-      print('DepartmentService: Using legacy structure to add department');
+      debugPrint('DepartmentService: Using legacy structure to add department');
       await _firestore.collection(_collection).add({
         'name': department.name,
         'icon': Department.getIconString(department.icon),
@@ -138,9 +139,9 @@ class DepartmentService {
         'mission': department.mission,
         'createdAt': FieldValue.serverTimestamp(),
       });
-      print('DepartmentService: Department added to legacy collection');
+      debugPrint('DepartmentService: Department added to legacy collection');
     } catch (e) {
-      print('DepartmentService: Error adding department: $e');
+      debugPrint('DepartmentService: Error adding department: $e');
       throw 'Failed to add department: $e';
     }
   }
@@ -335,21 +336,21 @@ class DepartmentService {
   // Use this only for development/admin purposes
   Future<void> reseedAllDepartments() async {
     try {
-      print(
+      debugPrint(
           'Department service: Starting reseedAllDepartments. Using mission structure: $_useNewMissionStructure');
 
       if (_useNewMissionStructure) {
         // To avoid circular dependency, we'll log a message but not actually
         // call the mission service method from here
-        print(
+        debugPrint(
             'Department service: Mission structure is enabled. Please use MissionProvider.reseedAllData() instead');
         throw 'When using mission structure, please use MissionProvider.reseedAllData() instead of calling this method directly';
       } else {
-        print('Department service: Using legacy reseeding approach');
+        debugPrint('Department service: Using legacy reseeding approach');
         // Legacy reseeding approach
         // Delete all existing departments
         final snapshot = await _firestore.collection(_collection).get();
-        print(
+        debugPrint(
             'Department service: Found ${snapshot.docs.length} departments to delete');
 
         // Process deletions in smaller batches to avoid timeouts
@@ -366,7 +367,7 @@ class DepartmentService {
             await currentBatch.commit();
             currentBatch = _firestore.batch();
             batchCounter = 0;
-            print(
+            debugPrint(
                 'Department service: Committed batch of $batchSize deletions');
           }
         }
@@ -374,20 +375,20 @@ class DepartmentService {
         // Commit any remaining operations
         if (batchCounter > 0) {
           await currentBatch.commit();
-          print(
+          debugPrint(
               'Department service: Committed final batch of $batchCounter deletions');
         }
 
         // Now seed with new departments including missions
-        print(
+        debugPrint(
             'Department service: Starting seed operation for new departments');
         await seedDepartments();
-        print('Department service: Seed operation completed');
+        debugPrint('Department service: Seed operation completed');
       }
 
       return;
     } catch (e) {
-      print('Department service: Error during reseed: $e');
+      debugPrint('Department service: Error during reseed: $e');
       throw 'Failed to reseed departments: $e';
     }
   }

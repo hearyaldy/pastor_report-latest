@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 import 'package:excel/excel.dart' as excel_pkg;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -1012,7 +1013,8 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: RefreshIndicator(
+      body: WebWrapper(
+        child: RefreshIndicator(
         onRefresh: _loadMissionData,
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -1039,6 +1041,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
             ),
           ],
         ),
+      ),
       ),
       floatingActionButton: _buildFloatingActionMenu(user),
     );
@@ -1462,7 +1465,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: () {
+                      initialValue: () {
                         final districtIdSet = <String>{};
                         final districts = <District>[];
                         for (final district in _allDistricts) {
@@ -1568,7 +1571,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedChurchId != null &&
+                      initialValue: _selectedChurchId != null &&
                               _allChurches.any((c) => c.id == _selectedChurchId)
                           ? _selectedChurchId
                           : (_allChurches.isNotEmpty
@@ -2763,7 +2766,7 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                 final user = authProvider.user;
 
                 return DropdownButtonFormField<String>(
-                  value: _overrideMissionId ?? user?.mission,
+                  initialValue: _overrideMissionId ?? user?.mission,
                   isExpanded: true,
                   decoration: InputDecoration(
                     filled: true,
@@ -3295,11 +3298,15 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => Container(
+      builder: (context) {
+        String discSearch = '';
+        String discFilter = 'all'; // all, discrepancy, missing, match
+        return StatefulBuilder(
+          builder: (context, setModalState) => DraggableScrollableSheet(
+            initialChildSize: 0.9,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            builder: (context, scrollController) => Container(
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             borderRadius: const BorderRadius.only(
@@ -3375,40 +3382,110 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                 ),
               ),
               const Divider(height: 1),
+              // Search bar
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search by district...',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    isDense: true,
+                    contentPadding:
+                        const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                  onChanged: (value) =>
+                      setModalState(() => discSearch = value),
+                ),
+              ),
+              // Filter chips
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                child: Row(
+                  children: [
+                    for (final entry in <List<String>>[
+                      ['all', 'All'],
+                      ['discrepancy', 'Discrepancy'],
+                      ['missing', 'Missing'],
+                      ['match', 'Match'],
+                    ])
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: Text(entry[1]),
+                          selected: discFilter == entry[0],
+                          onSelected: (_) =>
+                              setModalState(() => discFilter = entry[0]),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
               // Church list
               Expanded(
-                child: _churchDiscrepancies.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.check_circle_outline,
-                              size: 64,
-                              color: Colors.green.shade300,
+                child: Builder(
+                  builder: (context) {
+                    final filteredList = _churchDiscrepancies.where((item) {
+                      final district = item['district'] as District;
+                      final status = item['status'] as String;
+                      final matchesSearch = discSearch.isEmpty ||
+                          district.name
+                              .toLowerCase()
+                              .contains(discSearch.toLowerCase());
+                      final matchesFilter = discFilter == 'all' ||
+                          (discFilter == 'discrepancy' &&
+                              (status == 'discrepancy' ||
+                                  status == 'field_mismatch')) ||
+                          (discFilter == 'missing' &&
+                              (status == 'missing_borangb' ||
+                                  status == 'missing_treasurer')) ||
+                          (discFilter == 'match' && status == 'match');
+                      return matchesSearch && matchesFilter;
+                    }).toList();
+                    final isFiltered =
+                        discSearch.isNotEmpty || discFilter != 'all';
+                    return filteredList.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  isFiltered
+                                      ? Icons.search_off
+                                      : Icons.check_circle_outline,
+                                  size: 64,
+                                  color: isFiltered
+                                      ? Colors.grey.shade400
+                                      : Colors.green.shade300,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  isFiltered
+                                      ? 'No results match your filter'
+                                      : 'No discrepancies found',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No discrepancies found',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.color,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
+                          )
                     : ListView.separated(
                         controller: scrollController,
                         padding: const EdgeInsets.all(16),
-                        itemCount: _churchDiscrepancies.length,
+                        itemCount: filteredList.length,
                         separatorBuilder: (context, index) =>
                             const SizedBox(height: 12),
                         itemBuilder: (context, index) {
-                          final item = _churchDiscrepancies[index];
+                          final item = filteredList[index];
                           final district = item['district'] as District;
                           final totalChurches = item['totalChurchesInDistrict'] as int;
                           final churchesReported = item['churchesWithTreasurerReports'] as int;
@@ -3810,12 +3887,16 @@ class _MyMissionScreenState extends State<MyMissionScreen> {
                             ),
                           );
                         },
-                      ),
+                      );
+                  },
+                ),
               ),
             ],
           ),
         ),
       ),
+    );
+      },
     );
   }
 

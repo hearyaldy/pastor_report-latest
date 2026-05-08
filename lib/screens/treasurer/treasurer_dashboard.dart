@@ -10,6 +10,7 @@ import 'package:pastor_report/services/financial_report_service.dart';
 import 'package:pastor_report/screens/treasurer/financial_report_form.dart';
 import 'package:pastor_report/screens/treasurer/export_report_screen.dart';
 import 'package:pastor_report/utils/app_colors.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class TreasurerDashboard extends StatefulWidget {
   const TreasurerDashboard({super.key});
@@ -294,7 +295,7 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Stack(
+      body: WebWrapper(child: Stack(
         children: [
           RefreshIndicator(
             onRefresh: _loadData,
@@ -317,7 +318,7 @@ class _TreasurerDashboardState extends State<TreasurerDashboard>
               ),
             ),
         ],
-      ),
+      )),
       floatingActionButton: _buildFloatingActionMenu(),
     );
   }

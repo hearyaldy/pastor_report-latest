@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/screens/treasurer/fam_form.dart';
 import 'package:pastor_report/services/fam_service.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class FinancialReportForm extends StatefulWidget {
   final FinancialReport report;
@@ -294,7 +295,7 @@ class _FinancialReportFormState extends State<FinancialReportForm> {
             : 'Edit Financial Report'),
         elevation: 0,
       ),
-      body: SingleChildScrollView(
+      body: WebWrapper(child: SingleChildScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -394,7 +395,7 @@ class _FinancialReportFormState extends State<FinancialReportForm> {
                                 ],
                               ),
                               child: DropdownButtonFormField<String>(
-                                value: _status,
+                                initialValue: _status,
                                 isExpanded: true,
                                 decoration: const InputDecoration(
                                   labelText: 'Status',
@@ -488,7 +489,7 @@ class _FinancialReportFormState extends State<FinancialReportForm> {
             ),
           ],
         ),
-      ),
+      )),
     );
   }
 

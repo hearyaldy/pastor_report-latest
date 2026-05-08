@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Service to update user and staff region references after region UUID migration
@@ -16,7 +17,7 @@ class UserStaffRegionMigrationService {
   /// - Update the user/staff record with the correct region UUID
   Future<Map<String, dynamic>> migrateUserAndStaffRegionReferences() async {
     try {
-      print('UserStaffRegionMigration: Starting migration...');
+      debugPrint('UserStaffRegionMigration: Starting migration...');
 
       // Get all regions to build a lookup map
       final regionsSnapshot = await _firestore.collection('regions').get();
@@ -45,7 +46,7 @@ class UserStaffRegionMigrationService {
         }
       }
 
-      print('  Found ${regions.length} regions');
+      debugPrint('  Found ${regions.length} regions');
 
       int usersUpdated = 0;
       int staffUpdated = 0;
@@ -53,9 +54,9 @@ class UserStaffRegionMigrationService {
       int staffSkipped = 0;
 
       // === Migrate Users ===
-      print('\n=== Migrating Users ===');
+      debugPrint('\n=== Migrating Users ===');
       final usersSnapshot = await _firestore.collection('users').get();
-      print('  Found ${usersSnapshot.docs.length} users');
+      debugPrint('  Found ${usersSnapshot.docs.length} users');
 
       for (var userDoc in usersSnapshot.docs) {
         final data = userDoc.data();
@@ -117,18 +118,18 @@ class UserStaffRegionMigrationService {
             'region': correctRegionId,
           });
 
-          print('  ✓ User ${data['email']}: "$currentRegion" → "${regions[correctRegionId]!['name']}"');
+          debugPrint('  ✓ User ${data['email']}: "$currentRegion" → "${regions[correctRegionId]!['name']}"');
           usersUpdated++;
         } else {
-          print('  ⚠ User ${data['email']}: Could not resolve "$currentRegion"');
+          debugPrint('  ⚠ User ${data['email']}: Could not resolve "$currentRegion"');
           usersSkipped++;
         }
       }
 
       // === Migrate Staff ===
-      print('\n=== Migrating Staff ===');
+      debugPrint('\n=== Migrating Staff ===');
       final staffSnapshot = await _firestore.collection('staff').get();
-      print('  Found ${staffSnapshot.docs.length} staff members');
+      debugPrint('  Found ${staffSnapshot.docs.length} staff members');
 
       for (var staffDoc in staffSnapshot.docs) {
         final data = staffDoc.data();
@@ -190,17 +191,17 @@ class UserStaffRegionMigrationService {
             'region': correctRegionId,
           });
 
-          print('  ✓ Staff ${data['name']}: "$currentRegion" → "${regions[correctRegionId]!['name']}"');
+          debugPrint('  ✓ Staff ${data['name']}: "$currentRegion" → "${regions[correctRegionId]!['name']}"');
           staffUpdated++;
         } else {
-          print('  ⚠ Staff ${data['name']}: Could not resolve "$currentRegion"');
+          debugPrint('  ⚠ Staff ${data['name']}: Could not resolve "$currentRegion"');
           staffSkipped++;
         }
       }
 
-      print('\n=== Migration Complete ===');
-      print('  Users: $usersUpdated updated, $usersSkipped skipped/unresolved');
-      print('  Staff: $staffUpdated updated, $staffSkipped skipped/unresolved');
+      debugPrint('\n=== Migration Complete ===');
+      debugPrint('  Users: $usersUpdated updated, $usersSkipped skipped/unresolved');
+      debugPrint('  Staff: $staffUpdated updated, $staffSkipped skipped/unresolved');
 
       return {
         'success': true,
@@ -212,7 +213,7 @@ class UserStaffRegionMigrationService {
         'totalUpdated': usersUpdated + staffUpdated,
       };
     } catch (e) {
-      print('UserStaffRegionMigration ERROR: $e');
+      debugPrint('UserStaffRegionMigration ERROR: $e');
       return {
         'success': false,
         'message': 'Error during migration: $e',

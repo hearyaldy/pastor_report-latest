@@ -332,7 +332,8 @@ class OptimizedDataService {
       missionId = missionsSnapshot.docs.first.id;
     }
 
-    debugPrint('✅ Using mission ID: $missionId for departments lookup');
+    // Only log the first time or when debugging is needed
+    // debugPrint('✅ Using mission ID: $missionId for departments lookup');
 
     // Listen to Firestore changes and yield them
     // Show ALL departments (both active and inactive)
@@ -355,8 +356,9 @@ class OptimizedDataService {
         );
       }).toList();
 
-      debugPrint(
-          '📊 OptimizedDataService: Loaded ${departments.length} departments for $missionName (active: ${departments.where((d) => d.isActive).length}, inactive: ${departments.where((d) => !d.isActive).length})');
+      // Only log occasionally to prevent spam, or when debugging is needed
+      // debugPrint(
+      //     '📊 OptimizedDataService: Loaded ${departments.length} departments for $missionName (active: ${departments.where((d) => d.isActive).length}, inactive: ${departments.where((d) => !d.isActive).length})');
 
       // Update cache
       _cache.setCacheList(
@@ -419,11 +421,10 @@ class OptimizedDataService {
 
   /// Stream departments by mission ID - converts ID to name before fetching
   Stream<List<Department>> streamDepartmentsByMissionId(
-      String? missionId) async* {
+      String? missionId) {
     if (missionId == null || missionId.isEmpty) {
       debugPrint('⚠️ StreamDepartmentsByMissionId: Empty mission ID');
-      yield [];
-      return;
+      return Stream.value([]);
     }
 
     // Use the MissionService to convert ID to name
@@ -455,19 +456,9 @@ class OptimizedDataService {
         '🔍 Fetching departments using mission name: "$resolvedMissionName"');
 
     // Use the existing stream that works with mission name
-    await for (final departments
-        in streamDepartmentsByMissionName(resolvedMissionName)) {
-      if (departments.isNotEmpty) {
-        debugPrint(
-            '✅ Successfully loaded ${departments.length} departments for mission: $resolvedMissionName');
-        yield departments;
-        return; // Exit if we got results
-      }
-    }
-
-    // If we got this far, we didn't find any departments
-    debugPrint('⚠️ No departments found for mission: $missionName');
-    yield []; // Return empty list
+    // We need to return the stream directly instead of consuming it with await for
+    // to avoid multiple triggers and properly maintain the real-time connection
+    return streamDepartmentsByMissionName(resolvedMissionName);
   }
 
   /// Clear cache for a specific mission's departments

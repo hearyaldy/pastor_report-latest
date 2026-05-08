@@ -9,6 +9,7 @@ import 'package:pastor_report/utils/constants.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 // Create a common calendar item class to handle both appointments and events
 class CalendarItem {
@@ -1130,7 +1131,7 @@ class _CalendarScreenState extends State<CalendarScreen>
           ],
         ),
       ),
-      body: Column(
+      body: WebWrapper(child: Column(
         children: [
           TableCalendar(
             firstDay: DateTime.utc(2020, 1, 1),
@@ -1385,7 +1386,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                       )),
           ),
         ],
-      ),
+      )),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           if (_selectedView == 'appointments') {

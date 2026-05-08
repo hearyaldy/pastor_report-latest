@@ -5,6 +5,7 @@ import 'package:pastor_report/models/financial_report_model.dart';
 import 'package:pastor_report/services/fam_service.dart';
 import 'package:pastor_report/utils/app_colors.dart';
 import 'package:uuid/uuid.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class FAMForm extends StatefulWidget {
   final FinancialReport report;
@@ -304,7 +305,7 @@ class _FAMFormState extends State<FAMForm> {
           ),
         ],
       ),
-      body: Form(
+      body: WebWrapper(child: Form(
         key: _formKey,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -547,7 +548,7 @@ class _FAMFormState extends State<FAMForm> {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 

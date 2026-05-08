@@ -334,7 +334,7 @@ class _GlobalEventsManagementScreenState
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _selectedDepartment,
+              initialValue: _selectedDepartment,
               decoration: InputDecoration(
                 labelText: 'Department',
                 border: OutlineInputBorder(
@@ -1589,7 +1589,7 @@ class _GlobalEventFormState extends State<_GlobalEventForm> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _selectedDepartment,
+                  initialValue: _selectedDepartment,
                   decoration: const InputDecoration(
                     labelText: 'Department (Optional)',
                     border: OutlineInputBorder(),

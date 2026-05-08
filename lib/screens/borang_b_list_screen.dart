@@ -7,6 +7,7 @@ import 'package:pastor_report/services/borang_b_backup_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/widgets/borang_b_bottom_sheet.dart';
 import 'package:pastor_report/utils/theme_colors.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class BorangBListScreen extends StatefulWidget {
   const BorangBListScreen({super.key});
@@ -568,41 +569,56 @@ class _BorangBListScreenState extends State<BorangBListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Monthly Reports'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.cloud),
-            onPressed: _showBackupOptions,
-            tooltip: 'Backup & Restore',
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadReports,
-            tooltip: 'Refresh',
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _reports.isEmpty
-              ? _buildEmptyState()
-              : RefreshIndicator(
-                  onRefresh: _loadReports,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-                    children: [
-                      // Statistics Summary
-                      _buildStatisticsSummary(),
-                      const SizedBox(height: 16),
-
-                      // Report List
-                      ..._reports.map((report) => _buildReportCard(report)),
-                    ],
+      body: WebWrapper(
+        child: RefreshIndicator(
+          onRefresh: _loadReports,
+          child: CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                title: const Text('Monthly Reports'),
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                pinned: true,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.cloud),
+                    onPressed: _showBackupOptions,
+                    tooltip: 'Backup & Restore',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: _loadReports,
+                    tooltip: 'Refresh',
+                  ),
+                ],
+              ),
+              if (_isLoading)
+                const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_reports.isEmpty)
+                SliverFillRemaining(child: _buildEmptyState())
+              else ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: _buildStatisticsSummary(),
                   ),
                 ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => _buildReportCard(_reports[index]),
+                      childCount: _reports.length,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _createNewReport,
         backgroundColor: Theme.of(context).colorScheme.primary,

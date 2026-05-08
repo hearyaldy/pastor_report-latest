@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import 'package:pastor_report/models/activity_model.dart';
 import 'package:pastor_report/services/activity_storage_service.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class AddEditActivityScreen extends StatefulWidget {
   final Activity? activity;
@@ -154,7 +155,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> {
         backgroundColor: AppColors.primaryLight,
         foregroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
+      body: WebWrapper(child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
@@ -325,7 +326,7 @@ class _AddEditActivityScreenState extends State<AddEditActivityScreen> {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 }

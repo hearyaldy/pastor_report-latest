@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pastor_report/models/mission_model.dart';
 import 'package:pastor_report/providers/mission_provider.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class MissionManagementScreen extends StatefulWidget {
   const MissionManagementScreen({super.key});
@@ -22,7 +23,8 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final missionProvider =
           Provider.of<MissionProvider>(context, listen: false);
-      missionProvider.loadMissions();
+      // Use cached loading to reduce unnecessary database reads
+      missionProvider.loadMissions(forceRefresh: false);
     });
   }
 
@@ -47,11 +49,12 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      body: RefreshIndicator(
+      body: WebWrapper(child: RefreshIndicator(
         onRefresh: () async {
           final missionProvider =
               Provider.of<MissionProvider>(context, listen: false);
-          await missionProvider.loadMissions();
+          // Force refresh on pull-to-refresh to get latest data
+          await missionProvider.loadMissions(forceRefresh: true);
         },
         child: CustomScrollView(
           slivers: [
@@ -62,7 +65,7 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
         ),
-      ),
+      )),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddMissionDialog,
         backgroundColor: colorScheme.primary,
@@ -152,7 +155,8 @@ class _MissionManagementScreenState extends State<MissionManagementScreen> {
           onPressed: () {
             final missionProvider =
                 Provider.of<MissionProvider>(context, listen: false);
-            missionProvider.loadMissions();
+            // Force refresh when manually clicking refresh button
+            missionProvider.loadMissions(forceRefresh: true);
           },
         ),
       ],

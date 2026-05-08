@@ -8,6 +8,7 @@ import 'package:pastor_report/services/financial_report_service.dart';
 import 'package:pastor_report/utils/app_colors.dart';
 import 'package:pastor_report/utils/keyboard_utils.dart';
 import 'package:intl/intl.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class FinancialReportEditScreen extends StatefulWidget {
   final FinancialReport report;
@@ -277,7 +278,7 @@ class _FinancialReportEditScreenState extends State<FinancialReportEditScreen> {
         elevation: 0,
       ),
       // Use Padding with resizeToAvoidBottomInset to handle keyboard
-      body: SingleChildScrollView(
+      body: WebWrapper(child: SingleChildScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,7 +377,7 @@ class _FinancialReportEditScreenState extends State<FinancialReportEditScreen> {
                                 ],
                               ),
                               child: DropdownButtonFormField<String>(
-                                value: _status,
+                                initialValue: _status,
                                 isExpanded: true,
                                 decoration: const InputDecoration(
                                   labelText: 'Status',
@@ -447,7 +448,7 @@ class _FinancialReportEditScreenState extends State<FinancialReportEditScreen> {
             ),
           ],
         ),
-      ),
+      )),
     );
   }
 

@@ -15,6 +15,7 @@ import 'package:pastor_report/services/user_staff_region_migration_service.dart'
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:intl/intl.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class ChurchManagementScreen extends StatefulWidget {
   const ChurchManagementScreen({super.key});
@@ -137,22 +138,21 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
           _churches =
               await _churchService.getChurchesByDistrict(_selectedDistrictId!);
         } else if (_districts.isNotEmpty) {
-          _churches = [];
-          for (var district in _districts) {
-            final districtChurches =
-                await _churchService.getChurchesByDistrict(district.id);
-            _churches.addAll(districtChurches);
-          }
+          // Use bulk loading for all districts in the region
+          final districtIds = _districts.map((d) => d.id).toList();
+          _churches = await _churchService.getChurchesByDistricts(districtIds);
         }
       } else {
         // Load all districts and churches for the mission (for admins)
         _districts =
             await _districtService.getDistrictsByMission(_selectedMissionId!);
-        _churches = [];
-        for (var district in _districts) {
-          final districtChurches =
-              await _churchService.getChurchesByDistrict(district.id);
-          _churches.addAll(districtChurches);
+            
+        if (_districts.isNotEmpty) {
+          // Use bulk loading for all districts in the mission
+          final districtIds = _districts.map((d) => d.id).toList();
+          _churches = await _churchService.getChurchesByDistricts(districtIds);
+        } else {
+          _churches = [];
         }
       }
 
@@ -259,7 +259,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: RefreshIndicator(
+      body: WebWrapper(child: RefreshIndicator(
         onRefresh: _loadData,
         child: CustomScrollView(
           slivers: [
@@ -270,7 +270,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
         ),
-      ),
+      )),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddEditDialog(null),
         backgroundColor: AppColors.primaryLight,
@@ -419,7 +419,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                         ),
                         const SizedBox(height: 12),
                         DropdownButtonFormField<String>(
-                          value: _selectedMissionId,
+                          initialValue: _selectedMissionId,
                           decoration: InputDecoration(
                             labelText: 'Mission',
                             border: OutlineInputBorder(
@@ -581,7 +581,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
         ],
       ),
       child: DropdownButtonFormField<String?>(
-        value: value,
+        initialValue: value,
         isExpanded: true,
         decoration: InputDecoration(
           labelText: label,
@@ -1301,7 +1301,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<ChurchStatus>(
-                            value: selectedStatus,
+                            initialValue: selectedStatus,
                             decoration: const InputDecoration(
                               labelText: 'Church Status',
                               border: OutlineInputBorder(),
@@ -1348,7 +1348,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                           const SizedBox(height: 12),
                           if (isSuperAdmin) ...[
                             DropdownButtonFormField<String>(
-                              value: selectedMissionId,
+                              initialValue: selectedMissionId,
                               decoration: const InputDecoration(
                                 labelText: 'Mission',
                                 border: OutlineInputBorder(),
@@ -1418,7 +1418,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                             const SizedBox(height: 16),
                           ],
                           DropdownButtonFormField<String>(
-                            value: selectedRegionId,
+                            initialValue: selectedRegionId,
                             decoration: const InputDecoration(
                               labelText: 'Region',
                               border: OutlineInputBorder(),
@@ -1457,7 +1457,7 @@ class _ChurchManagementScreenState extends State<ChurchManagementScreen> {
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
-                            value: selectedDistrictId,
+                            initialValue: selectedDistrictId,
                             decoration: const InputDecoration(
                               labelText: 'District',
                               border: OutlineInputBorder(),

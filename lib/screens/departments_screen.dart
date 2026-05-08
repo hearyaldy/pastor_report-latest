@@ -6,6 +6,7 @@ import 'package:pastor_report/screens/inapp_webview_screen.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/models/department_model.dart';
 import 'package:pastor_report/services/department_service.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class DepartmentsScreen extends StatefulWidget {
   final bool isAdmin;
@@ -98,7 +99,7 @@ class _DepartmentsScreenState extends State<DepartmentsScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: WebWrapper(child: Column(
         children: [
           // Header with image, app name, and date
           Stack(
@@ -246,7 +247,7 @@ class _DepartmentsScreenState extends State<DepartmentsScreen> {
             ),
           ),
         ],
-      ),
+      )),
       // Bottom navigation bar with settings button
       bottomNavigationBar: BottomNavigationBar(
         items: const [

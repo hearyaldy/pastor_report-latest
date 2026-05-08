@@ -6,6 +6,7 @@ import 'package:pastor_report/services/department_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/screens/inapp_webview_screen.dart';
 import 'package:pastor_report/utils/theme_helper.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class DepartmentsListScreen extends StatefulWidget {
   const DepartmentsListScreen({super.key});
@@ -116,7 +117,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
     final userMission = authProvider.user?.mission;
 
     return Scaffold(
-      body: RefreshIndicator(
+      body: WebWrapper(child: RefreshIndicator(
         onRefresh: () async {
           setState(() {});
         },
@@ -138,7 +139,7 @@ class _DepartmentsListScreenState extends State<DepartmentsListScreen> {
             _buildDepartmentGrid(userMission),
           ],
         ),
-      ),
+      )),
     );
   }
 

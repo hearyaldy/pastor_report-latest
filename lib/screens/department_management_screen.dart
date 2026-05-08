@@ -8,6 +8,7 @@ import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class DepartmentManagementScreen extends StatefulWidget {
   const DepartmentManagementScreen({super.key});
@@ -89,7 +90,7 @@ class _DepartmentManagementScreenState
     final user = authProvider.user;
 
     return Scaffold(
-      body: RefreshIndicator(
+      body: WebWrapper(child: RefreshIndicator(
         onRefresh: () async {
           setState(() {});
         },
@@ -116,7 +117,7 @@ class _DepartmentManagementScreenState
             _buildDepartmentGrid(_selectedMissionId),
           ],
         ),
-      ),
+      )),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () =>
             _showDepartmentDialog(context, null, _selectedMissionId),
@@ -279,7 +280,7 @@ class _DepartmentManagementScreenState
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _selectedMissionId,
+              initialValue: _selectedMissionId,
               decoration: InputDecoration(
                 labelText: 'Mission',
                 border: OutlineInputBorder(
@@ -367,7 +368,7 @@ class _DepartmentManagementScreenState
                 _showInactive = value;
               });
             },
-            activeColor: AppColors.primaryLight,
+            activeThumbColor: AppColors.primaryLight,
           ),
         ],
       ),

@@ -153,20 +153,57 @@ class MissionService {
     }
   }
 
-  // Get all missions with one-time fetch
-  Future<List<Mission>> getAllMissions() async {
+  // Cache for mission data to reduce database reads
+  static List<Mission>? _cachedMissions;
+  static DateTime? _lastMissionsFetchTime;
+  static const Duration _missionsCacheDuration = Duration(minutes: 5);
+
+  // Get all missions with one-time fetch and caching
+  Future<List<Mission>> getAllMissions({bool forceRefresh = false}) async {
+    // Check if we have valid cached data
+    if (!forceRefresh && 
+        _cachedMissions != null && 
+        _lastMissionsFetchTime != null &&
+        DateTime.now().difference(_lastMissionsFetchTime!) < _missionsCacheDuration) {
+      return _cachedMissions!;
+    }
+
     try {
       final snapshot = await _firestore
           .collection(_missionsCollection)
           .orderBy('name')
           .get();
 
-      return snapshot.docs.map((doc) {
+      final missions = snapshot.docs.map((doc) {
         return Mission.fromMap(doc.data(), doc.id);
       }).toList();
+      
+      // Update cache
+      _cachedMissions = missions;
+      _lastMissionsFetchTime = DateTime.now();
+      
+      return missions;
     } catch (e) {
+      // If we have cached data, return it even if fetch failed (fallback)
+      if (_cachedMissions != null) {
+        print('Warning: Failed to fetch missions, using cached data: $e');
+        return _cachedMissions!;
+      }
+      
       throw 'Failed to fetch missions: $e';
     }
+  }
+
+  // Clear missions cache
+  void clearMissionsCache() {
+    _cachedMissions = null;
+    _lastMissionsFetchTime = null;
+  }
+
+  // Force refresh missions cache
+  Future<List<Mission>> refreshMissionsCache() async {
+    clearMissionsCache();
+    return getAllMissions(forceRefresh: true);
   }
 
   // Convert mission ID to name using a multi-step approach

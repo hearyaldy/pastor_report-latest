@@ -7,6 +7,7 @@ import 'package:pastor_report/services/resource_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/app_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class ResourceManagementScreen extends StatefulWidget {
   const ResourceManagementScreen({super.key});
@@ -109,14 +110,14 @@ class _ResourceManagementScreenState extends State<ResourceManagementScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: CustomScrollView(
+      body: WebWrapper(child: CustomScrollView(
         slivers: [
           _buildModernAppBar(),
           _buildFiltersAndSearch(),
           _buildStatistics(),
           _buildResourcesList(),
         ],
-      ),
+      )),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddResourceDialog(),
         backgroundColor: AppColors.primaryLight,

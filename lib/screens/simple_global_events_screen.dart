@@ -528,7 +528,7 @@ class _EventFormState extends State<_EventForm> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _selectedDepartment?.isEmpty == true
+                  initialValue: _selectedDepartment?.isEmpty == true
                       ? null
                       : _selectedDepartment,
                   decoration: const InputDecoration(

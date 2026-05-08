@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/utils/data_import_util.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class DataImportScreen extends StatefulWidget {
   const DataImportScreen({super.key});
@@ -27,7 +28,7 @@ class _DataImportScreenState extends State<DataImportScreen> {
         backgroundColor: AppColors.primaryLight,
         foregroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
+      body: WebWrapper(child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,7 +137,7 @@ class _DataImportScreenState extends State<DataImportScreen> {
               ),
           ],
         ),
-      ),
+      )),
     );
   }
 

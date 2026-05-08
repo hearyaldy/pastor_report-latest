@@ -5,6 +5,7 @@ import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/services/region_service.dart';
 import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
@@ -67,27 +68,29 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: () async {
-          setState(() {});
-        },
-        child: CustomScrollView(
-          slivers: [
-            _buildModernAppBar(),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _buildSearchBar(),
-                    const SizedBox(height: 16),
-                    _buildFilterRow(),
-                  ],
+      body: WebWrapper(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            setState(() {});
+          },
+          child: CustomScrollView(
+            slivers: [
+              _buildModernAppBar(),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      _buildSearchBar(),
+                      const SizedBox(height: 16),
+                      _buildFilterRow(),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            _buildUserList(),
-          ],
+              _buildUserList(),
+            ],
+          ),
         ),
       ),
     );
@@ -197,7 +200,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           });
 
         return DropdownButtonFormField<String>(
-          value: _selectedMissionFilter,
+          initialValue: _selectedMissionFilter,
           decoration: InputDecoration(
             labelText: 'Filter by Mission',
             prefixIcon: const Icon(Icons.business, size: 20),

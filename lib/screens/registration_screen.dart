@@ -298,7 +298,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
                 // Mission Dropdown
                 DropdownButtonFormField<String>(
-                  value: _selectedMission,
+                  initialValue: _selectedMission,
                   decoration: const InputDecoration(
                     labelText: 'Mission',
                     hintText: 'Select your mission',
@@ -386,7 +386,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 // Church Dropdown (only for Church Treasurer)
                 if (_selectedRole == 'Church Treasurer')
                   DropdownButtonFormField<String>(
-                    value: _selectedChurch,
+                    initialValue: _selectedChurch,
                     decoration: const InputDecoration(
                       labelText: 'Church',
                       hintText: 'Select your church',

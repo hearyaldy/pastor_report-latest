@@ -4,6 +4,7 @@ import 'package:pastor_report/models/mission_model.dart';
 import 'package:pastor_report/services/region_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
 import 'package:uuid/uuid.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class RegionManagementScreen extends StatefulWidget {
   final String missionId;
@@ -56,7 +57,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Add Region'),
       ),
-      body: RefreshIndicator(
+      body: WebWrapper(child: RefreshIndicator(
         onRefresh: () async => setState(() {}),
         child: CustomScrollView(
           slivers: [
@@ -78,7 +79,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
             const SliverToBoxAdapter(child: SizedBox(height: 80)),
           ],
         ),
-      ),
+      )),
     );
   }
 
@@ -295,7 +296,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
         }
 
         return DropdownButtonFormField<String>(
-          value: _selectedMissionId,
+          initialValue: _selectedMissionId,
           isExpanded: true,
           decoration: InputDecoration(
             labelText: 'Mission',

@@ -6,6 +6,7 @@ import 'package:pastor_report/providers/theme_provider.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/models/user_model.dart';
 import 'package:pastor_report/screens/comprehensive_onboarding_screen.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -26,7 +27,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: AppColors.primaryLight,
         foregroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
+      body: WebWrapper(
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,6 +338,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

@@ -670,7 +670,7 @@ class _EnhancedOnboardingScreenState extends State<EnhancedOnboardingScreen> {
                                   ],
                                 ),
                                 child: DropdownButtonFormField<String>(
-                                  value: _selectedRole,
+                                  initialValue: _selectedRole,
                                   decoration: const InputDecoration(
                                     labelText: 'Select your role',
                                     contentPadding: EdgeInsets.symmetric(
@@ -881,7 +881,7 @@ class _EnhancedOnboardingScreenState extends State<EnhancedOnboardingScreen> {
               ],
             ),
             child: DropdownButtonFormField<String>(
-              value: value,
+              initialValue: value,
               decoration: InputDecoration(
                 labelText: hint,
                 contentPadding:

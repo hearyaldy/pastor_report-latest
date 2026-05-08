@@ -75,6 +75,21 @@ class DistrictService {
     }
   }
 
+  // Get count of districts for a mission - more efficient than loading all data
+  Future<int> getDistrictCountByMission(String missionId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_collectionName)
+          .where('missionId', isEqualTo: missionId)
+          .count()
+          .get();
+
+      return querySnapshot.count ?? 0;
+    } catch (e) {
+      throw Exception('Failed to count districts: $e');
+    }
+  }
+
   // Stream all districts for a region (real-time updates)
   Stream<List<District>> streamDistrictsByRegion(String regionId) {
     return _firestore

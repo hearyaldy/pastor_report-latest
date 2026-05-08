@@ -49,65 +49,21 @@ class InAppWebViewScreenState extends State<InAppWebViewScreen> {
       builder: (context, isDarkTheme, child) {
         return Scaffold(
           backgroundColor: isDarkTheme ? Colors.black : Colors.white,
-          body: Column(
-            children: [
-              // Header with department name
-              Container(
-                height: 200,
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage('assets/images/header_image.png'),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                child: SafeArea(
-                  child: Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        currentDepartmentName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+          body: CustomScrollView(
+            slivers: [
+              _buildModernAppBar(),
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Column(
+                  children: [
+                    // WebView Content
+                    Expanded(
+                      child: WebViewWidget(controller: _controller),
                     ),
-                  ),
+                  ],
                 ),
               ),
-              // WebView Content
-              Expanded(
-                child: WebViewWidget(controller: _controller),
-              ),
             ],
-          ),
-          // Bottom Navigation Bar
-          bottomNavigationBar: BottomNavigationBar(
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home),
-                label: 'Home',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.list),
-                label: 'Dashboard',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.settings),
-                label: 'Settings',
-              ),
-            ],
-            onTap: (index) {
-              if (index == 0 || index == 1) {
-                Navigator.pushNamed(context, '/'); // Navigate to Home/Dashboard
-              } else if (index == 2) {
-                Navigator.pushNamed(context,
-                    AppConstants.routeSettings); // Navigate to Settings
-              }
-            },
           ),
           // Floating Action Button for Departments
           floatingActionButton: FloatingActionButton(
@@ -115,11 +71,121 @@ class InAppWebViewScreenState extends State<InAppWebViewScreen> {
               _showDepartmentMenu(
                   context); // Ensure this correctly calls the menu function
             },
-            backgroundColor: const Color.fromARGB(255, 26, 72, 112),
+            backgroundColor: AppColors.primaryLight,
+            foregroundColor: Colors.white,
             child: const Icon(Icons.menu),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildModernAppBar() {
+    return SliverAppBar(
+      expandedHeight: 180,
+      floating: false,
+      pinned: true,
+      backgroundColor: AppColors.primaryLight,
+      foregroundColor: Colors.white,
+      flexibleSpace: FlexibleSpaceBar(
+        titlePadding: const EdgeInsets.only(left: 16, bottom: 16, right: 16),
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              currentDepartmentName,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.business,
+                  color: Colors.white70,
+                  size: 14,
+                ),
+                SizedBox(width: 6),
+                Text(
+                  'Department Portal',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.primaryLight,
+                    AppColors.primaryDark,
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              right: -30,
+              top: 20,
+              child: Icon(
+                Icons.web,
+                size: 150,
+                color: Colors.white.withValues(alpha: 0.1),
+              ),
+            ),
+            Positioned(
+              top: 60,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                ),
+                child: const Text(
+                  'Online Portal',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh, color: Colors.white),
+          onPressed: () {
+            _controller.reload();
+          },
+          tooltip: 'Refresh',
+        ),
+        IconButton(
+          icon: const Icon(Icons.open_in_browser, color: Colors.white),
+          onPressed: () {
+            _controller.loadRequest(Uri.parse(currentUrl));
+          },
+          tooltip: 'Open in Browser',
+        ),
+      ],
     );
   }
 
@@ -128,6 +194,9 @@ class InAppWebViewScreenState extends State<InAppWebViewScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true, // Allow the bottom sheet to be scrollable
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (BuildContext context) {
         return DraggableScrollableSheet(
           initialChildSize: 0.6, // Initial height of the sheet
@@ -135,38 +204,84 @@ class InAppWebViewScreenState extends State<InAppWebViewScreen> {
           maxChildSize: 0.9, // Maximum height
           expand: false,
           builder: (context, scrollController) {
-            return SingleChildScrollView(
-              controller: scrollController,
-              child: Container(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.arrow_back),
-                      title: const Text('Back to Departments List'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.pushNamed(context, '/departments');
-                      },
-                    ),
-                    const Divider(),
-                    // Display all departments passed from the DepartmentsScreen
-                    ...widget.departments.map((department) {
-                      return ListTile(
-                        leading: Icon(
-                            Department.getIconFromString(department['icon'])),
-                        title: Text(department['name']),
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: SingleChildScrollView(
+                controller: scrollController,
+                child: Container(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      // Handle bar for draggable sheet
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).dividerColor,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Header
+                      Row(
+                        children: [
+                          const Icon(Icons.menu_book, color: AppColors.primaryLight),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Departments',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Switch to another department portal',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      // Back to Departments List option
+                      ListTile(
+                        leading: const Icon(Icons.arrow_back, color: AppColors.primaryLight),
+                        title: const Text('Back to Departments List'),
                         onTap: () {
-                          setState(() {
-                            currentDepartmentName = department['name'];
-                            currentUrl = department['link'];
-                            _controller.loadRequest(Uri.parse(currentUrl));
-                          });
                           Navigator.pop(context);
+                          Navigator.pushNamed(context, '/departments');
                         },
-                      );
-                    }),
-                  ],
+                      ),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      // Display all departments passed from the DepartmentsScreen
+                      ...widget.departments.map((department) {
+                        return ListTile(
+                          leading: Icon(
+                              Department.getIconFromString(department['icon']),
+                              color: AppColors.primaryLight),
+                          title: Text(department['name']),
+                          onTap: () {
+                            setState(() {
+                              currentDepartmentName = department['name'];
+                              currentUrl = department['link'];
+                              _controller.loadRequest(Uri.parse(currentUrl));
+                            });
+                            Navigator.pop(context);
+                          },
+                        );
+                      }),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
             );

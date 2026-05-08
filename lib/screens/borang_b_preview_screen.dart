@@ -9,6 +9,7 @@ import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/utils/theme_colors.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class BorangBPreviewScreen extends StatefulWidget {
   const BorangBPreviewScreen({super.key});
@@ -136,12 +137,14 @@ class _BorangBPreviewScreenState extends State<BorangBPreviewScreen> {
   }
 
   String _generateTextSummary(BorangBData data, DateTime month, user) {
+    final missionName = MissionService().getMissionNameById(user.mission);
+
     return '''
 BORANG B - MONTHLY PASTORAL REPORT
 ${DateFormat('MMMM yyyy').format(month)}
 
 Pastor: ${user.displayName ?? 'N/A'}
-Mission: ${user.mission ?? 'N/A'}
+Mission: $missionName
 District: ${user.district ?? 'N/A'}
 
 CHURCH MEMBERSHIP STATISTICS
@@ -269,7 +272,7 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
           ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: WebWrapper(child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,7 +402,7 @@ ${data.otherActivities.isNotEmpty ? '\nOTHER ACTIVITIES\n${data.otherActivities}
             const SizedBox(height: 80),
           ],
         ),
-      ),
+      )),
       floatingActionButton: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [

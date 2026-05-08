@@ -222,7 +222,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                 // Mission Dropdown
                 DropdownButtonFormField<String>(
-                  value: _selectedMission,
+                  initialValue: _selectedMission,
                   style: theme.textTheme.bodyLarge,
                   dropdownColor: colorScheme.surface,
                   decoration: const InputDecoration(
@@ -258,7 +258,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                 // Region Dropdown
                 DropdownButtonFormField<String>(
-                  value: _selectedRegion,
+                  initialValue: _selectedRegion,
                   style: theme.textTheme.bodyLarge,
                   dropdownColor: colorScheme.surface,
                   decoration: const InputDecoration(
@@ -297,7 +297,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                 // District Dropdown
                 DropdownButtonFormField<String>(
-                  value: _selectedDistrict,
+                  initialValue: _selectedDistrict,
                   style: theme.textTheme.bodyLarge,
                   dropdownColor: colorScheme.surface,
                   decoration: const InputDecoration(
@@ -335,7 +335,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                 // Role Dropdown
                 DropdownButtonFormField<String>(
-                  value: _selectedRole,
+                  initialValue: _selectedRole,
                   style: theme.textTheme.bodyLarge,
                   dropdownColor: colorScheme.surface,
                   decoration: const InputDecoration(

@@ -14,6 +14,7 @@ import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/services/region_service.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class ActivitiesListScreen extends StatefulWidget {
   const ActivitiesListScreen({super.key});
@@ -701,7 +702,7 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: WebWrapper(child: Column(
         children: [
           // User Profile Header (matching dashboard style)
           Container(
@@ -988,7 +989,7 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
                       ),
           ),
         ],
-      ),
+      )),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddActivityBottomSheet,
         backgroundColor: AppColors.primaryLight,

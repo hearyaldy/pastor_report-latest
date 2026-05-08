@@ -709,7 +709,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
             Padding(
               padding: const EdgeInsets.all(12),
               child: DropdownButtonFormField<String>(
-                value: _sortBy,
+                initialValue: _sortBy,
                 decoration: InputDecoration(
                   labelText: 'Sort By',
                   border: OutlineInputBorder(
@@ -877,7 +877,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
             Padding(
               padding: const EdgeInsets.all(12),
               child: DropdownButtonFormField<String>(
-                value: _selectedMission,
+                initialValue: _selectedMission,
                 decoration: InputDecoration(
                   labelText: 'Mission',
                   border: OutlineInputBorder(
@@ -990,7 +990,7 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
             Padding(
               padding: const EdgeInsets.all(12),
               child: DropdownButtonFormField<String>(
-                value: _selectedDistrict,
+                initialValue: _selectedDistrict,
                 decoration: InputDecoration(
                   labelText: 'District',
                   border: OutlineInputBorder(

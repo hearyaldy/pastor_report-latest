@@ -7,6 +7,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
 import 'package:pastor_report/models/borang_b_model.dart';
 import 'package:pastor_report/models/user_model.dart';
+import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/services/platform_file_service.dart';
 
 class BorangBService {
@@ -113,11 +114,12 @@ class BorangBService {
     required DateTime month,
   }) async {
     debugPrint('📝 Filling Borang B template...');
+    final missionName = MissionService().getMissionNameById(user.mission);
 
     // Fill user information
     _setCellValue(sheet, 'B2', user.displayName);
     _setCellValue(sheet, 'B3', user.role ?? '');
-    _setCellValue(sheet, 'B4', user.mission ?? '');
+    _setCellValue(sheet, 'B4', missionName);
     _setCellValue(sheet, 'B5', DateFormat('MMMM yyyy').format(month));
 
     // Church Membership Statistics (starting around row 8)
@@ -222,6 +224,7 @@ class BorangBService {
       debugPrint(
           '📋 Generating Borang B PDF for ${DateFormat('MMMM yyyy').format(month)}');
 
+      final missionName = MissionService().getMissionNameById(user.mission);
       final pdf = pw.Document();
 
       pdf.addPage(
@@ -251,7 +254,7 @@ class BorangBService {
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.Text('Pastor: ${user.displayName}'),
-                            pw.Text('Mission: ${user.mission ?? 'N/A'}'),
+                            pw.Text('Mission: $missionName'),
                           ],
                         ),
                         pw.Column(

@@ -20,14 +20,18 @@ class UserManagementService {
     });
   }
 
-  // Get all users (one-time fetch)
-  Future<List<UserModel>> getUsers() async {
+  // Get all users (one-time fetch) with configurable limit
+  Future<List<UserModel>> getUsers({int? limit}) async {
     try {
-      final snapshot =
-          await _firestore.collection('users').orderBy('displayName').get();
+      Query query = _firestore.collection('users').orderBy('displayName');
+      if (limit != null) {
+        query = query.limit(limit);
+      }
+      
+      final snapshot = await query.get();
 
       return snapshot.docs.map((doc) {
-        return UserModel.fromMap(doc.data(), doc.id);
+        return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       }).toList();
     } catch (e) {
       throw 'Failed to fetch users: $e';

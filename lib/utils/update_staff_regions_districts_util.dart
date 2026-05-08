@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:pastor_report/services/staff_service.dart';
 import 'package:pastor_report/services/region_service.dart';
 import 'package:pastor_report/services/district_service.dart';
-import 'package:pastor_report/models/staff_model.dart';
 
 class StaffRegionDistrictUtil {
   static final StaffService _staffService = StaffService.instance;

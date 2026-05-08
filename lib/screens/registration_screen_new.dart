@@ -196,7 +196,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
                       // Mission Dropdown
                       DropdownButtonFormField<String>(
-                        value: _selectedMission,
+                        initialValue: _selectedMission,
                         decoration: const InputDecoration(
                           labelText: 'Mission',
                           hintText: 'Select your mission',

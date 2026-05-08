@@ -4,6 +4,7 @@ import 'package:pastor_report/services/appointment_storage_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class AppointmentsScreen extends StatefulWidget {
   const AppointmentsScreen({super.key});
@@ -126,7 +127,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: WebWrapper(child: Column(
         children: [
           // Calendar
           Card(
@@ -209,7 +210,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                   ),
           ),
         ],
-      ),
+      )),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddAppointmentBottomSheet(),
         backgroundColor: AppColors.primaryLight,

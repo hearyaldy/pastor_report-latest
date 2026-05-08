@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 import 'package:uuid/uuid.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
 import 'package:pastor_report/providers/auth_provider.dart';
 import 'package:pastor_report/models/church_model.dart';
+import 'package:pastor_report/models/district_model.dart';
 import 'package:pastor_report/models/mission_model.dart';
+import 'package:pastor_report/models/region_model.dart';
 import 'package:pastor_report/models/resource_model.dart';
 import 'package:pastor_report/models/staff_model.dart';
 import 'package:pastor_report/models/user_model.dart';
@@ -630,7 +633,8 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _isLoading
+      body: WebWrapper(
+        child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -647,6 +651,7 @@ class _MyMinistryScreenState extends State<MyMinistryScreen>
                 ],
               ),
             ),
+      ),
     );
   }
 
@@ -2501,10 +2506,13 @@ class _StaffFormState extends State<_StaffForm> {
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
   late TextEditingController _departmentController;
-  late TextEditingController _districtController;
-  late TextEditingController _regionController;
   late TextEditingController _notesController;
   late String _selectedMission;
+  String? _selectedDistrictId;
+  String? _selectedRegionId;
+  List<District> _districts = [];
+  List<Region> _regions = [];
+  bool _loadingLocations = false;
 
   @override
   void initState() {
@@ -2515,21 +2523,49 @@ class _StaffFormState extends State<_StaffForm> {
     _phoneController = TextEditingController(text: widget.staff?.phone ?? '');
     _departmentController =
         TextEditingController(text: widget.staff?.department ?? '');
-    _districtController =
-        TextEditingController(text: widget.staff?.district ?? '');
-    _regionController = TextEditingController(text: widget.staff?.region ?? '');
     _notesController = TextEditingController(text: widget.staff?.notes ?? '');
+
+    _selectedDistrictId = widget.staff?.district;
+    _selectedRegionId = widget.staff?.region;
 
     // Initialize mission selection, handling both ID and name formats
     String initialMission = widget.staff?.mission ?? widget.userMission;
-    // Check if the initialMission is actually a mission ID
     final matchingMission = AppConstants.missions.firstWhere(
       (m) => m['id'] == initialMission || m['name'] == initialMission,
       orElse: () => AppConstants.missions.isNotEmpty
           ? AppConstants.missions.first
           : {'id': '', 'name': 'Unknown Mission'},
     );
-    _selectedMission = matchingMission['name']!;
+    _selectedMission = matchingMission['id']!;
+
+    _loadLocations(_selectedMission);
+  }
+
+  Future<void> _loadLocations(String missionId) async {
+    if (missionId.isEmpty) return;
+    setState(() => _loadingLocations = true);
+    try {
+      final districts =
+          await DistrictService.instance.getDistrictsByMission(missionId);
+      final regions =
+          await RegionService.instance.getRegionsByMission(missionId);
+      if (!mounted) return;
+      setState(() {
+        _districts = districts;
+        _regions = regions;
+        if (_selectedDistrictId != null &&
+            !districts.any((d) => d.id == _selectedDistrictId)) {
+          _selectedDistrictId = null;
+        }
+        if (_selectedRegionId != null &&
+            !regions.any((r) => r.id == _selectedRegionId)) {
+          _selectedRegionId = null;
+        }
+        _loadingLocations = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingLocations = false);
+    }
   }
 
   @override
@@ -2539,8 +2575,6 @@ class _StaffFormState extends State<_StaffForm> {
     _emailController.dispose();
     _phoneController.dispose();
     _departmentController.dispose();
-    _districtController.dispose();
-    _regionController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -2619,7 +2653,7 @@ class _StaffFormState extends State<_StaffForm> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _selectedMission,
+                  initialValue: _selectedMission,
                   decoration: const InputDecoration(
                     labelText: 'Mission',
                     border: OutlineInputBorder(),
@@ -2627,10 +2661,12 @@ class _StaffFormState extends State<_StaffForm> {
                   ),
                   items: AppConstants.missions
                       .map((m) => DropdownMenuItem(
-                          value: m['name'], child: Text(m['name']!)))
+                          value: m['id'], child: Text(m['name']!)))
                       .toList(),
-                  onChanged: (value) =>
-                      setState(() => _selectedMission = value!),
+                  onChanged: (value) {
+                    setState(() => _selectedMission = value!);
+                    _loadLocations(value!);
+                  },
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -2642,23 +2678,45 @@ class _StaffFormState extends State<_StaffForm> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _districtController,
-                  decoration: const InputDecoration(
-                    labelText: 'District (Optional)',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.location_on),
+                if (_loadingLocations)
+                  const LinearProgressIndicator()
+                else
+                  DropdownButtonFormField<String>(
+                    key: ValueKey(
+                        'district_${_selectedMission}_${_districts.length}'),
+                    initialValue: _selectedDistrictId,
+                    decoration: const InputDecoration(
+                      labelText: 'District (Optional)',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.location_on),
+                    ),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('None')),
+                      ..._districts.map((d) =>
+                          DropdownMenuItem(value: d.id, child: Text(d.name))),
+                    ],
+                    onChanged: (value) =>
+                        setState(() => _selectedDistrictId = value),
                   ),
-                ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _regionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Region (Optional)',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.map),
+                if (!_loadingLocations)
+                  DropdownButtonFormField<String>(
+                    key: ValueKey(
+                        'region_${_selectedMission}_${_regions.length}'),
+                    initialValue: _selectedRegionId,
+                    decoration: const InputDecoration(
+                      labelText: 'Region (Optional)',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.map),
+                    ),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('None')),
+                      ..._regions.map((r) =>
+                          DropdownMenuItem(value: r.id, child: Text(r.name))),
+                    ],
+                    onChanged: (value) =>
+                        setState(() => _selectedRegionId = value),
                   ),
-                ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _notesController,
@@ -2706,13 +2764,8 @@ class _StaffFormState extends State<_StaffForm> {
                                     _departmentController.text.trim().isEmpty
                                         ? null
                                         : _departmentController.text.trim(),
-                                district:
-                                    _districtController.text.trim().isEmpty
-                                        ? null
-                                        : _districtController.text.trim(),
-                                region: _regionController.text.trim().isEmpty
-                                    ? null
-                                    : _regionController.text.trim(),
+                                district: _selectedDistrictId,
+                                region: _selectedRegionId,
                                 notes: _notesController.text.trim().isEmpty
                                     ? null
                                     : _notesController.text.trim(),

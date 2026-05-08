@@ -37,6 +37,82 @@ class ChurchService {
     }
   }
 
+  // Get all churches for multiple districts at once - more efficient than individual calls
+  Future<List<Church>> getChurchesByDistricts(List<String> districtIds) async {
+    try {
+      if (districtIds.isEmpty) {
+        return [];
+      }
+
+      // Firestore has a limit of 10 items in whereIn clause
+      if (districtIds.length > 10) {
+        // Split into batches of 10
+        final churches = <Church>[];
+        for (int i = 0; i < districtIds.length; i += 10) {
+          final batch = districtIds.skip(i).take(10).toList();
+          final batchChurches = await _getChurchesByDistrictsBatch(batch);
+          churches.addAll(batchChurches);
+        }
+        return churches;
+      } else {
+        return await _getChurchesByDistrictsBatch(districtIds);
+      }
+    } catch (e) {
+      print('ChurchService: Error getting churches by districts: $e');
+      throw Exception('Failed to get churches by districts: $e');
+    }
+  }
+
+  // Helper method to get churches for up to 10 districts
+  Future<List<Church>> _getChurchesByDistrictsBatch(List<String> districtIds) async {
+    final querySnapshot = await _firestore
+        .collection(_collectionName)
+        .where('districtId', whereIn: districtIds)
+        .orderBy('churchName')
+        .get();
+
+    return querySnapshot.docs
+        .map((doc) => Church.fromJson(doc.data()))
+        .toList();
+  }
+
+  // Get count of churches for multiple districts - more efficient than individual calls
+  Future<int> getChurchCountByDistricts(List<String> districtIds) async {
+    try {
+      if (districtIds.isEmpty) {
+        return 0;
+      }
+
+      // Firestore has a limit of 10 items in whereIn clause
+      if (districtIds.length > 10) {
+        // Split into batches of 10
+        int totalCount = 0;
+        for (int i = 0; i < districtIds.length; i += 10) {
+          final batch = districtIds.skip(i).take(10).toList();
+          final batchCount = await _getChurchCountByDistrictsBatch(batch);
+          totalCount += batchCount;
+        }
+        return totalCount;
+      } else {
+        return await _getChurchCountByDistrictsBatch(districtIds);
+      }
+    } catch (e) {
+      print('ChurchService: Error counting churches by districts: $e');
+      throw Exception('Failed to count churches by districts: $e');
+    }
+  }
+
+  // Helper method to get count of churches for up to 10 districts
+  Future<int> _getChurchCountByDistrictsBatch(List<String> districtIds) async {
+    final querySnapshot = await _firestore
+        .collection(_collectionName)
+        .where('districtId', whereIn: districtIds)
+        .count()
+        .get();
+
+    return querySnapshot.count ?? 0;
+  }
+
   // Get all churches for a district
   Future<List<Church>> getChurchesByDistrict(String districtId) async {
     try {
@@ -303,6 +379,49 @@ class ChurchService {
     } catch (e) {
       print('ChurchService: Error getting churches by mission: $e');
       throw Exception('Failed to get churches by mission: $e');
+    }
+  }
+
+  // Get count of churches for a mission - more efficient than loading all data
+  Future<int> getChurchCountByMission(String missionIdentifier) async {
+    try {
+      // Special case for getting count of all churches
+      if (missionIdentifier == 'all') {
+        final querySnapshot = await _firestore
+            .collection(_collectionName)
+            .count()
+            .get();
+        
+        final count = querySnapshot.count ?? 0;
+        print('ChurchService: Counted $count churches (all missions)');
+        return count;
+      }
+
+      print('ChurchService: Counting churches for mission: $missionIdentifier');
+
+      // Try to resolve the mission name/ID
+      final resolvedName =
+          await MissionService.instance.getMissionNameFromId(missionIdentifier);
+      final missionIds = <String>[missionIdentifier];
+
+      // Add the resolved name if it's different
+      if (resolvedName != null && resolvedName != missionIdentifier) {
+        missionIds.add(resolvedName);
+      }
+
+      // Use whereIn to search for churches with either the ID or name
+      final querySnapshot = await _firestore
+          .collection(_collectionName)
+          .where('missionId', whereIn: missionIds)
+          .count()
+          .get();
+
+      final count = querySnapshot.count ?? 0;
+      print('ChurchService: Counted $count churches for mission: $missionIdentifier');
+      return count;
+    } catch (e) {
+      print('ChurchService: Error counting churches by mission: $e');
+      throw Exception('Failed to count churches by mission: $e');
     }
   }
 }

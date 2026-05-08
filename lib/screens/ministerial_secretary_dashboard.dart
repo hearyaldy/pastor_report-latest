@@ -10,6 +10,7 @@ import 'package:pastor_report/services/user_management_service.dart';
 import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/utils/constants.dart';
 import 'package:pastor_report/models/user_model.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class MinisterialSecretaryDashboard extends StatefulWidget {
   const MinisterialSecretaryDashboard({super.key});
@@ -187,7 +188,8 @@ class _MinisterialSecretaryDashboardState
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: RefreshIndicator(
+      body: WebWrapper(
+        child: RefreshIndicator(
         onRefresh: _loadData,
         child: CustomScrollView(
           slivers: [
@@ -199,6 +201,7 @@ class _MinisterialSecretaryDashboardState
             _buildReportsList(),
           ],
         ),
+      ),
       ),
     );
   }

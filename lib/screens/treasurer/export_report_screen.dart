@@ -11,6 +11,7 @@ import 'package:excel/excel.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class ExportReportScreen extends StatefulWidget {
   final Church church;
@@ -391,11 +392,11 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
         foregroundColor: Colors.white,
         title: const Text('Export Financial Report'),
       ),
-      body: _isLoading
+      body: WebWrapper(child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
               ? _buildErrorView()
-              : _buildExportOptions(),
+              : _buildExportOptions()),
     );
   }
 

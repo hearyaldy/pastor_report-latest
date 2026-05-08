@@ -8,6 +8,7 @@ import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/services/user_management_service.dart';
 import 'package:pastor_report/models/user_model.dart';
 import 'package:uuid/uuid.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class DistrictManagementScreen extends StatefulWidget {
   const DistrictManagementScreen({super.key});
@@ -147,7 +148,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      body: RefreshIndicator(
+      body: WebWrapper(child: RefreshIndicator(
         onRefresh: () async {
           setState(() {});
         },
@@ -165,7 +166,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
         ),
-      ),
+      )),
       floatingActionButton: _effectiveMissionId != null
           ? FloatingActionButton.extended(
               onPressed: () => _showAddDistrictDialog(),
@@ -300,7 +301,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
 
                 final missions = snapshot.data!;
                 return DropdownButtonFormField<String>(
-                  value: _selectedMissionId,
+                  initialValue: _selectedMissionId,
                   decoration: InputDecoration(
                     labelText: 'Select Mission to Manage',
                     prefixIcon:
@@ -410,7 +411,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
             return Container(
               margin: const EdgeInsets.only(bottom: 16),
               child: DropdownButtonFormField<String>(
-                value: _selectedRegionFilter,
+                initialValue: _selectedRegionFilter,
                 decoration: InputDecoration(
                   labelText: 'Filter by Region',
                   prefixIcon: const Icon(Icons.map),
@@ -964,7 +965,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                       }
 
                       return DropdownButtonFormField<String>(
-                        value: selectedRegionId,
+                        initialValue: selectedRegionId,
                         decoration: const InputDecoration(
                           labelText: 'Select Region',
                           border: OutlineInputBorder(),
@@ -1111,7 +1112,7 @@ class _DistrictManagementScreenState extends State<DistrictManagementScreen> {
                       final regions = snapshot.data ?? [];
 
                       return DropdownButtonFormField<String>(
-                        value: selectedRegionId,
+                        initialValue: selectedRegionId,
                         decoration: const InputDecoration(
                           labelText: 'Select Region',
                           border: OutlineInputBorder(),

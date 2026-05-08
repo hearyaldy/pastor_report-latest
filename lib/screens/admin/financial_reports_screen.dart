@@ -23,6 +23,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pastor_report/screens/admin/financial_reports_all_tab.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class FinancialReportsScreen extends StatefulWidget {
   const FinancialReportsScreen({super.key});
@@ -326,7 +327,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
               label: const Text('Add Report'),
             )
           : null,
-      body: NestedScrollView(
+      body: WebWrapper(child: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
             SliverAppBar(
@@ -486,7 +487,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
             FinancialReportsAllTab(),
           ],
         ),
-      ),
+      )),
     );
   }
 
@@ -691,7 +692,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
         ],
       ),
       child: DropdownButtonFormField<String?>(
-        value: value,
+        initialValue: value,
         isExpanded: true,
         decoration: InputDecoration(
           labelText: label,

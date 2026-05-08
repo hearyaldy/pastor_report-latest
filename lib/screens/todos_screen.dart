@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pastor_report/models/todo_model.dart';
 import 'package:pastor_report/services/todo_storage_service.dart';
 import 'package:pastor_report/utils/constants.dart';
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class TodosScreen extends StatefulWidget {
   const TodosScreen({super.key});
@@ -169,7 +170,7 @@ class _TodosScreenState extends State<TodosScreen>
           ],
         ),
       ),
-      body: _isLoading
+      body: WebWrapper(child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : TabBarView(
               controller: _tabController,
@@ -177,7 +178,7 @@ class _TodosScreenState extends State<TodosScreen>
                 _buildTodoList(_incompleteTodos, isCompleted: false),
                 _buildTodoList(_completedTodos, isCompleted: true),
               ],
-            ),
+            )),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddTodoDialog(),
         backgroundColor: AppColors.primaryLight,

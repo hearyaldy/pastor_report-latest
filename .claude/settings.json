@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/hearyhealdysairin/flutter/packages/flutter_tools/lib/src/android/**)",
+      "Bash(brew search *)",
+      "Bash(mkdir -p ~/Library/Android/sdk/cmdline-tools && curl -fsSL \"https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip\" -o /tmp/cmdline-tools.zip && echo \"Download complete, size: $\\(du -h /tmp/cmdline-tools.zip | cut -f1\\)\")"
+    ],
+    "additionalDirectories": [
+      "/Users/hearyhealdysairin/Library/Android/sdk"
+    ]
+  }
+}

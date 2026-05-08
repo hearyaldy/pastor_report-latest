@@ -11,6 +11,7 @@ import 'package:pastor_report/services/church_service.dart';
 import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/screens/treasurer/financial_report_form.dart';
 import 'package:pastor_report/utils/app_colors.dart' as AppColorUtils;
+import 'package:pastor_report/utils/web_wrapper.dart';
 
 class FinancialReportsListScreen extends StatefulWidget {
   final String? churchId;
@@ -198,7 +199,7 @@ class _FinancialReportsListScreenState
           ),
         ],
       ),
-      body: _isLoading
+      body: WebWrapper(child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : CustomScrollView(
               slivers: [
@@ -220,7 +221,7 @@ class _FinancialReportsListScreenState
                         ),
                       ),
               ],
-            ),
+            )),
       floatingActionButton: _selectedChurchId != null
           ? FloatingActionButton(
               heroTag: "financial_reports_list_fab",
@@ -248,7 +249,7 @@ class _FinancialReportsListScreenState
         ],
       ),
       child: DropdownButtonFormField<String>(
-        value: _selectedChurchId,
+        initialValue: _selectedChurchId,
         isExpanded: true,
         decoration: const InputDecoration(
           labelText: 'Select Church',

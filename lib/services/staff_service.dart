@@ -26,7 +26,7 @@ class StaffService {
 
   /// Stream staff by mission
   Stream<List<Staff>> streamStaffByMission(String missionIdentifier) {
-    print('StaffService: Streaming staff for mission: $missionIdentifier');
+    debugPrint('StaffService: Streaming staff for mission: $missionIdentifier');
 
     // We need to create an async wrapper to handle the asynchronous mission resolution
     final controller = StreamController<List<Staff>>();
@@ -40,7 +40,7 @@ class StaffService {
 
       if (resolvedName != null && resolvedName != missionIdentifier) {
         possibleMissions.add(resolvedName);
-        print(
+        debugPrint(
             'StaffService: Resolved mission ID to name: $missionIdentifier -> $resolvedName');
       }
 
@@ -52,8 +52,9 @@ class StaffService {
           .map((snapshot) {
         final result =
             snapshot.docs.map((doc) => Staff.fromFirestore(doc)).toList();
-        print(
-            'StaffService: Found ${result.length} staff members for mission: $missionIdentifier');
+        // Only log occasionally to prevent spam
+        // debugPrint(
+        //     'StaffService: Found ${result.length} staff members for mission: $missionIdentifier');
         return result;
       });
 
@@ -78,7 +79,7 @@ class StaffService {
       return Stream.value([]);
     }
 
-    print('StaffService: Streaming staff for multiple missions: $missions');
+    debugPrint('StaffService: Streaming staff for multiple missions: $missions');
 
     // We need to create an async wrapper to handle the asynchronous mission resolution
     final controller = StreamController<List<Staff>>();
@@ -97,7 +98,7 @@ class StaffService {
             await MissionService.instance.getMissionNameFromId(missionId);
         if (resolvedName != null && !possibleMissions.contains(resolvedName)) {
           possibleMissions.add(resolvedName);
-          print(
+          debugPrint(
               'StaffService: Resolved mission ID to name: $missionId -> $resolvedName');
         }
       }
@@ -114,8 +115,9 @@ class StaffService {
             .map((snapshot) {
           final result =
               snapshot.docs.map((doc) => Staff.fromFirestore(doc)).toList();
-          print(
-              'StaffService: Found ${result.length} staff members for missions: $missions');
+          // Only log occasionally to prevent spam
+          // debugPrint(
+          //     'StaffService: Found ${result.length} staff members for missions: $missions');
           return result;
         });
 
@@ -130,7 +132,7 @@ class StaffService {
         controller.onCancel = () => subscription.cancel();
       } else {
         // Multiple queries needed if exceeds limit
-        print(
+        debugPrint(
             'StaffService: Too many mission combinations (${possibleMissions.length}), splitting queries');
 
         // Track all unique staff to avoid duplicates from multiple queries
@@ -170,7 +172,7 @@ class StaffService {
 
   /// Stream staff by district
   Stream<List<Staff>> streamStaffByDistrict(String districtId) {
-    print('StaffService: Streaming staff for district: $districtId');
+    debugPrint('StaffService: Streaming staff for district: $districtId');
     return _staffCollection
         .where('district', isEqualTo: districtId)
         .orderBy('name')
@@ -179,8 +181,9 @@ class StaffService {
       final staff = snapshot.docs.map((doc) {
         return Staff.fromFirestore(doc);
       }).toList();
-      print(
-          'StaffService: Found ${staff.length} staff members for district: $districtId');
+      // Only log occasionally to prevent spam
+      // debugPrint(
+      //     'StaffService: Found ${staff.length} staff members for district: $districtId');
       return staff;
     });
   }
