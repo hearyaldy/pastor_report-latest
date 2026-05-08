@@ -652,6 +652,7 @@ class _DepartmentManagementScreenState
 
   void _showDepartmentDetails(Department dept, String? userMission) {
     final deptService = DepartmentService();
+    final messenger = ScaffoldMessenger.of(context);
 
     showModalBottomSheet(
       context: context,
@@ -831,8 +832,8 @@ class _DepartmentManagementScreenState
                             isActive: !dept.isActive,
                           );
                           await deptService.updateDepartment(updatedDept);
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          if (!mounted) return;
+                          messenger.showSnackBar(
                             SnackBar(
                               content: Row(
                                 children: [
@@ -851,8 +852,8 @@ class _DepartmentManagementScreenState
                             ),
                           );
                         } catch (e) {
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          if (!mounted) return;
+                          messenger.showSnackBar(
                             SnackBar(
                               content: Row(
                                 children: [
@@ -923,8 +924,8 @@ class _DepartmentManagementScreenState
                         try {
                           await deptService.deleteDepartment(dept.id,
                               missionName: userMission);
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          if (!mounted) return;
+                          messenger.showSnackBar(
                             SnackBar(
                               content: const Row(
                                 children: [
@@ -941,8 +942,8 @@ class _DepartmentManagementScreenState
                             ),
                           );
                         } catch (e) {
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          if (!mounted) return;
+                          messenger.showSnackBar(
                             SnackBar(
                               content: Row(
                                 children: [
@@ -1048,6 +1049,7 @@ class _DepartmentManagementScreenState
         TextEditingController(text: department?.formUrl ?? '');
     IconData selectedIcon = department?.icon ?? Icons.dashboard;
     Color selectedColor = department?.color ?? AppColors.cardBackground;
+    final messenger = ScaffoldMessenger.of(context);
 
     showModalBottomSheet(
       context: context,
@@ -1273,7 +1275,7 @@ class _DepartmentManagementScreenState
                           onPressed: () async {
                             if (nameController.text.isEmpty ||
                                 urlController.text.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(
                                   content: const Row(
                                     children: [
@@ -1315,16 +1317,8 @@ class _DepartmentManagementScreenState
                               // Close the bottom sheet
                               Navigator.pop(context);
 
-                              // Refresh the parent screen
-                              if (context.mounted) {
-                                // Use findAncestorStateOfType to refresh the parent
-                                context
-                                    .findAncestorStateOfType<
-                                        _DepartmentManagementScreenState>()
-                                    ?.setState(() {});
-                              }
-
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              if (!mounted) return;
+                              messenger.showSnackBar(
                                 SnackBar(
                                   content: Row(
                                     children: [
@@ -1342,11 +1336,11 @@ class _DepartmentManagementScreenState
                                 ),
                               );
                             } catch (e) {
-                              if (!context.mounted) return;
+                              if (!mounted) return;
                               debugPrint('Error updating department: $e');
 
                               // Don't close the sheet on error so user can try again
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(
                                   content: Row(
                                     children: [

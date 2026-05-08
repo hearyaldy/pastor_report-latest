@@ -1,5 +1,5 @@
 # Uncomment this line to define a global platform for your project
-platform :ios, '13.0'
+platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -41,18 +41,30 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
   end
 
-  # Fix for gRPC modulemap path issue
-  # Create the grpc directory and symlink to fix module map error
-  grpc_dir = File.join(installer.sandbox.root, 'Headers', 'Private', 'grpc')
-  FileUtils.mkdir_p(grpc_dir) unless Dir.exist?(grpc_dir)
+  target_support = File.join(installer.sandbox.root.to_s, 'Target Support Files')
 
-  grpc_modulemap = File.join(grpc_dir, 'gRPC-Core.modulemap')
-  relative_path = File.join('..', '..', 'Target Support Files', 'gRPC-Core', 'gRPC-Core.modulemap')
+  # Fix 1 — gRPC-Core modulemap: CocoaPods emits -fmodule-map-file pointing to
+  # Headers/Private/grpc/gRPC-Core.modulemap, but that directory is removed during
+  # integration. Patch xcconfig files to use the actual stable location.
+  wrong_modulemap  = '${PODS_ROOT}/Headers/Private/grpc/gRPC-Core.modulemap'
+  correct_modulemap = '${PODS_ROOT}/Target Support Files/gRPC-Core/gRPC-Core.modulemap'
 
-  # Remove existing symlink if it exists
-  File.delete(grpc_modulemap) if File.exist?(grpc_modulemap) || File.symlink?(grpc_modulemap)
+  # Fix 2 — FirebaseFirestoreInternal weak_framework: the pod is a static library
+  # (library.static), so there is no .framework bundle to weakly link. The static
+  # lib is already covered by -l"FirebaseFirestoreInternal". Remove the invalid flag.
+  bad_weak_fw = ' -weak_framework "FirebaseFirestoreInternal"'
 
-  # Create the symlink
-  File.symlink(relative_path, grpc_modulemap)
-  puts "✓ Created symlink for gRPC-Core.modulemap"
+  Dir.glob(File.join(target_support, '**', '*.xcconfig')).each do |xcconfig|
+    content = File.read(xcconfig)
+    changed = false
+    if content.include?(wrong_modulemap)
+      content = content.gsub(wrong_modulemap, correct_modulemap)
+      changed = true
+    end
+    if content.include?(bad_weak_fw)
+      content = content.gsub(bad_weak_fw, '')
+      changed = true
+    end
+    File.write(xcconfig, content) if changed
+  end
 end

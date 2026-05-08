@@ -78,7 +78,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 : error,
           ),
           backgroundColor: AppTheme.error,
-          behavior: SnackBarBehavior.floating,
+          behavior: SnackBarBehavior.fixed,
           duration: Duration(seconds: isVerificationError ? 8 : 4),
           action: isVerificationError
               ? SnackBarAction(
@@ -99,7 +99,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             : ap.errorMessage ?? 'Failed to resend'),
                         backgroundColor:
                             sent ? AppTheme.success : AppTheme.error,
-                        behavior: SnackBarBehavior.floating,
+                        behavior: SnackBarBehavior.fixed,
                       ),
                     );
                   },
@@ -116,7 +116,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         SnackBar(
           content: const Text('Please enter your email first'),
           backgroundColor: AppTheme.warning,
-          behavior: SnackBarBehavior.floating,
+          behavior: SnackBarBehavior.fixed,
         ),
       );
       return;
@@ -162,7 +162,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 : authProvider.errorMessage ?? 'Failed to send reset email',
           ),
           backgroundColor: success ? AppTheme.success : AppTheme.error,
-          behavior: SnackBarBehavior.floating,
+          behavior: SnackBarBehavior.fixed,
         ),
       );
     }

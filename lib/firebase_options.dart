@@ -55,8 +55,8 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAf8kEYR4ydG3vxKRi0s2cNLqJxUZxGJfw',
-    appId: '1:695678872591:ios:c02bb5da5f9a7db7f4c77a',
+    apiKey: 'AIzaSyCCarOuR3eR6QOEsr-hCaoYBc88ZyVsJBU',
+    appId: '1:695678872591:ios:9288a6300b83042af4c77a',
     messagingSenderId: '695678872591',
     projectId: 'pastor-report-e4c52',
     storageBucket: 'pastor-report-e4c52.firebasestorage.app',
