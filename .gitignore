@@ -50,6 +50,10 @@ app.*.map.json
 *.keystore
 key.properties
 *-firebase-adminsdk-*.json
+**/google-services.json
+**/GoogleService-Info.plist
+lib/firebase_options.dart
+temp_script/
 
 # macOS specific
 .DS_Store

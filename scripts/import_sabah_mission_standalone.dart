@@ -117,9 +117,17 @@ class Church {
 
 Future<void> main() async {
   print('Initializing Firebase...');
+  const apiKey = String.fromEnvironment('FIREBASE_WEB_API_KEY');
+  if (apiKey.isEmpty) {
+    throw StateError(
+      'Missing FIREBASE_WEB_API_KEY. Run with '
+      '--dart-define=FIREBASE_WEB_API_KEY=<your Firebase Web API key>.',
+    );
+  }
+
   await Firebase.initializeApp(
     options: const FirebaseOptions(
-      apiKey: 'AIzaSyB1Z7SAsV8g5UcnZMLJmtj4UZfMzA7juRk',
+      apiKey: apiKey,
       appId: '1:695678872591:web:0cd71e5809edd908f4c77a',
       messagingSenderId: '695678872591',
       projectId: 'pastor-report-e4c52',
