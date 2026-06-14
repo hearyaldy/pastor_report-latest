@@ -18,7 +18,211 @@ class ActivityExportService {
 
   ActivityExportService._();
 
-  /// Generate PDF report and save/share it
+  /// Build the raw PDF bytes — used by both preview and direct share.
+  Future<Uint8List> buildPDFBytes({
+    required List<Activity> activities,
+    required UserModel user,
+    required double kmCost,
+    required DateTime month,
+  }) async {
+    debugPrint('📄 Building PDF for ${activities.length} activities');
+    final pdf = pw.Document();
+
+    final totalKm = activities.fold<double>(
+      0.0,
+      (sum, activity) => sum + activity.mileage,
+    );
+    final totalCost = totalKm * kmCost;
+    final missionName = MissionService().getMissionNameById(user.mission);
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Header
+              pw.Container(
+                width: double.infinity,
+                padding: const pw.EdgeInsets.all(16),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.blue900,
+                  borderRadius: pw.BorderRadius.circular(8),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'Monthly Activities Report',
+                      style: pw.TextStyle(
+                        fontSize: 24,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.white,
+                      ),
+                    ),
+                    pw.SizedBox(height: 8),
+                    pw.Text(
+                      DateFormat('MMMM yyyy').format(month),
+                      style: const pw.TextStyle(
+                        fontSize: 14,
+                        color: PdfColors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              pw.SizedBox(height: 24),
+
+              // Pastor Info
+              pw.Container(
+                padding: const pw.EdgeInsets.all(16),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.grey300),
+                  borderRadius: pw.BorderRadius.circular(8),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'Pastor Information',
+                      style: pw.TextStyle(
+                        fontSize: 16,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(height: 8),
+                    pw.Row(
+                      children: [
+                        pw.Expanded(
+                          child: _buildInfoRow('Name', user.displayName),
+                        ),
+                      ],
+                    ),
+                    if (user.role != null && user.role!.isNotEmpty)
+                      _buildInfoRow('Position', user.role!),
+                    if (user.mission != null && user.mission!.isNotEmpty)
+                      _buildInfoRow('Mission', missionName),
+                  ],
+                ),
+              ),
+
+              pw.SizedBox(height: 24),
+
+              // Summary
+              pw.Container(
+                padding: const pw.EdgeInsets.all(16),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.blue50,
+                  borderRadius: pw.BorderRadius.circular(8),
+                ),
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildSummaryItem(
+                      'Total Activities',
+                      activities.length.toString(),
+                    ),
+                    _buildSummaryItem(
+                      'Total Distance',
+                      '${totalKm.toStringAsFixed(1)} km',
+                    ),
+                    _buildSummaryItem(
+                      'Total Cost',
+                      'RM${totalCost.toStringAsFixed(2)}',
+                    ),
+                  ],
+                ),
+              ),
+
+              pw.SizedBox(height: 24),
+
+              // Activities Table
+              pw.Text(
+                'Activities Details',
+                style: pw.TextStyle(
+                  fontSize: 16,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 12),
+
+              pw.Table(
+                border: pw.TableBorder.all(color: PdfColors.grey300),
+                columnWidths: {
+                  0: const pw.FlexColumnWidth(1.5),
+                  1: const pw.FlexColumnWidth(3),
+                  2: const pw.FlexColumnWidth(2),
+                  3: const pw.FlexColumnWidth(1.5),
+                  4: const pw.FlexColumnWidth(1.5),
+                },
+                children: [
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(
+                      color: PdfColors.grey200,
+                    ),
+                    children: [
+                      _buildTableHeader('Date'),
+                      _buildTableHeader('Activities'),
+                      _buildTableHeader('Location'),
+                      _buildTableHeader('KM'),
+                      _buildTableHeader('Cost (RM)'),
+                    ],
+                  ),
+                  ...activities.map((activity) {
+                    return pw.TableRow(
+                      children: [
+                        _buildTableCell(
+                          DateFormat('dd/MM/yyyy').format(activity.date),
+                        ),
+                        _buildTableCell(activity.activities),
+                        _buildTableCell(activity.location ?? '-'),
+                        _buildTableCell(activity.mileage.toStringAsFixed(1)),
+                        _buildTableCell(
+                          activity.calculateCost(kmCost).toStringAsFixed(2),
+                        ),
+                      ],
+                    );
+                  }),
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(
+                      color: PdfColors.blue50,
+                    ),
+                    children: [
+                      _buildTableCell('TOTAL', bold: true),
+                      _buildTableCell(''),
+                      _buildTableCell(''),
+                      _buildTableCell(totalKm.toStringAsFixed(1), bold: true),
+                      _buildTableCell(totalCost.toStringAsFixed(2), bold: true),
+                    ],
+                  ),
+                ],
+              ),
+
+              pw.Spacer(),
+
+              // Footer
+              pw.Divider(),
+              pw.SizedBox(height: 8),
+              pw.Text(
+                'Generated on ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
+                style: const pw.TextStyle(
+                  fontSize: 10,
+                  color: PdfColors.grey600,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    return Uint8List.fromList(await pdf.save());
+  }
+
+  /// Generate PDF report and share it directly (no preview).
   Future<void> generateAndSharePDF({
     required List<Activity> activities,
     required UserModel user,
@@ -26,226 +230,18 @@ class ActivityExportService {
     required DateTime month,
   }) async {
     try {
-      debugPrint('📄 Generating PDF for ${activities.length} activities');
-      final pdf = pw.Document();
-
-      // Calculate totals
-      final totalKm = activities.fold<double>(
-        0.0,
-        (sum, activity) => sum + activity.mileage,
-      );
-      final totalCost = totalKm * kmCost;
-      final missionName = MissionService().getMissionNameById(user.mission);
-
-      // Add page
-      pdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(32),
-          build: (context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                // Header
-                pw.Container(
-                  width: double.infinity,
-                  padding: const pw.EdgeInsets.all(16),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.blue900,
-                    borderRadius: pw.BorderRadius.circular(8),
-                  ),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        'Monthly Activities Report',
-                        style: pw.TextStyle(
-                          fontSize: 24,
-                          fontWeight: pw.FontWeight.bold,
-                          color: PdfColors.white,
-                        ),
-                      ),
-                      pw.SizedBox(height: 8),
-                      pw.Text(
-                        DateFormat('MMMM yyyy').format(month),
-                        style: const pw.TextStyle(
-                          fontSize: 14,
-                          color: PdfColors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                pw.SizedBox(height: 24),
-
-                // User Profile
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(16),
-                  decoration: pw.BoxDecoration(
-                    border: pw.Border.all(color: PdfColors.grey300),
-                    borderRadius: pw.BorderRadius.circular(8),
-                  ),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        'Pastor Information',
-                        style: pw.TextStyle(
-                          fontSize: 16,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                      ),
-                      pw.SizedBox(height: 8),
-                      pw.Row(
-                        children: [
-                          pw.Expanded(
-                            child: _buildInfoRow('Name', user.displayName),
-                          ),
-                        ],
-                      ),
-                      if (user.role != null && user.role!.isNotEmpty)
-                        _buildInfoRow('Position', user.role!),
-                      if (user.mission != null && user.mission!.isNotEmpty)
-                        _buildInfoRow('Mission', missionName),
-                    ],
-                  ),
-                ),
-
-                pw.SizedBox(height: 24),
-
-                // Summary Statistics
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(16),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.blue50,
-                    borderRadius: pw.BorderRadius.circular(8),
-                  ),
-                  child: pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildSummaryItem(
-                        'Total Activities',
-                        activities.length.toString(),
-                      ),
-                      _buildSummaryItem(
-                        'Total Distance',
-                        '${totalKm.toStringAsFixed(1)} km',
-                      ),
-                      _buildSummaryItem(
-                        'Total Cost',
-                        'RM${totalCost.toStringAsFixed(2)}',
-                      ),
-                    ],
-                  ),
-                ),
-
-                pw.SizedBox(height: 24),
-
-                // Activities Table
-                pw.Text(
-                  'Activities Details',
-                  style: pw.TextStyle(
-                    fontSize: 16,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-                pw.SizedBox(height: 12),
-
-                pw.Table(
-                  border: pw.TableBorder.all(color: PdfColors.grey300),
-                  columnWidths: {
-                    0: const pw.FlexColumnWidth(1.5),
-                    1: const pw.FlexColumnWidth(3),
-                    2: const pw.FlexColumnWidth(2),
-                    3: const pw.FlexColumnWidth(1.5),
-                    4: const pw.FlexColumnWidth(1.5),
-                  },
-                  children: [
-                    // Header Row
-                    pw.TableRow(
-                      decoration: const pw.BoxDecoration(
-                        color: PdfColors.grey200,
-                      ),
-                      children: [
-                        _buildTableHeader('Date'),
-                        _buildTableHeader('Activities'),
-                        _buildTableHeader('Location'),
-                        _buildTableHeader('KM'),
-                        _buildTableHeader('Cost (RM)'),
-                      ],
-                    ),
-
-                    // Data Rows
-                    ...activities.map((activity) {
-                      return pw.TableRow(
-                        children: [
-                          _buildTableCell(
-                            DateFormat('dd/MM/yyyy').format(activity.date),
-                          ),
-                          _buildTableCell(activity.activities),
-                          _buildTableCell(activity.location ?? '-'),
-                          _buildTableCell(activity.mileage.toStringAsFixed(1)),
-                          _buildTableCell(
-                            activity.calculateCost(kmCost).toStringAsFixed(2),
-                          ),
-                        ],
-                      );
-                    }),
-
-                    // Total Row
-                    pw.TableRow(
-                      decoration: const pw.BoxDecoration(
-                        color: PdfColors.blue50,
-                      ),
-                      children: [
-                        _buildTableCell(
-                          'TOTAL',
-                          bold: true,
-                        ),
-                        _buildTableCell(''),
-                        _buildTableCell(''),
-                        _buildTableCell(
-                          totalKm.toStringAsFixed(1),
-                          bold: true,
-                        ),
-                        _buildTableCell(
-                          totalCost.toStringAsFixed(2),
-                          bold: true,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-
-                pw.Spacer(),
-
-                // Footer
-                pw.Divider(),
-                pw.SizedBox(height: 8),
-                pw.Text(
-                  'Generated on ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
-                  style: const pw.TextStyle(
-                    fontSize: 10,
-                    color: PdfColors.grey600,
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
+      final pdfBytes = await buildPDFBytes(
+        activities: activities,
+        user: user,
+        kmCost: kmCost,
+        month: month,
       );
 
-      // Save PDF
-      debugPrint('💾 Saving PDF file...');
       final fileName = 'Activities_${DateFormat('yyyy_MM').format(month)}.pdf';
-      final pdfBytes = await pdf.save();
-
-      // Use platform service to save and share
       final platformService = PlatformFileService.getInstance();
       await platformService.saveAndShareFile(
         fileName: fileName,
-        bytes: Uint8List.fromList(pdfBytes),
+        bytes: pdfBytes,
         mimeType: 'application/pdf',
       );
 

@@ -50,24 +50,27 @@ class _AllBorangBReportsScreenState extends State<AllBorangBReportsScreen> {
   Future<void> _loadAllReports() async {
     setState(() => _isLoading = true);
     try {
-      // Get current user's mission
       final authProvider = context.read<AuthProvider>();
-      final userMission = authProvider.user?.mission;
+      final user = authProvider.user;
+      final userMission = user?.mission;
 
-      final reports = await _firestoreService.getAllReports();
+      List<BorangBData> reports;
+
+      // Admins see all missions; every other role is scoped to their own mission.
+      if (user?.isAdmin == true) {
+        reports = await _firestoreService.getAllReports();
+      } else if (userMission != null && userMission.isNotEmpty) {
+        reports = await _firestoreService.getReportsByMission(userMission);
+        _selectedMission = userMission;
+      } else {
+        reports = [];
+      }
 
       // Filter to only show SUBMITTED reports (drafts should not be visible)
       final submittedReports =
           reports.where((r) => r.status == ReportStatus.submitted).toList();
 
-      // Filter reports by user's mission if they are ministerial secretary
-      List<BorangBData> filteredByMission = submittedReports;
-      if (userMission != null && userMission.isNotEmpty) {
-        filteredByMission =
-            submittedReports.where((r) => r.missionId == userMission).toList();
-        // Set the selected mission to user's mission and disable changing it
-        _selectedMission = userMission;
-      }
+      final filteredByMission = submittedReports;
 
       // Load district names for submitted reports to build complete cache
       final districtIds = submittedReports

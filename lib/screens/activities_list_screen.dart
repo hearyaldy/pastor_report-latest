@@ -15,6 +15,7 @@ import 'package:pastor_report/services/mission_service.dart';
 import 'package:pastor_report/services/district_service.dart';
 import 'package:pastor_report/services/region_service.dart';
 import 'package:pastor_report/utils/web_wrapper.dart';
+import 'package:pastor_report/screens/activity_pdf_preview_screen.dart';
 
 class ActivitiesListScreen extends StatefulWidget {
   const ActivitiesListScreen({super.key});
@@ -181,7 +182,7 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
     controller.dispose();
   }
 
-  Future<void> _exportToPDF() async {
+  Future<void> _previewPDF() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
 
@@ -199,36 +200,17 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
       return;
     }
 
-    setState(() => _isExporting = true);
-
-    try {
-      // Generate and share PDF
-      await _exportService.generateAndSharePDF(
-        activities: _activities,
-        user: user,
-        kmCost: _kmCost,
-        month: _selectedMonth,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PDF exported successfully')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error exporting PDF: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isExporting = false);
-      }
-    }
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ActivityPdfPreviewScreen(
+          activities: _activities,
+          user: user,
+          kmCost: _kmCost,
+          month: _selectedMonth,
+        ),
+      ),
+    );
   }
 
   Future<void> _showBackupOptions() async {
@@ -693,7 +675,7 @@ class _ActivitiesListScreenState extends State<ActivitiesListScreen> {
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
             tooltip: 'Export to PDF',
-            onPressed: _isExporting ? null : _exportToPDF,
+            onPressed: _previewPDF,
           ),
           IconButton(
             icon: const Icon(Icons.table_chart),

@@ -32,7 +32,10 @@ class _FinancialReportEditScreenState extends State<FinancialReportEditScreen> {
   final _titheController = TextEditingController();
   final _offeringsController = TextEditingController();
   final _specialOfferingsController = TextEditingController();
+  final _receiptFromController = TextEditingController();
+  final _receiptToController = TextEditingController();
   final _notesController = TextEditingController();
+  final List<_FinanceTypeEntry> _customEntries = [];
 
   // Focus nodes for form fields
   final _titheFocus = FocusNode();
@@ -53,8 +56,16 @@ class _FinancialReportEditScreenState extends State<FinancialReportEditScreen> {
     _offeringsController.text = widget.report.offerings.toString();
     _specialOfferingsController.text =
         widget.report.specialOfferings.toString();
+    _receiptFromController.text = widget.report.receiptNumberFrom ?? '';
+    _receiptToController.text = widget.report.receiptNumberTo ?? '';
     _notesController.text = widget.report.notes ?? '';
     _status = widget.report.status;
+    for (final e in widget.report.customFinanceTypes) {
+      _customEntries.add(_FinanceTypeEntry(
+        label: e['label'] as String? ?? '',
+        amount: ((e['amount'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2),
+      ));
+    }
 
     // Animate form in after build completes
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -66,18 +77,19 @@ class _FinancialReportEditScreenState extends State<FinancialReportEditScreen> {
 
   @override
   void dispose() {
-    // Dispose controllers
     _titheController.dispose();
     _offeringsController.dispose();
     _specialOfferingsController.dispose();
+    _receiptFromController.dispose();
+    _receiptToController.dispose();
     _notesController.dispose();
-
-    // Dispose focus nodes
+    for (final e in _customEntries) {
+      e.dispose();
+    }
     _titheFocus.dispose();
     _offeringsFocus.dispose();
     _specialOfferingsFocus.dispose();
     _notesFocus.dispose();
-
     super.dispose();
   }
 
@@ -154,6 +166,15 @@ class _FinancialReportEditScreenState extends State<FinancialReportEditScreen> {
       final offerings = double.parse(_offeringsController.text);
       final specialOfferings = double.parse(_specialOfferingsController.text);
       final notes = _notesController.text.trim();
+      final receiptFrom = _receiptFromController.text.trim();
+      final receiptTo = _receiptToController.text.trim();
+      final customFinanceTypes = _customEntries
+          .where((e) => e.labelCtrl.text.trim().isNotEmpty)
+          .map((e) => {
+                'label': e.labelCtrl.text.trim(),
+                'amount': double.tryParse(e.amountCtrl.text) ?? 0.0,
+              })
+          .toList();
 
       debugPrint('💾 Saving report - isNew: ${widget.report.id.isEmpty}');
       debugPrint('   Church: ${widget.report.churchId}');
@@ -206,6 +227,9 @@ class _FinancialReportEditScreenState extends State<FinancialReportEditScreen> {
         tithe: tithe,
         offerings: offerings,
         specialOfferings: specialOfferings,
+        receiptNumberFrom: receiptFrom.isNotEmpty ? receiptFrom : null,
+        receiptNumberTo: receiptTo.isNotEmpty ? receiptTo : null,
+        customFinanceTypes: customFinanceTypes,
         notes: notes.isNotEmpty ? notes : null,
         status: _status,
         editedBy: currentUser?.uid,
@@ -360,9 +384,87 @@ class _FinancialReportEditScreenState extends State<FinancialReportEditScreen> {
                               icon: Icons.card_giftcard,
                               keyboardType: TextInputType.number,
                               focusNode: _specialOfferingsFocus,
-                              nextFocus: _notesFocus,
+                            ),
+                            const SizedBox(height: 24),
+
+                            // --- Additional Finance Types ---
+                            _buildSectionHeader(
+                                'Additional Finance Types', Icons.add_chart),
+                            const SizedBox(height: 12),
+                            ..._customEntries.asMap().entries.map((entry) {
+                              final i = entry.key;
+                              final item = entry.value;
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 5,
+                                      child: _buildInlineField(
+                                        controller: item.labelCtrl,
+                                        hint: 'Finance type name',
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      flex: 3,
+                                      child: _buildInlineField(
+                                        controller: item.amountCtrl,
+                                        hint: 'Amount (RM)',
+                                        keyboardType:
+                                            TextInputType.numberWithOptions(
+                                                decimal: true),
+                                        prefixText: 'RM ',
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.remove_circle,
+                                          color: Colors.redAccent),
+                                      onPressed: () => setState(
+                                          () => _customEntries.removeAt(i)),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                            TextButton.icon(
+                              onPressed: () => setState(() =>
+                                  _customEntries.add(_FinanceTypeEntry())),
+                              icon: const Icon(Icons.add_circle_outline),
+                              label: const Text('Add Finance Type'),
                             ),
                             const SizedBox(height: 20),
+
+                            // --- Receipt Number Range ---
+                            _buildSectionHeader(
+                                'Receipt Number Range', Icons.receipt_long),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildInlineField(
+                                    controller: _receiptFromController,
+                                    hint: 'From (e.g. A001)',
+                                    required: false,
+                                  ),
+                                ),
+                                const Padding(
+                                  padding:
+                                      EdgeInsets.symmetric(horizontal: 10),
+                                  child:
+                                      Text('—', style: TextStyle(fontSize: 18)),
+                                ),
+                                Expanded(
+                                  child: _buildInlineField(
+                                    controller: _receiptToController,
+                                    hint: 'To (e.g. A050)',
+                                    required: false,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+
                             // Status dropdown
                             Container(
                               decoration: BoxDecoration(
@@ -529,5 +631,75 @@ class _FinancialReportEditScreenState extends State<FinancialReportEditScreen> {
             },
       ),
     );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.primaryLight),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: AppColors.primaryLight,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInlineField({
+    required TextEditingController controller,
+    required String hint,
+    TextInputType keyboardType = TextInputType.text,
+    String? prefixText,
+    bool required = true,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).shadowColor.withValues(alpha: 0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          hintText: hint,
+          prefixText: prefixText,
+          border: InputBorder.none,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        ),
+        validator: required
+            ? (v) {
+                if (v == null || v.isEmpty) return 'Required';
+                return null;
+              }
+            : null,
+      ),
+    );
+  }
+}
+
+class _FinanceTypeEntry {
+  final TextEditingController labelCtrl;
+  final TextEditingController amountCtrl;
+
+  _FinanceTypeEntry({String label = '', String amount = '0.00'})
+      : labelCtrl = TextEditingController(text: label),
+        amountCtrl = TextEditingController(text: amount);
+
+  void dispose() {
+    labelCtrl.dispose();
+    amountCtrl.dispose();
   }
 }

@@ -114,6 +114,21 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
         _regions = futures[1] as List<Region>;
         _districts = futures[2] as List<District>;
         _churches = futures[3] != null ? [futures[3] as Church] : [];
+      } else if (user?.isAdmin == false && user?.mission != null && user!.mission!.isNotEmpty) {
+        // Mission-scoped roles (missionAdmin, ministerialSecretary, officer, director)
+        // load only their own mission's data.
+        _selectedMissionId ??= user.mission;
+        final futures = await Future.wait([
+          _missionService.getAllMissions(),
+          _regionService.getRegionsByMission(user.mission!),
+          _districtService.getDistrictsByMission(user.mission!),
+          _churchService.getChurchesByMission(user.mission!),
+        ]);
+
+        _missions = futures[0] as List<Mission>;
+        _regions = futures[1] as List<Region>;
+        _districts = futures[2] as List<District>;
+        _churches = futures[3] as List<Church>;
       } else {
         // Admins and super admins see everything - parallel loading
         final futures = await Future.wait([
@@ -157,8 +172,8 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
             user!.churchId!, _selectedMonth);
         _reports = report != null ? [report] : [];
       } else {
-        // OPTIMIZED: Use single query to get all reports for the month
-        // Filter by mission/region/district if selected
+        // Admins see all; mission-scoped roles always query within their mission
+        // (_selectedMissionId is pre-set to user.mission for non-admins above).
         _reports = await _reportService.getReportsByMonth(
           _selectedMonth,
           missionId: _selectedMissionId,
@@ -228,7 +243,8 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen>
   bool _hasAccess(UserModel? user) {
     if (user == null) return false;
 
-    return user.canManageMissions() ||
+    return user.isAdmin ||
+        user.isMissionAdmin ||
         user.userRole == UserRole.churchTreasurer ||
         user.userRole == UserRole.districtPastor;
   }

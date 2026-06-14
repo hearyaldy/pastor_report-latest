@@ -31,6 +31,7 @@ service cloud.firestore {
     function isMissionPresident() {
       return isAuthenticated() &&
              (currentUserData().role == 'Mission President' ||
+              currentUserData().roleTitle == 'Mission President' ||
               currentUserData().userRole == 'missionPresident');
     }
 
@@ -77,6 +78,7 @@ service cloud.firestore {
     function isDistrictPastor() {
       return isAuthenticated() &&
              (currentUserData().role == 'District Pastor' ||
+              currentUserData().roleTitle == 'District Pastor' ||
               currentUserData().userRole == 'districtPastor');
     }
 
@@ -84,6 +86,9 @@ service cloud.firestore {
     function isChurchTreasurer() {
       return isAuthenticated() &&
              (currentUserData().role == 'Church Treasurer' ||
+              currentUserData().role == 'Church Treasure' ||
+              currentUserData().roleTitle == 'Church Treasurer' ||
+              currentUserData().roleTitle == 'Church Treasure' ||
               currentUserData().userRole == 'churchTreasurer');
     }
 
@@ -104,6 +109,52 @@ service cloud.firestore {
       return isAuthenticated()
         ? currentUserData().churchId
         : null;
+    }
+
+    function userChurchIds() {
+      return isAuthenticated() && currentUserData().churchIds is list
+        ? currentUserData().churchIds
+        : [];
+    }
+
+    function isUserChurch(churchId) {
+      return churchId == userChurchId() ||
+        userChurchIds().hasAny([churchId]);
+    }
+
+    function churchExists(churchId) {
+      return churchId is string &&
+        exists(/databases/$(database)/documents/churches/$(churchId));
+    }
+
+    function churchData(churchId) {
+      return get(/databases/$(database)/documents/churches/$(churchId)).data;
+    }
+
+    function reportMatchesChurch(report) {
+      return churchExists(report.churchId) &&
+        churchData(report.churchId).districtId == report.districtId &&
+        churchData(report.churchId).missionId == report.missionId;
+    }
+
+    function isTreasurerForChurch(churchId) {
+      return churchExists(churchId) &&
+        churchData(churchId).treasurerId == request.auth.uid;
+    }
+
+    function canWriteFinancialReport(report) {
+      return isAdmin() ||
+        (isMissionAdmin() && report.missionId == userMissionId()) ||
+        (isDistrictPastor() && reportMatchesChurch(report) &&
+          (report.districtId == userDistrictId() ||
+           isUserMissionValue(report.missionId))) ||
+        (isChurchTreasurer() &&
+          (isUserChurch(report.churchId) || isTreasurerForChurch(report.churchId)));
+    }
+
+    function canSubmitOwnFinancialReport(report) {
+      return request.auth.uid == report.submittedBy &&
+        (isChurchTreasurer() || isDistrictPastor() || canWriteFinancialReport(report));
     }
 
     function isMissionLevelReporter() {
@@ -169,8 +220,12 @@ service cloud.firestore {
 
       // User list/search exposes emails and assignments, so keep it to
       // privileged management/reporting roles.
-      allow list: if isAuthenticated() &&
-                    (isAdmin() || isMissionAdmin() || isMissionLevelReporter());
+      // missionAdmin is scoped to their own mission; admin/superAdmin see all.
+      allow list: if isAuthenticated() && (
+                    isAdmin() ||
+                    (isMissionAdmin() && resource.data.mission == userMissionId()) ||
+                    (isMissionLevelReporter() && resource.data.mission == userMissionId())
+                  );
 
       // Users can create their own document during registration, but cannot
       // bootstrap privileged roles or admin flags from a modified client.
@@ -334,29 +389,17 @@ service cloud.firestore {
                       (isMissionAdmin() && resource.data.missionId == userMissionId()) ||
                       (isMissionPresident() && resource.data.missionId == userMissionId()) ||
                       (isDistrictPastor() && resource.data.districtId == userDistrictId()) ||
-                      (isChurchTreasurer() && resource.data.churchId == userChurchId()) ||
+                      (isChurchTreasurer() && isUserChurch(resource.data.churchId)) ||
                       resource.data.submittedBy == request.auth.uid);
       // Allow creates for allowed roles within their scope
-      allow create: if isAuthenticated() && (
-        isAdmin() ||
-        (isMissionAdmin() && request.resource.data.missionId == userMissionId()) ||
-        (isDistrictPastor() && request.resource.data.districtId == userDistrictId()) ||
-        (isChurchTreasurer() && request.resource.data.churchId == userChurchId())
-      ) && request.resource.data.submittedBy == request.auth.uid;
+      allow create: if isAuthenticated() &&
+        canSubmitOwnFinancialReport(request.resource.data);
 
       // Allow updates for report owner, admins, mission admins, district pastors (their district/mission), and treasurers (their church)
       allow update: if isAuthenticated() && (
-        resource.data.submittedBy == request.auth.uid ||
-        isAdmin() ||
-        (isMissionAdmin() &&
-          resource.data.missionId == userMissionId() &&
-          request.resource.data.missionId == userMissionId()) ||
-        (isDistrictPastor() &&
-          resource.data.districtId == userDistrictId() &&
-          request.resource.data.districtId == userDistrictId()) ||
-        (isChurchTreasurer() &&
-          resource.data.churchId == userChurchId() &&
-          request.resource.data.churchId == userChurchId())
+        canSubmitOwnFinancialReport(request.resource.data) ||
+        (canWriteFinancialReport(resource.data) &&
+          canWriteFinancialReport(request.resource.data))
       ) && request.resource.data.submittedBy == resource.data.submittedBy;
 
       // Only admins can delete financial reports
@@ -550,6 +593,25 @@ service cloud.firestore {
                        (resource.data.missionId == userMissionId() &&
                         resource.data.userId == request.auth.uid) ||
                        isMissionScopedAdmin(resource.data.missionId));
+    }
+
+    // FAM data — Financial Activity Management form attached to financial reports.
+    // The document has only reportId (no churchId/missionId), so access is gated
+    // on the same roles that can access financial_reports.
+    match /fam_data/{famId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        isMissionAdmin() ||
+        isDistrictPastor() ||
+        isChurchTreasurer()
+      );
+      allow create, update: if isAuthenticated() && (
+        isAdmin() ||
+        isMissionAdmin() ||
+        isDistrictPastor() ||
+        isChurchTreasurer()
+      );
+      allow delete: if isAdmin();
     }
 
     // Location requests — users request regions/districts during onboarding

@@ -129,7 +129,10 @@ class UserModel {
   bool get isEditor => userRole == UserRole.editor;
   bool get isChurchTreasurer => userRole == UserRole.churchTreasurer;
   bool get canAccessFinancialReports =>
-      userRole == UserRole.churchTreasurer || isAdmin || isSuperAdmin;
+      userRole == UserRole.churchTreasurer ||
+      userRole == UserRole.districtPastor ||
+      isAdmin ||
+      isSuperAdmin;
   // Mission-level staff can view all Borang B reports
   bool get canAccessBorangBReports =>
       isMinisterialSecretary || isOfficer || isDirector || isSuperAdmin;
@@ -139,6 +142,8 @@ class UserModel {
   factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
     // Determine role from map
     UserRole role = UserRole.user;
+    final roleTitle = map['roleTitle'] as String?;
+    final legacyRole = map['role'] as String?;
 
     // Check new role field first
     if (map['userRole'] != null) {
@@ -162,6 +167,18 @@ class UserModel {
         role = UserRole.churchTreasurer;
       } else if (map['isEditor'] == true) {
         role = UserRole.editor;
+      }
+    }
+
+    if (role == UserRole.user) {
+      if (roleTitle == 'Church Treasurer' ||
+          roleTitle == 'Church Treasure' ||
+          legacyRole == 'Church Treasurer' ||
+          legacyRole == 'Church Treasure') {
+        role = UserRole.churchTreasurer;
+      } else if (roleTitle == 'District Pastor' ||
+          legacyRole == 'District Pastor') {
+        role = UserRole.districtPastor;
       }
     }
 

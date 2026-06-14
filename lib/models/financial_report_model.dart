@@ -50,6 +50,9 @@ class FinancialReport {
   final double tithe;
   final double offerings;
   final double specialOfferings;
+  final String? receiptNumberFrom;
+  final String? receiptNumberTo;
+  final List<Map<String, dynamic>> customFinanceTypes;
   final String? notes;
   final String submittedBy; // User ID who submitted
   final DateTime submittedAt;
@@ -70,6 +73,9 @@ class FinancialReport {
     this.tithe = 0.0,
     this.offerings = 0.0,
     this.specialOfferings = 0.0,
+    this.receiptNumberFrom,
+    this.receiptNumberTo,
+    this.customFinanceTypes = const [],
     this.notes,
     required this.submittedBy,
     required this.submittedAt,
@@ -80,8 +86,12 @@ class FinancialReport {
     this.editedBy,
   });
 
-  /// Calculate total financial
-  double get totalFinancial => tithe + offerings + specialOfferings;
+  /// Calculate total of all finance entries including custom types
+  double get totalFinancial {
+    final customTotal = customFinanceTypes.fold(
+      0.0, (acc, e) => acc + ((e['amount'] as num?)?.toDouble() ?? 0.0));
+    return tithe + offerings + specialOfferings + customTotal;
+  }
 
   /// Convert to Map for Firestore
   Map<String, dynamic> toMap() {
@@ -96,6 +106,9 @@ class FinancialReport {
       'tithe': tithe,
       'offerings': offerings,
       'specialOfferings': specialOfferings,
+      'receiptNumberFrom': receiptNumberFrom,
+      'receiptNumberTo': receiptNumberTo,
+      'customFinanceTypes': customFinanceTypes,
       'notes': notes,
       'submittedBy': submittedBy,
       'submittedAt': Timestamp.fromDate(submittedAt),
@@ -120,6 +133,12 @@ class FinancialReport {
       tithe: (map['tithe'] as num?)?.toDouble() ?? 0.0,
       offerings: (map['offerings'] as num?)?.toDouble() ?? 0.0,
       specialOfferings: (map['specialOfferings'] as num?)?.toDouble() ?? 0.0,
+      receiptNumberFrom: map['receiptNumberFrom'] as String?,
+      receiptNumberTo: map['receiptNumberTo'] as String?,
+      customFinanceTypes: (map['customFinanceTypes'] as List<dynamic>?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          [],
       notes: map['notes'],
       submittedBy: map['submittedBy'] ?? '',
       submittedAt: (map['submittedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -152,6 +171,9 @@ class FinancialReport {
     double? tithe,
     double? offerings,
     double? specialOfferings,
+    String? receiptNumberFrom,
+    String? receiptNumberTo,
+    List<Map<String, dynamic>>? customFinanceTypes,
     String? notes,
     String? submittedBy,
     DateTime? submittedAt,
@@ -172,6 +194,9 @@ class FinancialReport {
       tithe: tithe ?? this.tithe,
       offerings: offerings ?? this.offerings,
       specialOfferings: specialOfferings ?? this.specialOfferings,
+      receiptNumberFrom: receiptNumberFrom ?? this.receiptNumberFrom,
+      receiptNumberTo: receiptNumberTo ?? this.receiptNumberTo,
+      customFinanceTypes: customFinanceTypes ?? this.customFinanceTypes,
       notes: notes ?? this.notes,
       submittedBy: submittedBy ?? this.submittedBy,
       submittedAt: submittedAt ?? this.submittedAt,

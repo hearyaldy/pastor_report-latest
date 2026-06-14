@@ -609,8 +609,10 @@ class _ImprovedAdminDashboardState extends State<ImprovedAdminDashboard> {
       ));
     }
 
-    // Financial Reports - Admin, SuperAdmin, ChurchTreasurer
-    if (user.canManageMissions() || user.userRole == UserRole.churchTreasurer) {
+    // Financial Reports - Admin, SuperAdmin, ChurchTreasurer, DistrictPastor
+    if (user.canManageMissions() ||
+        user.userRole == UserRole.churchTreasurer ||
+        user.userRole == UserRole.districtPastor) {
       tools.add(_buildManagementCard(
         'Financial Reports',
         'View analytics',

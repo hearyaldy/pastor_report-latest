@@ -337,8 +337,171 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
+
+            // Legal Card
+            Card(
+              elevation: 2,
+              margin: const EdgeInsets.only(bottom: 16.0),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Legal',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: Icon(Icons.privacy_tip_outlined,
+                          color: AppColors.primaryLight),
+                      title: const Text('Privacy Policy'),
+                      subtitle: const Text('How we collect and use your data'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _showPrivacyPolicy(context),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
+        ),
+      ),
+    );
+  }
+
+  void _showPrivacyPolicy(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.privacy_tip_outlined, color: Colors.white),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Privacy Policy',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Effective Date: January 1, 2025',
+                      style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12),
+                    ),
+                    const SizedBox(height: 16),
+                    const _PolicySection(
+                      title: '1. Information We Collect',
+                      body:
+                          'We collect the following information when you use PastorPro:\n\n'
+                          '• Account information: name and email address used for registration.\n'
+                          '• Profile data: role, assigned mission, district, region, and church.\n'
+                          '• Report data: pastoral activity reports (Borang B), financial reports, appointments, events, and to-do items you create.\n'
+                          '• Device data: anonymous usage information to improve app performance.',
+                    ),
+                    _PolicySection(
+                      title: '2. How We Use Your Information',
+                      body:
+                          'Your information is used solely to operate the PastorPro app:\n\n'
+                          '• To authenticate your identity and provide role-based access.\n'
+                          '• To store and display your pastoral reports and records.\n'
+                          '• To allow authorised administrators to review aggregated mission reports.\n'
+                          '• We do not sell, rent, or share your personal data with third parties.',
+                    ),
+                    _PolicySection(
+                      title: '3. Data Storage & Security',
+                      body:
+                          'All data is stored securely in Google Firebase (Firestore and Firebase Authentication), '
+                          'which is hosted in Google Cloud infrastructure. Access is controlled by Firestore '
+                          'security rules that enforce role-based and mission-scoped permissions — users can '
+                          'only access data relevant to their assigned mission.',
+                    ),
+                    _PolicySection(
+                      title: '4. Data Access & Sharing',
+                      body:
+                          'Access to your data is limited by your role:\n\n'
+                          '• Personal reports are visible only to you and authorised mission administrators.\n'
+                          '• Financial reports are visible to church treasurers, district pastors, and mission admins within your mission.\n'
+                          '• Super Admins have oversight access across all missions for administrative purposes only.',
+                    ),
+                    _PolicySection(
+                      title: '5. Data Retention',
+                      body:
+                          'Your data is retained for as long as your account is active or as required for '
+                          'church administration purposes. You may request deletion of your account and '
+                          'associated data by contacting your mission administrator.',
+                    ),
+                    _PolicySection(
+                      title: '6. Children\'s Privacy',
+                      body:
+                          'PastorPro is intended for use by ordained ministers, church staff, and mission '
+                          'administrators. We do not knowingly collect information from individuals under 18.',
+                    ),
+                    _PolicySection(
+                      title: '7. Changes to This Policy',
+                      body:
+                          'We may update this Privacy Policy from time to time. Any changes will be reflected '
+                          'in the app and the effective date will be updated accordingly.',
+                    ),
+                    _PolicySection(
+                      title: '8. Contact',
+                      body:
+                          'For questions about this Privacy Policy or your data, please contact your '
+                          'mission administrator or email: support@haweeinc.com',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryLight,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Close'),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -443,6 +606,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class _PolicySection extends StatelessWidget {
+  final String title;
+  final String body;
+
+  const _PolicySection({required this.title, required this.body});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          const SizedBox(height: 6),
+          Text(body, style: const TextStyle(fontSize: 13, height: 1.5)),
+        ],
+      ),
     );
   }
 }
